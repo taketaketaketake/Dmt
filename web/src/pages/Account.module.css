@@ -1,0 +1,80 @@
+/* =============================================================================
+   ACCOUNT SHELL
+   Account pages with sidebar navigation
+   ============================================================================= */
+
+.layout {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: var(--space-12);
+}
+
+@media (max-width: 768px) {
+  .layout {
+    grid-template-columns: 1fr;
+    gap: var(--space-6);
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   SIDEBAR
+   ----------------------------------------------------------------------------- */
+
+.sidebar {
+  position: sticky;
+  top: calc(var(--header-height) + var(--space-8));
+  align-self: start;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-bottom: var(--space-8);
+}
+
+.navLink {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  padding: var(--space-2) 0;
+  transition: color var(--transition-fast);
+}
+
+.navLink:hover {
+  color: var(--color-text-primary);
+  opacity: 1;
+}
+
+.navLink.active {
+  color: var(--color-text-primary);
+}
+
+.navDivider {
+  height: 1px;
+  background-color: var(--color-border);
+  margin: var(--space-3) 0;
+}
+
+.signOutButton {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  background: none;
+  border: none;
+  padding: var(--space-2) 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.signOutButton:hover {
+  color: var(--color-text-secondary);
+}
+
+/* -----------------------------------------------------------------------------
+   MAIN
+   ----------------------------------------------------------------------------- */
+
+.main {
+  min-width: 0;
+}

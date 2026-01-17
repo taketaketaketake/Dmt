@@ -1,0 +1,275 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================================================
+// ENUMS
+// =============================================================================
+
+enum UserStatus {
+  pending
+  approved
+  suspended
+}
+
+enum ProfileApprovalStatus {
+  draft
+  pending_review
+  approved
+  rejected
+}
+
+enum ProjectStatus {
+  active
+  completed
+  archived
+}
+
+enum JobType {
+  full_time
+  part_time
+  contract
+  freelance
+}
+
+enum CategoryType {
+  skill
+  industry
+  project_type
+}
+
+// =============================================================================
+// USER & AUTH
+// =============================================================================
+
+model User {
+  id               String     @id @default(cuid())
+  email            String     @unique
+  status           UserStatus @default(pending)
+  isEmployer       Boolean    @default(false)
+  isAdmin          Boolean    @default(false)
+  stripeCustomerId String?    @unique // Stripe customer ID for billing
+  createdAt        DateTime   @default(now())
+  lastLoginAt      DateTime?
+
+  // Relations
+  profile         Profile?
+  sessions        Session[]
+  magicLinkTokens MagicLinkToken[]
+  favorites       UserFavorite[]
+  projectFollows  ProjectFollow[]
+
+  @@index([email])
+  @@index([status])
+  @@index([stripeCustomerId])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model MagicLinkToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// =============================================================================
+// PROFILE
+// =============================================================================
+
+model Profile {
+  id             String                @id @default(cuid())
+  userId         String                @unique
+  name           String
+  handle         String                @unique
+  bio            String?
+  location       String?
+  portraitUrl    String?
+  websiteUrl     String?
+  twitterHandle  String?
+  linkedinUrl    String?
+  githubHandle   String?
+  approvalStatus ProfileApprovalStatus @default(draft)
+  approvedAt     DateTime?
+  rejectionNote  String?               // Admin note explaining rejection
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  // Relations
+  user                User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categories          ProfileCategory[]
+  projectsCreated     Project[]             @relation("ProjectCreator")
+  projectCollaborations ProjectCollaborator[]
+  jobsPosted          Job[]
+  favoritedBy         UserFavorite[]
+
+  // Full-text search index (Postgres-specific)
+  @@index([name])
+  @@index([handle])
+  @@index([approvalStatus])
+}
+
+model ProfileCategory {
+  profileId  String
+  categoryId String
+  createdAt  DateTime @default(now())
+
+  // Relations
+  profile  Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([profileId, categoryId])
+}
+
+// =============================================================================
+// PROJECT
+// =============================================================================
+
+model Project {
+  id          String        @id @default(cuid())
+  creatorId   String
+  title       String
+  description String?
+  status      ProjectStatus @default(active)
+  websiteUrl  String?
+  repoUrl     String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relations
+  creator       Profile               @relation("ProjectCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  categories    ProjectCategory[]
+  collaborators ProjectCollaborator[]
+  followers     ProjectFollow[]
+
+  // Indexes
+  @@index([creatorId])
+  @@index([status])
+  @@index([title])
+}
+
+model ProjectCategory {
+  projectId  String
+  categoryId String
+  createdAt  DateTime @default(now())
+
+  // Relations
+  project  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, categoryId])
+}
+
+model ProjectCollaborator {
+  projectId String
+  profileId String
+  createdAt DateTime @default(now())
+
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, profileId])
+}
+
+// =============================================================================
+// JOB
+// =============================================================================
+
+model Job {
+  id          String   @id @default(cuid())
+  posterId    String
+  title       String
+  companyName String
+  description String?
+  type        JobType
+  applyUrl    String
+  active      Boolean  @default(true)
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  poster Profile @relation(fields: [posterId], references: [id], onDelete: Cascade)
+
+  // Indexes
+  @@index([posterId])
+  @@index([active])
+  @@index([expiresAt])
+}
+
+// =============================================================================
+// CATEGORY
+// =============================================================================
+
+model Category {
+  id        String       @id @default(cuid())
+  name      String
+  slug      String       @unique
+  type      CategoryType
+  createdAt DateTime     @default(now())
+
+  // Relations
+  profiles ProfileCategory[]
+  projects ProjectCategory[]
+
+  @@index([slug])
+  @@index([type])
+}
+
+// =============================================================================
+// USER SIGNALS (private, non-social)
+// =============================================================================
+
+model UserFavorite {
+  id        String   @id @default(cuid())
+  userId    String
+  profileId String
+  createdAt DateTime @default(now())
+
+  // Relations
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, profileId])
+  @@index([userId])
+}
+
+model ProjectFollow {
+  id        String   @id @default(cuid())
+  userId    String
+  projectId String
+  createdAt DateTime @default(now())
+
+  // Relations
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, projectId])
+  @@index([userId])
+}

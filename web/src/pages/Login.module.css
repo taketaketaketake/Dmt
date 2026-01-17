@@ -1,0 +1,180 @@
+/* =============================================================================
+   LOGIN PAGE
+   Entry point - editorial, centered layout
+   ============================================================================= */
+
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+}
+
+.container {
+  width: 100%;
+  max-width: 420px;
+}
+
+/* -----------------------------------------------------------------------------
+   HEADER
+   ----------------------------------------------------------------------------- */
+
+.header {
+  text-align: center;
+  margin-bottom: var(--space-10);
+}
+
+.title {
+  font-size: var(--text-3xl);
+  font-weight: var(--font-bold);
+  letter-spacing: var(--tracking-tight);
+  margin-bottom: var(--space-3);
+}
+
+.tagline {
+  font-size: var(--text-lg);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+/* -----------------------------------------------------------------------------
+   CARD
+   ----------------------------------------------------------------------------- */
+
+.card {
+  background-color: var(--color-paper);
+  color: var(--color-text-on-paper);
+  padding: var(--space-8);
+}
+
+.cardTitle {
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--space-2);
+}
+
+.cardDescription {
+  font-size: var(--text-sm);
+  color: var(--color-text-on-paper-secondary);
+  margin-bottom: var(--space-6);
+  line-height: var(--leading-relaxed);
+}
+
+/* -----------------------------------------------------------------------------
+   FORM
+   ----------------------------------------------------------------------------- */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.labelText {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-on-paper);
+}
+
+.input {
+  background-color: white;
+  border: 1px solid var(--color-border-on-paper);
+  color: var(--color-text-on-paper);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-base);
+}
+
+.input::placeholder {
+  color: var(--color-text-on-paper-secondary);
+  opacity: 0.6;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-text-on-paper);
+}
+
+.submitButton {
+  background-color: var(--color-text-on-paper);
+  color: var(--color-paper);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  border: none;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.submitButton:hover {
+  opacity: 0.85;
+}
+
+.submitButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error {
+  font-size: var(--text-sm);
+  color: #c53030;
+  margin: 0;
+}
+
+/* -----------------------------------------------------------------------------
+   FOOTER
+   ----------------------------------------------------------------------------- */
+
+.footer {
+  margin-top: var(--space-8);
+  text-align: center;
+}
+
+.footerText {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  line-height: var(--leading-relaxed);
+}
+
+/* -----------------------------------------------------------------------------
+   CONFIRMATION STATE
+   ----------------------------------------------------------------------------- */
+
+.description {
+  font-size: var(--text-lg);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-4);
+}
+
+.hint {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-6);
+}
+
+.textAction {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.textAction:hover {
+  color: var(--color-text-primary);
+}

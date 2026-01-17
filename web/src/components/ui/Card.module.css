@@ -1,0 +1,10 @@
+/* =============================================================================
+   CARD
+   Paper-like surface on ink background
+   ============================================================================= */
+
+.card {
+  background-color: var(--color-paper);
+  color: var(--color-text-on-paper);
+  padding: var(--space-6);
+}

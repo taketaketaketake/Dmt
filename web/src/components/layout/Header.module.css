@@ -1,0 +1,76 @@
+/* =============================================================================
+   HEADER
+   Fixed top navigation
+   ============================================================================= */
+
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--header-height);
+  background-color: var(--color-ink-deep);
+  border-bottom: 1px solid var(--color-border);
+  z-index: 100;
+}
+
+.container {
+  max-width: var(--max-width-content);
+  height: 100%;
+  margin: 0 auto;
+  padding: 0 var(--space-6);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* -----------------------------------------------------------------------------
+   LOGO
+   ----------------------------------------------------------------------------- */
+
+.logo {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  letter-spacing: var(--tracking-tight);
+  text-decoration: none;
+  color: var(--color-text-primary);
+}
+
+.logo:hover {
+  opacity: 1;
+}
+
+/* -----------------------------------------------------------------------------
+   NAVIGATION
+   ----------------------------------------------------------------------------- */
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+}
+
+.navLink {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--color-text-secondary);
+  transition: color var(--transition-fast);
+}
+
+.navLink:hover {
+  color: var(--color-text-primary);
+  opacity: 1;
+}
+
+.navLink.active {
+  color: var(--color-text-primary);
+}
+
+.divider {
+  width: 1px;
+  height: 16px;
+  background-color: var(--color-border);
+}

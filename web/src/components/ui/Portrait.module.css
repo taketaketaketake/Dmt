@@ -1,0 +1,57 @@
+/* =============================================================================
+   PORTRAIT
+   Square editorial image crops - no rounded corners
+   ============================================================================= */
+
+.portrait {
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  background-color: var(--color-ink-lighter);
+}
+
+/* Placeholder when no image */
+.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-ink-light);
+}
+
+.initial {
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+}
+
+/* Sizes */
+.sm {
+  width: 40px;
+  height: 40px;
+}
+
+.sm .initial {
+  font-size: var(--text-sm);
+}
+
+.md {
+  width: 64px;
+  height: 64px;
+}
+
+.lg {
+  width: 120px;
+  height: 120px;
+}
+
+.lg .initial {
+  font-size: var(--text-3xl);
+}
+
+.xl {
+  width: 200px;
+  height: 200px;
+}
+
+.xl .initial {
+  font-size: var(--text-5xl);
+}

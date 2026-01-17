@@ -1,0 +1,104 @@
+/* =============================================================================
+   BILLING
+   Subscription management
+   ============================================================================= */
+
+.header {
+  margin-bottom: var(--space-6);
+}
+
+.title {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  letter-spacing: var(--tracking-tight);
+}
+
+/* -----------------------------------------------------------------------------
+   CARD
+   ----------------------------------------------------------------------------- */
+
+.card {
+  background-color: var(--color-ink-light);
+  padding: var(--space-6);
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: var(--space-5);
+  margin-bottom: var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.statusLabel {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.statusValue {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.text {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+.portalButton,
+.subscribeButton {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  border: none;
+  padding: var(--space-3) var(--space-5);
+  cursor: pointer;
+  width: fit-content;
+}
+
+.portalButton {
+  background-color: transparent;
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+}
+
+.portalButton:hover {
+  border-color: var(--color-text-secondary);
+}
+
+.subscribeButton {
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+}
+
+.subscribeButton:hover {
+  opacity: 0.9;
+}
+
+.portalButton:disabled,
+.subscribeButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.message {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+}
+
+.error {
+  font-size: var(--text-sm);
+  color: #c53030;
+  margin-bottom: var(--space-4);
+}

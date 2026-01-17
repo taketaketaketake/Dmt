@@ -1,0 +1,89 @@
+/* =============================================================================
+   PEOPLE DIRECTORY
+   Grid layout of profile cards
+   ============================================================================= */
+
+.header {
+  margin-bottom: var(--space-8);
+}
+
+.title {
+  font-size: var(--text-3xl);
+  font-weight: var(--font-bold);
+  letter-spacing: var(--tracking-tight);
+  margin-bottom: var(--space-2);
+}
+
+.subtitle {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+}
+
+.message {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+}
+
+/* -----------------------------------------------------------------------------
+   GRID
+   ----------------------------------------------------------------------------- */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-6);
+}
+
+/* -----------------------------------------------------------------------------
+   CARD
+   ----------------------------------------------------------------------------- */
+
+.card {
+  display: flex;
+  gap: var(--space-5);
+  background-color: var(--color-paper);
+  padding: var(--space-5);
+  text-decoration: none;
+  transition: transform var(--transition-fast);
+}
+
+.card:hover {
+  opacity: 1;
+  transform: translateY(-2px);
+}
+
+.cardContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.name {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-on-paper);
+  margin-bottom: var(--space-1);
+  letter-spacing: var(--tracking-tight);
+}
+
+.handle {
+  font-size: var(--text-sm);
+  color: var(--color-text-on-paper-secondary);
+  margin-bottom: var(--space-2);
+}
+
+.location {
+  font-size: var(--text-sm);
+  color: var(--color-text-on-paper-secondary);
+  margin-bottom: var(--space-3);
+}
+
+.bio {
+  font-size: var(--text-sm);
+  color: var(--color-text-on-paper);
+  line-height: var(--leading-relaxed);
+  /* Truncate to 2 lines */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

@@ -1,0 +1,109 @@
+/* =============================================================================
+   APPROVAL QUEUE
+   List of pending profiles
+   ============================================================================= */
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.title {
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  letter-spacing: var(--tracking-tight);
+}
+
+.count {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  background-color: var(--color-ink-light);
+  padding: var(--space-1) var(--space-3);
+  border-radius: 2px;
+}
+
+.message,
+.error {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+}
+
+.error {
+  color: #c53030;
+}
+
+.empty {
+  text-align: center;
+  padding: var(--space-12);
+  background-color: var(--color-ink-light);
+  color: var(--color-text-secondary);
+}
+
+/* -----------------------------------------------------------------------------
+   LIST
+   ----------------------------------------------------------------------------- */
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  background-color: var(--color-ink-light);
+  padding: var(--space-4);
+  text-decoration: none;
+  color: inherit;
+  transition: background-color var(--transition-fast);
+}
+
+.card:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.cardContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.cardMain {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
+}
+
+.name {
+  font-weight: var(--font-semibold);
+}
+
+.handle {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.cardMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.email {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.date {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.arrow {
+  color: var(--color-text-secondary);
+  font-size: var(--text-lg);
+}

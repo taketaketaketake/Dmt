@@ -1,0 +1,16 @@
+/* =============================================================================
+   SHELL
+   Main application wrapper
+   ============================================================================= */
+
+.shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main {
+  flex: 1;
+  margin-top: var(--header-height);
+  padding: var(--space-8) 0;
+}

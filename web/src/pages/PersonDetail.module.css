@@ -1,0 +1,183 @@
+/* =============================================================================
+   PERSON DETAIL
+   Profile page with sidebar layout
+   ============================================================================= */
+
+.layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: var(--space-12);
+}
+
+@media (max-width: 768px) {
+  .layout {
+    grid-template-columns: 1fr;
+    gap: var(--space-8);
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   SIDEBAR
+   ----------------------------------------------------------------------------- */
+
+.sidebar {
+  position: sticky;
+  top: calc(var(--header-height) + var(--space-8));
+  align-self: start;
+}
+
+.portrait {
+  margin-bottom: var(--space-6);
+}
+
+.info {
+  margin-bottom: var(--space-6);
+}
+
+.name {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  letter-spacing: var(--tracking-tight);
+  margin-bottom: var(--space-1);
+}
+
+.handle {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-2);
+}
+
+.location {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* -----------------------------------------------------------------------------
+   LINKS
+   ----------------------------------------------------------------------------- */
+
+.links {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+
+.link {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 2px;
+  width: fit-content;
+}
+
+.link:hover {
+  color: var(--color-text-primary);
+  opacity: 1;
+}
+
+/* -----------------------------------------------------------------------------
+   ACTION BUTTON (text command style)
+   ----------------------------------------------------------------------------- */
+
+.actionButton {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  background: none;
+  border: 1px solid var(--color-border);
+  padding: var(--space-3) var(--space-4);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  width: 100%;
+}
+
+.actionButton:hover {
+  color: var(--color-text-primary);
+  border-color: var(--color-text-secondary);
+}
+
+.actionButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.actionButtonActive {
+  color: var(--color-text-primary);
+  border-color: var(--color-text-secondary);
+}
+
+/* -----------------------------------------------------------------------------
+   MAIN CONTENT
+   ----------------------------------------------------------------------------- */
+
+.main {
+  min-width: 0;
+}
+
+.section {
+  margin-bottom: var(--space-10);
+}
+
+.section:last-child {
+  margin-bottom: 0;
+}
+
+.sectionTitle {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  letter-spacing: var(--tracking-widest);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-4);
+}
+
+.bio {
+  font-size: var(--text-lg);
+  line-height: var(--leading-relaxed);
+  color: var(--color-text-primary);
+  white-space: pre-line;
+}
+
+/* -----------------------------------------------------------------------------
+   PROJECTS LIST
+   ----------------------------------------------------------------------------- */
+
+.projectsList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.projectCard {
+  background-color: var(--color-paper);
+  padding: var(--space-5);
+  text-decoration: none;
+  transition: transform var(--transition-fast);
+}
+
+.projectCard:hover {
+  opacity: 1;
+  transform: translateY(-2px);
+}
+
+.projectTitle {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-on-paper);
+  margin-bottom: var(--space-2);
+}
+
+.projectDescription {
+  font-size: var(--text-sm);
+  color: var(--color-text-on-paper-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+.message {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+}

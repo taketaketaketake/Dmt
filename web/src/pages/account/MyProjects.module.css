@@ -1,0 +1,276 @@
+/* =============================================================================
+   MY PROJECTS
+   User's project list with edit actions
+   ============================================================================= */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-6);
+}
+
+.title {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  letter-spacing: var(--tracking-tight);
+}
+
+.newButton {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  border: none;
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+}
+
+/* -----------------------------------------------------------------------------
+   LIST
+   ----------------------------------------------------------------------------- */
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.card {
+  background-color: var(--color-ink-light);
+  padding: var(--space-5);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-3);
+}
+
+.projectTitle {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+}
+
+.description {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-4);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-4);
+}
+
+.editButton,
+.viewLink {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.editButton:hover,
+.viewLink:hover {
+  color: var(--color-text-primary);
+}
+
+/* -----------------------------------------------------------------------------
+   EMPTY STATE
+   ----------------------------------------------------------------------------- */
+
+.empty {
+  text-align: center;
+  padding: var(--space-12);
+  background-color: var(--color-ink-light);
+}
+
+.emptyText {
+  color: var(--color-text-secondary);
+}
+
+.message {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+}
+
+.error {
+  font-size: var(--text-sm);
+  color: #c53030;
+  margin-bottom: var(--space-4);
+}
+
+.notice {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-6);
+}
+
+/* -----------------------------------------------------------------------------
+   FORM
+   ----------------------------------------------------------------------------- */
+
+.formCard {
+  background-color: var(--color-paper);
+  padding: var(--space-8);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.fieldGroup {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+}
+
+@media (max-width: 640px) {
+  .fieldGroup {
+    grid-template-columns: 1fr;
+  }
+}
+
+.label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-on-paper);
+}
+
+.input,
+.textarea,
+.select {
+  background-color: white;
+  border: 1px solid var(--color-border-on-paper);
+  color: var(--color-text-on-paper);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-base);
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--color-text-on-paper-secondary);
+  opacity: 0.6;
+}
+
+.input:focus,
+.textarea:focus,
+.select:focus {
+  outline: none;
+  border-color: var(--color-text-on-paper);
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.select {
+  cursor: pointer;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-on-paper);
+}
+
+.cancelButton {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  background-color: transparent;
+  color: var(--color-text-on-paper-secondary);
+  border: 1px solid var(--color-border-on-paper);
+  padding: var(--space-3) var(--space-5);
+  cursor: pointer;
+}
+
+.cancelButton:hover {
+  color: var(--color-text-on-paper);
+  border-color: var(--color-text-on-paper);
+}
+
+.saveButton {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  background-color: var(--color-text-on-paper);
+  color: var(--color-paper);
+  border: none;
+  padding: var(--space-3) var(--space-5);
+  cursor: pointer;
+}
+
+.saveButton:hover {
+  opacity: 0.85;
+}
+
+.saveButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* -----------------------------------------------------------------------------
+   DELETE ACTIONS
+   ----------------------------------------------------------------------------- */
+
+.deleteButton {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.deleteButton:hover {
+  color: #c53030;
+}
+
+.deleteConfirm {
+  font-size: var(--text-sm);
+  color: #c53030;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-weight: var(--font-medium);
+}
+
+.deleteConfirm:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cancelDelete {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}

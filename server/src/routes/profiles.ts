@@ -1,0 +1,387 @@
+import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
+import { prisma } from "../lib/prisma.js";
+import { requireAuth, authAndApproved } from "../middleware/auth.js";
+
+// =============================================================================
+// TYPES
+// =============================================================================
+
+interface CreateProfileBody {
+  name: string;
+  handle: string;
+  bio?: string;
+  location?: string;
+  portraitUrl?: string;
+  websiteUrl?: string;
+  twitterHandle?: string;
+  linkedinUrl?: string;
+  githubHandle?: string;
+}
+
+interface UpdateProfileBody {
+  name?: string;
+  handle?: string;
+  bio?: string;
+  location?: string;
+  portraitUrl?: string;
+  websiteUrl?: string;
+  twitterHandle?: string;
+  linkedinUrl?: string;
+  githubHandle?: string;
+}
+
+interface ProfileParams {
+  handle: string;
+}
+
+// =============================================================================
+// HELPER: Validate handle format
+// =============================================================================
+
+function isValidHandle(handle: string): boolean {
+  // Lowercase letters, numbers, underscores. 3-30 chars.
+  return /^[a-z0-9_]{3,30}$/.test(handle);
+}
+
+// =============================================================================
+// HELPER: Categorize profile fields
+// Minor edits = no re-approval needed for approved profiles
+// Major edits = triggers re-approval for approved profiles
+// =============================================================================
+
+const MINOR_FIELDS = ["bio", "location", "websiteUrl", "twitterHandle", "githubHandle", "linkedinUrl"] as const;
+const MAJOR_FIELDS = ["name", "handle", "portraitUrl"] as const;
+
+function hasMajorChanges(body: UpdateProfileBody, currentProfile: { name: string; handle: string; portraitUrl: string | null }): boolean {
+  if (body.name !== undefined && body.name.trim() !== currentProfile.name) return true;
+  if (body.handle !== undefined && body.handle.toLowerCase().trim() !== currentProfile.handle) return true;
+  if (body.portraitUrl !== undefined && body.portraitUrl !== currentProfile.portraitUrl) return true;
+  return false;
+}
+
+// =============================================================================
+// PROFILE ROUTES
+// =============================================================================
+
+export async function profileRoutes(app: FastifyInstance) {
+  // ---------------------------------------------------------------------------
+  // POST /api/profiles
+  // Create profile draft (authenticated user, no existing profile)
+  // ---------------------------------------------------------------------------
+  app.post<{ Body: CreateProfileBody }>(
+    "/",
+    { preHandler: [requireAuth] },
+    async (request, reply) => {
+      const user = request.user!;
+
+      // Check if user already has a profile
+      const existingProfile = await prisma.profile.findUnique({
+        where: { userId: user.id },
+      });
+
+      if (existingProfile) {
+        return reply.status(409).send({ error: "Profile already exists" });
+      }
+
+      const { name, handle, bio, location, portraitUrl, websiteUrl, twitterHandle, linkedinUrl, githubHandle } = request.body;
+
+      // Validate required fields
+      if (!name || typeof name !== "string" || name.trim().length === 0) {
+        return reply.status(400).send({ error: "Name is required" });
+      }
+
+      if (!handle || typeof handle !== "string") {
+        return reply.status(400).send({ error: "Handle is required" });
+      }
+
+      const normalizedHandle = handle.toLowerCase().trim();
+
+      if (!isValidHandle(normalizedHandle)) {
+        return reply.status(400).send({
+          error: "Handle must be 3-30 characters, lowercase letters, numbers, and underscores only"
+        });
+      }
+
+      // Check handle uniqueness
+      const handleTaken = await prisma.profile.findUnique({
+        where: { handle: normalizedHandle },
+      });
+
+      if (handleTaken) {
+        return reply.status(409).send({ error: "Handle is already taken" });
+      }
+
+      // Create profile in draft status
+      const profile = await prisma.profile.create({
+        data: {
+          userId: user.id,
+          name: name.trim(),
+          handle: normalizedHandle,
+          bio: bio?.trim() || null,
+          location: location?.trim() || null,
+          portraitUrl: portraitUrl?.trim() || null,
+          websiteUrl: websiteUrl?.trim() || null,
+          twitterHandle: twitterHandle?.trim() || null,
+          linkedinUrl: linkedinUrl?.trim() || null,
+          githubHandle: githubHandle?.trim() || null,
+          approvalStatus: "draft",
+        },
+      });
+
+      return reply.status(201).send({ profile });
+    }
+  );
+
+  // ---------------------------------------------------------------------------
+  // GET /api/profiles/me
+  // Get own profile (authenticated user)
+  // ---------------------------------------------------------------------------
+  app.get(
+    "/me",
+    { preHandler: [requireAuth] },
+    async (request, reply) => {
+      const user = request.user!;
+
+      const profile = await prisma.profile.findUnique({
+        where: { userId: user.id },
+      });
+
+      if (!profile) {
+        return reply.status(404).send({ error: "Profile not found" });
+      }
+
+      return reply.status(200).send({ profile });
+    }
+  );
+
+  // ---------------------------------------------------------------------------
+  // PUT /api/profiles/me
+  // Update own profile (authenticated user)
+  // - Draft/Rejected: Can edit freely
+  // - Pending Review: Cannot edit
+  // - Approved: Minor edits allowed, major edits trigger re-approval
+  // ---------------------------------------------------------------------------
+  app.put<{ Body: UpdateProfileBody }>(
+    "/me",
+    { preHandler: [requireAuth] },
+    async (request, reply) => {
+      const user = request.user!;
+
+      const profile = await prisma.profile.findUnique({
+        where: { userId: user.id },
+      });
+
+      if (!profile) {
+        return reply.status(404).send({ error: "Profile not found" });
+      }
+
+      // Cannot edit while pending review
+      if (profile.approvalStatus === "pending_review") {
+        return reply.status(403).send({
+          error: "Cannot edit profile while pending review"
+        });
+      }
+
+      const { name, handle, bio, location, portraitUrl, websiteUrl, twitterHandle, linkedinUrl, githubHandle } = request.body;
+
+      // Check if this is an approved profile making major changes
+      const isApproved = profile.approvalStatus === "approved";
+      const majorChanges = isApproved && hasMajorChanges(request.body, profile);
+
+      // Build update data
+      const updateData: Record<string, unknown> = {};
+
+      if (name !== undefined) {
+        if (typeof name !== "string" || name.trim().length === 0) {
+          return reply.status(400).send({ error: "Name cannot be empty" });
+        }
+        updateData.name = name.trim();
+      }
+
+      if (handle !== undefined) {
+        const normalizedHandle = handle.toLowerCase().trim();
+
+        if (!isValidHandle(normalizedHandle)) {
+          return reply.status(400).send({
+            error: "Handle must be 3-30 characters, lowercase letters, numbers, and underscores only"
+          });
+        }
+
+        // Check uniqueness only if handle is changing
+        if (normalizedHandle !== profile.handle) {
+          const handleTaken = await prisma.profile.findUnique({
+            where: { handle: normalizedHandle },
+          });
+
+          if (handleTaken) {
+            return reply.status(409).send({ error: "Handle is already taken" });
+          }
+        }
+
+        updateData.handle = normalizedHandle;
+      }
+
+      if (bio !== undefined) updateData.bio = bio?.trim() || null;
+      if (location !== undefined) updateData.location = location?.trim() || null;
+      if (portraitUrl !== undefined) updateData.portraitUrl = portraitUrl?.trim() || null;
+      if (websiteUrl !== undefined) updateData.websiteUrl = websiteUrl?.trim() || null;
+      if (twitterHandle !== undefined) updateData.twitterHandle = twitterHandle?.trim() || null;
+      if (linkedinUrl !== undefined) updateData.linkedinUrl = linkedinUrl?.trim() || null;
+      if (githubHandle !== undefined) updateData.githubHandle = githubHandle?.trim() || null;
+
+      // Handle status changes based on current status and edit type
+      if (profile.approvalStatus === "rejected") {
+        // Clear rejection note on edit (they're addressing feedback)
+        updateData.rejectionNote = null;
+      } else if (majorChanges) {
+        // Approved profile with major changes -> requires re-approval
+        updateData.approvalStatus = "pending_review";
+        updateData.approvedAt = null;
+      }
+      // Minor edits to approved profile: keep approved status
+
+      const updatedProfile = await prisma.profile.update({
+        where: { id: profile.id },
+        data: updateData,
+      });
+
+      return reply.status(200).send({
+        profile: updatedProfile,
+        // Let frontend know if re-approval is needed
+        requiresReapproval: majorChanges,
+      });
+    }
+  );
+
+  // ---------------------------------------------------------------------------
+  // POST /api/profiles/me/submit
+  // Submit profile for review
+  // Transitions: draft -> pending_review, rejected -> pending_review
+  // ---------------------------------------------------------------------------
+  app.post(
+    "/me/submit",
+    { preHandler: [requireAuth] },
+    async (request, reply) => {
+      const user = request.user!;
+
+      const profile = await prisma.profile.findUnique({
+        where: { userId: user.id },
+      });
+
+      if (!profile) {
+        return reply.status(404).send({ error: "Profile not found" });
+      }
+
+      // Can only submit from draft or rejected status
+      if (profile.approvalStatus === "pending_review") {
+        return reply.status(400).send({ error: "Profile is already pending review" });
+      }
+
+      if (profile.approvalStatus === "approved") {
+        return reply.status(400).send({ error: "Profile is already approved" });
+      }
+
+      const updatedProfile = await prisma.profile.update({
+        where: { id: profile.id },
+        data: {
+          approvalStatus: "pending_review",
+          rejectionNote: null, // Clear any previous rejection note
+        },
+      });
+
+      return reply.status(200).send({
+        profile: updatedProfile,
+        message: "Profile submitted for review"
+      });
+    }
+  );
+
+  // ---------------------------------------------------------------------------
+  // GET /api/profiles
+  // List approved profiles (members only)
+  // TODO: Phase 3 - Add pagination
+  // TODO: Phase 3 - Add category filtering
+  // TODO: Phase 3 - Add search
+  // ---------------------------------------------------------------------------
+  app.get(
+    "/",
+    { preHandler: authAndApproved() },
+    async (request, reply) => {
+      const profiles = await prisma.profile.findMany({
+        where: {
+          approvalStatus: "approved",
+        },
+        orderBy: {
+          name: "asc",
+        },
+        select: {
+          id: true,
+          name: true,
+          handle: true,
+          bio: true,
+          location: true,
+          portraitUrl: true,
+          // Don't expose external links in list view
+        },
+      });
+
+      return reply.status(200).send({ profiles });
+    }
+  );
+
+  // ---------------------------------------------------------------------------
+  // GET /api/profiles/:handle
+  // Get single profile by handle
+  // - Members can view approved profiles
+  // - Owners can view their own profile (any status)
+  // - Admins can view any profile
+  // ---------------------------------------------------------------------------
+  app.get<{ Params: ProfileParams }>(
+    "/:handle",
+    { preHandler: [requireAuth] },
+    async (request, reply) => {
+      const user = request.user!;
+      const { handle } = request.params;
+
+      const profile = await prisma.profile.findUnique({
+        where: { handle: handle.toLowerCase() },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+            },
+          },
+        },
+      });
+
+      if (!profile) {
+        return reply.status(404).send({ error: "Profile not found" });
+      }
+
+      // Check access
+      const isOwner = profile.userId === user.id;
+      const isAdmin = user.isAdmin;
+      const isApproved = profile.approvalStatus === "approved";
+      const userIsApprovedMember = user.status === "approved";
+
+      // Owners and admins can always view
+      if (isOwner || isAdmin) {
+        return reply.status(200).send({ profile });
+      }
+
+      // Members can only view approved profiles
+      if (!userIsApprovedMember) {
+        return reply.status(403).send({ error: "Account pending approval" });
+      }
+
+      if (!isApproved) {
+        return reply.status(404).send({ error: "Profile not found" });
+      }
+
+      // Return approved profile without sensitive data
+      const { user: _, ...profileData } = profile;
+      return reply.status(200).send({ profile: profileData });
+    }
+  );
+}

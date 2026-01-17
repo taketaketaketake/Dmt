@@ -1,0 +1,338 @@
+/* =============================================================================
+   ACCOUNT PROFILE
+   Profile editing form
+   ============================================================================= */
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.title {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  letter-spacing: var(--tracking-tight);
+}
+
+.status {
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+}
+
+/* -----------------------------------------------------------------------------
+   CARD
+   ----------------------------------------------------------------------------- */
+
+.card {
+  background-color: var(--color-paper);
+  padding: var(--space-8);
+}
+
+/* -----------------------------------------------------------------------------
+   PORTRAIT SECTION
+   ----------------------------------------------------------------------------- */
+
+.portraitSection {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+  margin-bottom: var(--space-8);
+  padding-bottom: var(--space-8);
+  border-bottom: 1px solid var(--color-border-on-paper);
+}
+
+.fileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.changeButton {
+  font-size: var(--text-sm);
+  color: var(--color-text-on-paper-secondary);
+  background: none;
+  border: none;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.changeButton:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.changeButton:hover {
+  color: var(--color-text-on-paper);
+}
+
+/* -----------------------------------------------------------------------------
+   FORM
+   ----------------------------------------------------------------------------- */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.fieldGroup {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+}
+
+@media (max-width: 640px) {
+  .fieldGroup {
+    grid-template-columns: 1fr;
+  }
+}
+
+.label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-on-paper);
+}
+
+.input,
+.textarea {
+  background-color: white;
+  border: 1px solid var(--color-border-on-paper);
+  color: var(--color-text-on-paper);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-base);
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--color-text-on-paper-secondary);
+  opacity: 0.6;
+}
+
+.input:focus,
+.textarea:focus {
+  outline: none;
+  border-color: var(--color-text-on-paper);
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.handleInput {
+  display: flex;
+  align-items: center;
+}
+
+.handlePrefix {
+  background-color: var(--color-paper-dim);
+  border: 1px solid var(--color-border-on-paper);
+  border-right: none;
+  padding: var(--space-3) var(--space-3);
+  color: var(--color-text-on-paper-secondary);
+}
+
+.handleInput .input {
+  flex: 1;
+}
+
+/* -----------------------------------------------------------------------------
+   ACTIONS
+   ----------------------------------------------------------------------------- */
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-on-paper);
+}
+
+.saveButton {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  background-color: var(--color-text-on-paper);
+  color: var(--color-paper);
+  border: none;
+  padding: var(--space-3) var(--space-6);
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.saveButton:hover {
+  opacity: 0.85;
+}
+
+/* -----------------------------------------------------------------------------
+   EMPTY STATE
+   ----------------------------------------------------------------------------- */
+
+.empty {
+  text-align: center;
+  padding: var(--space-12);
+}
+
+.emptyTitle {
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--space-2);
+}
+
+.emptyText {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-6);
+}
+
+.createButton {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  border: none;
+  padding: var(--space-3) var(--space-6);
+  cursor: pointer;
+}
+
+.message {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+}
+
+.error {
+  font-size: var(--text-sm);
+  color: #c53030;
+  margin-bottom: var(--space-4);
+}
+
+.warning {
+  font-size: var(--text-sm);
+  color: #b7791f;
+  background-color: rgba(183, 121, 31, 0.1);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.statusMessage {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-6);
+}
+
+/* -----------------------------------------------------------------------------
+   VIEW MODE DETAILS
+   ----------------------------------------------------------------------------- */
+
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.detailRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.detailLabel {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-on-paper-secondary);
+}
+
+.detailValue {
+  font-size: var(--text-base);
+  color: var(--color-text-on-paper);
+}
+
+/* -----------------------------------------------------------------------------
+   VIEW MODE ACTIONS
+   ----------------------------------------------------------------------------- */
+
+.viewActions {
+  display: flex;
+  gap: var(--space-4);
+  padding-top: var(--space-6);
+  margin-top: var(--space-6);
+  border-top: 1px solid var(--color-border-on-paper);
+}
+
+.editButton {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  background-color: transparent;
+  color: var(--color-text-on-paper);
+  border: 1px solid var(--color-border-on-paper);
+  padding: var(--space-3) var(--space-5);
+  cursor: pointer;
+}
+
+.editButton:hover {
+  border-color: var(--color-text-on-paper);
+}
+
+.submitButton {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  background-color: var(--color-text-on-paper);
+  color: var(--color-paper);
+  border: none;
+  padding: var(--space-3) var(--space-5);
+  cursor: pointer;
+}
+
+.submitButton:hover {
+  opacity: 0.85;
+}
+
+.submitButton:disabled,
+.editButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cancelButton {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  background-color: transparent;
+  color: var(--color-text-on-paper-secondary);
+  border: 1px solid var(--color-border-on-paper);
+  padding: var(--space-3) var(--space-5);
+  cursor: pointer;
+}
+
+.cancelButton:hover {
+  color: var(--color-text-on-paper);
+  border-color: var(--color-text-on-paper);
+}

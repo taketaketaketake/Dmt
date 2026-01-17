@@ -1,0 +1,278 @@
+/* =============================================================================
+   USER DETAIL
+   User management and content moderation
+   ============================================================================= */
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.backLink {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+}
+
+.backLink:hover {
+  color: var(--color-text-primary);
+}
+
+.title {
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  letter-spacing: var(--tracking-tight);
+}
+
+.message,
+.error {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+}
+
+.error {
+  color: #c53030;
+  margin-bottom: var(--space-4);
+}
+
+/* -----------------------------------------------------------------------------
+   CONTENT
+   ----------------------------------------------------------------------------- */
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.card {
+  background-color: var(--color-ink-light);
+  padding: var(--space-5);
+}
+
+.sectionTitle {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* -----------------------------------------------------------------------------
+   ROWS (key-value pairs)
+   ----------------------------------------------------------------------------- */
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.row {
+  display: flex;
+  gap: var(--space-4);
+}
+
+.label {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  width: 100px;
+  flex-shrink: 0;
+}
+
+.value {
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  display: flex;
+  gap: var(--space-2);
+}
+
+.valueDanger {
+  font-size: var(--text-sm);
+  color: #c53030;
+  font-weight: var(--font-medium);
+}
+
+.flag {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 2px 6px;
+  border-radius: 2px;
+}
+
+.noFlags {
+  color: var(--color-text-muted);
+}
+
+/* -----------------------------------------------------------------------------
+   ACTIONS
+   ----------------------------------------------------------------------------- */
+
+.actions {
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.confirmBox {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.primaryButton {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  border: none;
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+}
+
+.primaryButton:hover {
+  opacity: 0.9;
+}
+
+.primaryButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dangerButton {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  background-color: #c53030;
+  color: white;
+  border: none;
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+}
+
+.dangerButton:hover {
+  opacity: 0.9;
+}
+
+.dangerButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cancelButton {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  background: none;
+  border: none;
+  padding: var(--space-2);
+  cursor: pointer;
+}
+
+.cancelButton:hover {
+  color: var(--color-text-primary);
+}
+
+/* -----------------------------------------------------------------------------
+   PROFILE INFO
+   ----------------------------------------------------------------------------- */
+
+.profileInfo {
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-start;
+}
+
+.profileName {
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--space-1);
+}
+
+.profileHandle {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-2);
+}
+
+.profileStatus {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* -----------------------------------------------------------------------------
+   LIST (projects/jobs)
+   ----------------------------------------------------------------------------- */
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.listItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3);
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.listMain {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+  min-width: 0;
+}
+
+.listTitle {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+}
+
+.listMeta {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.listStatus {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 2px 6px;
+  border-radius: 2px;
+}
+
+.listStatusRemoved {
+  font-size: var(--text-xs);
+  color: #c53030;
+  background-color: rgba(197, 48, 48, 0.1);
+  padding: 2px 6px;
+  border-radius: 2px;
+}
+
+.removeButton {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  background: none;
+  border: none;
+  padding: var(--space-1) var(--space-2);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.removeButton:hover {
+  color: #c53030;
+}
+
+.confirmInline {
+  display: flex;
+  gap: var(--space-2);
+}

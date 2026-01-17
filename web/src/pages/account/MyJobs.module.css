@@ -1,0 +1,301 @@
+/* =============================================================================
+   MY JOBS
+   User's job postings
+   ============================================================================= */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-6);
+}
+
+.title {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  letter-spacing: var(--tracking-tight);
+}
+
+.newButton {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  border: none;
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+}
+
+/* -----------------------------------------------------------------------------
+   LIST
+   ----------------------------------------------------------------------------- */
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: var(--color-ink-light);
+  padding: var(--space-5);
+}
+
+.cardMain {
+  flex: 1;
+  min-width: 0;
+}
+
+.jobTitle {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--space-1);
+}
+
+.company {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.actions {
+  flex-shrink: 0;
+}
+
+.editButton {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.editButton:hover {
+  color: var(--color-text-primary);
+}
+
+/* -----------------------------------------------------------------------------
+   EMPTY STATE
+   ----------------------------------------------------------------------------- */
+
+.empty {
+  text-align: center;
+  padding: var(--space-12);
+  background-color: var(--color-ink-light);
+}
+
+.emptyText {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-2);
+}
+
+.emptyHint {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.message {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+}
+
+.error {
+  font-size: var(--text-sm);
+  color: #c53030;
+  margin-bottom: var(--space-4);
+}
+
+.notice {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-6);
+}
+
+/* -----------------------------------------------------------------------------
+   CARD HEADER
+   ----------------------------------------------------------------------------- */
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-1);
+}
+
+.viewLink {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.viewLink:hover {
+  color: var(--color-text-primary);
+}
+
+/* -----------------------------------------------------------------------------
+   FORM
+   ----------------------------------------------------------------------------- */
+
+.formCard {
+  background-color: var(--color-paper);
+  padding: var(--space-8);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.fieldGroup {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+}
+
+@media (max-width: 640px) {
+  .fieldGroup {
+    grid-template-columns: 1fr;
+  }
+}
+
+.label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-on-paper);
+}
+
+.input,
+.textarea,
+.select {
+  background-color: white;
+  border: 1px solid var(--color-border-on-paper);
+  color: var(--color-text-on-paper);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-base);
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--color-text-on-paper-secondary);
+  opacity: 0.6;
+}
+
+.input:focus,
+.textarea:focus,
+.select:focus {
+  outline: none;
+  border-color: var(--color-text-on-paper);
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.select {
+  cursor: pointer;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-on-paper);
+}
+
+.cancelButton {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  background-color: transparent;
+  color: var(--color-text-on-paper-secondary);
+  border: 1px solid var(--color-border-on-paper);
+  padding: var(--space-3) var(--space-5);
+  cursor: pointer;
+}
+
+.cancelButton:hover {
+  color: var(--color-text-on-paper);
+  border-color: var(--color-text-on-paper);
+}
+
+.saveButton {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  background-color: var(--color-text-on-paper);
+  color: var(--color-paper);
+  border: none;
+  padding: var(--space-3) var(--space-5);
+  cursor: pointer;
+}
+
+.saveButton:hover {
+  opacity: 0.85;
+}
+
+.saveButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* -----------------------------------------------------------------------------
+   DELETE ACTIONS
+   ----------------------------------------------------------------------------- */
+
+.deleteButton {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.deleteButton:hover {
+  color: #c53030;
+}
+
+.deleteConfirm {
+  font-size: var(--text-sm);
+  color: #c53030;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-weight: var(--font-medium);
+}
+
+.deleteConfirm:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cancelDelete {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
