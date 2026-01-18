@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { prisma } from "../lib/prisma.js";
 import { requireAuth, authAndApproved, authAndAdmin } from "../middleware/auth.js";
+import { sanitizeText, sanitizeMultilineText, sanitizeUrl } from "../lib/sanitize.js";
 
 // =============================================================================
 // TYPES
@@ -115,19 +116,20 @@ export async function projectRoutes(app: FastifyInstance) {
 
       const { title, description, status, websiteUrl, repoUrl } = request.body;
 
-      // Validate required fields
-      if (!title || typeof title !== "string" || title.trim().length === 0) {
+      // Validate and sanitize input
+      const sanitizedTitle = sanitizeText(title);
+      if (!sanitizedTitle) {
         return reply.status(400).send({ error: "Title is required" });
       }
 
       const project = await prisma.project.create({
         data: {
           creatorId: profile.id,
-          title: title.trim(),
-          description: description?.trim() || null,
+          title: sanitizedTitle,
+          description: sanitizeMultilineText(description),
           status: status || "active",
-          websiteUrl: websiteUrl?.trim() || null,
-          repoUrl: repoUrl?.trim() || null,
+          websiteUrl: sanitizeUrl(websiteUrl),
+          repoUrl: sanitizeUrl(repoUrl),
         },
       });
 
@@ -269,20 +271,21 @@ export async function projectRoutes(app: FastifyInstance) {
 
       const { title, description, status, websiteUrl, repoUrl } = request.body;
 
-      // Build update data
+      // Build update data with sanitization
       const updateData: Record<string, unknown> = {};
 
       if (title !== undefined) {
-        if (typeof title !== "string" || title.trim().length === 0) {
+        const sanitizedTitle = sanitizeText(title);
+        if (!sanitizedTitle) {
           return reply.status(400).send({ error: "Title cannot be empty" });
         }
-        updateData.title = title.trim();
+        updateData.title = sanitizedTitle;
       }
 
-      if (description !== undefined) updateData.description = description?.trim() || null;
+      if (description !== undefined) updateData.description = sanitizeMultilineText(description);
       if (status !== undefined) updateData.status = status;
-      if (websiteUrl !== undefined) updateData.websiteUrl = websiteUrl?.trim() || null;
-      if (repoUrl !== undefined) updateData.repoUrl = repoUrl?.trim() || null;
+      if (websiteUrl !== undefined) updateData.websiteUrl = sanitizeUrl(websiteUrl);
+      if (repoUrl !== undefined) updateData.repoUrl = sanitizeUrl(repoUrl);
 
       const updatedProject = await prisma.project.update({
         where: { id },

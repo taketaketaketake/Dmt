@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { prisma } from "../lib/prisma.js";
 import { requireAuth, authAndApproved } from "../middleware/auth.js";
+import { sanitizeText, sanitizeMultilineText, sanitizeUrl, sanitizeHandle } from "../lib/sanitize.js";
 
 // =============================================================================
 // TYPES
@@ -111,19 +112,19 @@ export async function profileRoutes(app: FastifyInstance) {
         return reply.status(409).send({ error: "Handle is already taken" });
       }
 
-      // Create profile in draft status
+      // Create profile in draft status with sanitized input
       const profile = await prisma.profile.create({
         data: {
           userId: user.id,
-          name: name.trim(),
+          name: sanitizeText(name) || name.trim(), // name is required, fallback to trim
           handle: normalizedHandle,
-          bio: bio?.trim() || null,
-          location: location?.trim() || null,
-          portraitUrl: portraitUrl?.trim() || null,
-          websiteUrl: websiteUrl?.trim() || null,
-          twitterHandle: twitterHandle?.trim() || null,
-          linkedinUrl: linkedinUrl?.trim() || null,
-          githubHandle: githubHandle?.trim() || null,
+          bio: sanitizeMultilineText(bio),
+          location: sanitizeText(location),
+          portraitUrl: sanitizeUrl(portraitUrl),
+          websiteUrl: sanitizeUrl(websiteUrl),
+          twitterHandle: sanitizeHandle(twitterHandle),
+          linkedinUrl: sanitizeUrl(linkedinUrl),
+          githubHandle: sanitizeHandle(githubHandle),
           approvalStatus: "draft",
         },
       });
@@ -192,10 +193,11 @@ export async function profileRoutes(app: FastifyInstance) {
       const updateData: Record<string, unknown> = {};
 
       if (name !== undefined) {
-        if (typeof name !== "string" || name.trim().length === 0) {
+        const sanitizedName = sanitizeText(name);
+        if (!sanitizedName) {
           return reply.status(400).send({ error: "Name cannot be empty" });
         }
-        updateData.name = name.trim();
+        updateData.name = sanitizedName;
       }
 
       if (handle !== undefined) {
@@ -221,13 +223,14 @@ export async function profileRoutes(app: FastifyInstance) {
         updateData.handle = normalizedHandle;
       }
 
-      if (bio !== undefined) updateData.bio = bio?.trim() || null;
-      if (location !== undefined) updateData.location = location?.trim() || null;
-      if (portraitUrl !== undefined) updateData.portraitUrl = portraitUrl?.trim() || null;
-      if (websiteUrl !== undefined) updateData.websiteUrl = websiteUrl?.trim() || null;
-      if (twitterHandle !== undefined) updateData.twitterHandle = twitterHandle?.trim() || null;
-      if (linkedinUrl !== undefined) updateData.linkedinUrl = linkedinUrl?.trim() || null;
-      if (githubHandle !== undefined) updateData.githubHandle = githubHandle?.trim() || null;
+      // Sanitize all user input
+      if (bio !== undefined) updateData.bio = sanitizeMultilineText(bio);
+      if (location !== undefined) updateData.location = sanitizeText(location);
+      if (portraitUrl !== undefined) updateData.portraitUrl = sanitizeUrl(portraitUrl);
+      if (websiteUrl !== undefined) updateData.websiteUrl = sanitizeUrl(websiteUrl);
+      if (twitterHandle !== undefined) updateData.twitterHandle = sanitizeHandle(twitterHandle);
+      if (linkedinUrl !== undefined) updateData.linkedinUrl = sanitizeUrl(linkedinUrl);
+      if (githubHandle !== undefined) updateData.githubHandle = sanitizeHandle(githubHandle);
 
       // Handle status changes based on current status and edit type
       if (profile.approvalStatus === "rejected") {

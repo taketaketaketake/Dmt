@@ -2,6 +2,8 @@ import "dotenv/config";
 import Fastify from "fastify";
 import cookie from "@fastify/cookie";
 import cors from "@fastify/cors";
+import helmet from "@fastify/helmet";
+import rateLimit from "@fastify/rate-limit";
 import fastifyStatic from "@fastify/static";
 import { join } from "path";
 import { env } from "./lib/env.js";
@@ -23,6 +25,8 @@ const app = Fastify({
   logger: {
     level: env.isDev ? "debug" : "info",
   },
+  // Request body size limits
+  bodyLimit: 1048576, // 1MB default for JSON
 });
 
 // Add raw body support for webhook signature verification
@@ -60,6 +64,54 @@ await app.register(cookie, {
 await app.register(cors, {
   origin: env.isDev ? true : env.APP_URL,
   credentials: true,
+});
+
+// Security headers
+await app.register(helmet, {
+  // Allow inline scripts for dev, stricter in prod
+  contentSecurityPolicy: env.isProd
+    ? {
+        directives: {
+          defaultSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          scriptSrc: ["'self'"],
+          imgSrc: ["'self'", "data:", "https:"],
+          connectSrc: ["'self'"],
+          fontSrc: ["'self'"],
+          objectSrc: ["'none'"],
+          frameAncestors: ["'none'"],
+        },
+      }
+    : false,
+  // Prevent clickjacking
+  frameguard: { action: "deny" },
+  // Hide X-Powered-By
+  hidePoweredBy: true,
+  // Prevent MIME sniffing
+  noSniff: true,
+  // XSS filter
+  xssFilter: true,
+});
+
+// Global rate limiting
+await app.register(rateLimit, {
+  max: 100, // 100 requests per window
+  timeWindow: "1 minute",
+  // Use IP address for rate limiting
+  keyGenerator: (request) => {
+    return request.ip;
+  },
+  // Skip rate limiting for health checks
+  allowList: (request) => {
+    return request.url === "/health";
+  },
+  // Custom error response
+  errorResponseBuilder: () => {
+    return {
+      error: "Too many requests, please slow down",
+      statusCode: 429,
+    };
+  },
 });
 
 // Static file serving for uploads

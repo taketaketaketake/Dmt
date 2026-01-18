@@ -24,7 +24,15 @@ interface VerifyQuery {
 export async function authRoutes(app: FastifyInstance) {
   // POST /auth/login
   // Request a magic link email
-  app.post<{ Body: LoginBody }>("/login", async (request, reply) => {
+  // Stricter rate limit: 5 requests per minute per IP to prevent abuse
+  app.post<{ Body: LoginBody }>("/login", {
+    config: {
+      rateLimit: {
+        max: 5,
+        timeWindow: "1 minute",
+      },
+    },
+  }, async (request, reply) => {
     const { email } = request.body;
 
     if (!email || typeof email !== "string") {
