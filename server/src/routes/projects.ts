@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { prisma } from "../lib/prisma.js";
 import { requireAuth, authAndApproved, authAndAdmin } from "../middleware/auth.js";
 import { sanitizeProjectInput, sanitizeNeedContext } from "../lib/sanitize.js";
+import { parsePagination, paginationMeta } from "../lib/pagination.js";
 
 // =============================================================================
 // TYPES
@@ -36,6 +37,11 @@ interface NeedInput {
 
 interface UpdateProjectNeedsBody {
   needs: NeedInput[];
+}
+
+interface PaginationQuery {
+  limit?: string;
+  offset?: string;
 }
 
 // =============================================================================
@@ -139,41 +145,55 @@ export async function projectRoutes(app: FastifyInstance) {
   // ---------------------------------------------------------------------------
   // GET /api/projects
   // List visible projects (creator's profile must be approved)
+  // Supports pagination: ?limit=20&offset=0
   // ---------------------------------------------------------------------------
-  app.get(
+  app.get<{ Querystring: PaginationQuery }>(
     "/",
     { preHandler: authAndApproved() },
     async (request, reply) => {
-      // Only show projects where creator's profile is approved
-      const projects = await prisma.project.findMany({
-        where: {
-          creator: {
-            approvalStatus: "approved",
+      const { limit, offset } = parsePagination(request.query);
+
+      const whereClause = {
+        creator: {
+          approvalStatus: "approved" as const,
+        },
+      };
+
+      const [projects, total] = await Promise.all([
+        prisma.project.findMany({
+          where: whereClause,
+          orderBy: {
+            createdAt: "desc",
           },
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-        select: {
-          id: true,
-          title: true,
-          description: true,
-          status: true,
-          websiteUrl: true,
-          repoUrl: true,
-          createdAt: true,
-          creator: {
-            select: {
-              id: true,
-              name: true,
-              handle: true,
-              portraitUrl: true,
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            status: true,
+            websiteUrl: true,
+            repoUrl: true,
+            createdAt: true,
+            creator: {
+              select: {
+                id: true,
+                name: true,
+                handle: true,
+                portraitUrl: true,
+              },
             },
           },
-        },
-      });
+          take: limit,
+          skip: offset,
+        }),
+        prisma.project.count({
+          where: whereClause,
+        }),
+      ]);
 
-      return reply.status(200).send({ projects });
+      return reply.status(200).send({
+        projects,
+        pagination: paginationMeta(total, limit, offset),
+      });
     }
   );
 

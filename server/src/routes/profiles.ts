@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { prisma } from "../lib/prisma.js";
 import { requireAuth, authAndApproved } from "../middleware/auth.js";
 import { sanitizeProfileInput } from "../lib/sanitize.js";
+import { parsePagination, paginationMeta } from "../lib/pagination.js";
 
 // =============================================================================
 // TYPES
@@ -33,6 +34,11 @@ interface UpdateProfileBody {
 
 interface ProfileParams {
   handle: string;
+}
+
+interface PaginationQuery {
+  limit?: string;
+  offset?: string;
 }
 
 // =============================================================================
@@ -299,33 +305,47 @@ export async function profileRoutes(app: FastifyInstance) {
   // ---------------------------------------------------------------------------
   // GET /api/profiles
   // List approved profiles (members only)
-  // TODO: Phase 3 - Add pagination
+  // Supports pagination: ?limit=20&offset=0
   // TODO: Phase 3 - Add category filtering
   // TODO: Phase 3 - Add search
   // ---------------------------------------------------------------------------
-  app.get(
+  app.get<{ Querystring: PaginationQuery }>(
     "/",
     { preHandler: authAndApproved() },
     async (request, reply) => {
-      const profiles = await prisma.profile.findMany({
-        where: {
-          approvalStatus: "approved",
-        },
-        orderBy: {
-          name: "asc",
-        },
-        select: {
-          id: true,
-          name: true,
-          handle: true,
-          bio: true,
-          location: true,
-          portraitUrl: true,
-          // Don't expose external links in list view
-        },
-      });
+      const { limit, offset } = parsePagination(request.query);
 
-      return reply.status(200).send({ profiles });
+      const [profiles, total] = await Promise.all([
+        prisma.profile.findMany({
+          where: {
+            approvalStatus: "approved",
+          },
+          orderBy: {
+            name: "asc",
+          },
+          select: {
+            id: true,
+            name: true,
+            handle: true,
+            bio: true,
+            location: true,
+            portraitUrl: true,
+            // Don't expose external links in list view
+          },
+          take: limit,
+          skip: offset,
+        }),
+        prisma.profile.count({
+          where: {
+            approvalStatus: "approved",
+          },
+        }),
+      ]);
+
+      return reply.status(200).send({
+        profiles,
+        pagination: paginationMeta(total, limit, offset),
+      });
     }
   );
 

@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { prisma } from "../lib/prisma.js";
 import { requireAuth, authAndApproved, authAndEmployer } from "../middleware/auth.js";
 import { sanitizeJobInput } from "../lib/sanitize.js";
+import { parsePagination, paginationMeta } from "../lib/pagination.js";
 
 // =============================================================================
 // TYPES
@@ -28,6 +29,11 @@ interface UpdateJobBody {
 
 interface JobIdParams {
   id: string;
+}
+
+interface PaginationQuery {
+  limit?: string;
+  offset?: string;
 }
 
 // Default job expiration: 30 days
@@ -114,48 +120,62 @@ export async function jobRoutes(app: FastifyInstance) {
   // ---------------------------------------------------------------------------
   // GET /api/jobs
   // List active, non-expired jobs (approved members only)
+  // Supports pagination: ?limit=20&offset=0
   // ---------------------------------------------------------------------------
-  app.get(
+  app.get<{ Querystring: PaginationQuery }>(
     "/",
     { preHandler: authAndApproved() },
     async (request, reply) => {
+      const { limit, offset } = parsePagination(request.query);
       const now = new Date();
 
-      const jobs = await prisma.job.findMany({
-        where: {
-          active: true,
-          expiresAt: {
-            gt: now,
-          },
-          // Only show jobs from approved profiles
-          poster: {
-            approvalStatus: "approved",
-          },
+      const whereClause = {
+        active: true,
+        expiresAt: {
+          gt: now,
         },
-        orderBy: {
-          createdAt: "desc",
+        // Only show jobs from approved profiles
+        poster: {
+          approvalStatus: "approved" as const,
         },
-        select: {
-          id: true,
-          title: true,
-          companyName: true,
-          description: true,
-          type: true,
-          applyUrl: true,
-          expiresAt: true,
-          createdAt: true,
-          poster: {
-            select: {
-              id: true,
-              name: true,
-              handle: true,
-              portraitUrl: true,
+      };
+
+      const [jobs, total] = await Promise.all([
+        prisma.job.findMany({
+          where: whereClause,
+          orderBy: {
+            createdAt: "desc",
+          },
+          select: {
+            id: true,
+            title: true,
+            companyName: true,
+            description: true,
+            type: true,
+            applyUrl: true,
+            expiresAt: true,
+            createdAt: true,
+            poster: {
+              select: {
+                id: true,
+                name: true,
+                handle: true,
+                portraitUrl: true,
+              },
             },
           },
-        },
-      });
+          take: limit,
+          skip: offset,
+        }),
+        prisma.job.count({
+          where: whereClause,
+        }),
+      ]);
 
-      return reply.status(200).send({ jobs });
+      return reply.status(200).send({
+        jobs,
+        pagination: paginationMeta(total, limit, offset),
+      });
     }
   );
 
