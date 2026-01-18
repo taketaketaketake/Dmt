@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { authAndAdmin } from "../middleware/auth.js";
 import { prisma } from "../lib/prisma.js";
-import { sendProfileApprovedEmail, sendProfileRejectedEmail } from "../lib/resend.js";
+import { sendProfileApprovedEmail, sendProfileRejectedEmail, sendNeedReminderEmail } from "../lib/resend.js";
 
 // =============================================================================
 // TYPES
@@ -383,6 +383,115 @@ export async function adminRoutes(app: FastifyInstance) {
       });
 
       return reply.status(200).send({ message: "Job removed" });
+    }
+  );
+
+  // ---------------------------------------------------------------------------
+  // SCHEDULED TASKS
+  // ---------------------------------------------------------------------------
+
+  // POST /admin/tasks/send-need-reminders
+  // Send reminder emails to projects with stale needs (30+ days since last update)
+  // Idempotent: won't re-send if reminder was sent within last 30 days
+  app.post(
+    "/tasks/send-need-reminders",
+    { preHandler: authAndAdmin() },
+    async (_request, reply) => {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      // Find projects that need reminders:
+      // - Have at least one need
+      // - Most recent need update is 30+ days old
+      // - Haven't received a reminder in the last 30 days (or never)
+      // - Project is active
+      // - Creator's profile is approved
+      const projectsWithNeeds = await prisma.project.findMany({
+        where: {
+          status: "active",
+          creator: {
+            approvalStatus: "approved",
+          },
+          needs: {
+            some: {}, // Has at least one need
+          },
+          OR: [
+            { needsReminderSentAt: null },
+            { needsReminderSentAt: { lte: thirtyDaysAgo } },
+          ],
+        },
+        include: {
+          creator: {
+            include: {
+              user: {
+                select: {
+                  email: true,
+                },
+              },
+            },
+          },
+          needs: {
+            select: {
+              updatedAt: true,
+            },
+            orderBy: {
+              updatedAt: "desc",
+            },
+            take: 1, // Only need the most recent update
+          },
+        },
+      });
+
+      // Filter to only projects where the most recent need update is 30+ days old
+      const eligibleProjects = projectsWithNeeds.filter((project) => {
+        if (project.needs.length === 0) return false;
+        const mostRecentUpdate = project.needs[0].updatedAt;
+        return mostRecentUpdate <= thirtyDaysAgo;
+      });
+
+      let sentCount = 0;
+      let errorCount = 0;
+      const results: { projectId: string; projectTitle: string; status: "sent" | "error"; error?: string }[] = [];
+
+      for (const project of eligibleProjects) {
+        try {
+          await sendNeedReminderEmail({
+            to: project.creator.user.email,
+            profileName: project.creator.name,
+            projectTitle: project.title,
+            projectId: project.id,
+          });
+
+          // Only update timestamp after successful send
+          await prisma.project.update({
+            where: { id: project.id },
+            data: { needsReminderSentAt: new Date() },
+          });
+
+          sentCount++;
+          results.push({
+            projectId: project.id,
+            projectTitle: project.title,
+            status: "sent",
+          });
+        } catch (error) {
+          errorCount++;
+          results.push({
+            projectId: project.id,
+            projectTitle: project.title,
+            status: "error",
+            error: error instanceof Error ? error.message : "Unknown error",
+          });
+        }
+      }
+
+      return reply.status(200).send({
+        message: `Sent ${sentCount} reminders, ${errorCount} errors`,
+        totalEligible: eligibleProjects.length,
+        sent: sentCount,
+        errors: errorCount,
+        results,
+      });
     }
   );
 }

@@ -17,6 +17,7 @@ import { adminRoutes } from "./routes/admin.js";
 import { billingRoutes } from "./routes/billing.js";
 import { webhookRoutes } from "./routes/webhooks.js";
 import { uploadRoutes } from "./routes/uploads.js";
+import { needsRoutes } from "./routes/needs.js";
 
 const app = Fastify({
   logger: {
@@ -80,6 +81,7 @@ await app.register(adminRoutes, { prefix: "/admin" });
 await app.register(billingRoutes, { prefix: "/billing" });
 await app.register(webhookRoutes, { prefix: "/webhooks" });
 await app.register(uploadRoutes, { prefix: "/api/uploads" });
+await app.register(needsRoutes, { prefix: "/api/needs" });
 
 // Health check
 app.get("/health", async () => {

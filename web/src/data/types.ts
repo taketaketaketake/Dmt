@@ -79,3 +79,37 @@ export interface JobListItem {
   expiresAt: string;
   poster: Pick<Profile, "id" | "name" | "handle">;
 }
+
+// =============================================================================
+// PROJECT NEEDS TYPES
+// =============================================================================
+
+export interface NeedOption {
+  id: string;
+  name: string;
+  slug: string;
+  sortOrder: number;
+}
+
+export interface NeedCategory {
+  id: string;
+  name: string;
+  slug: string;
+  sortOrder: number;
+  options: NeedOption[];
+}
+
+export interface ProjectNeed {
+  categoryId: string;
+  category: Pick<NeedCategory, "id" | "name" | "slug">;
+  optionIds: string[];
+  options: Pick<NeedOption, "id" | "name" | "slug">[];
+  contextText?: string;
+  updatedAt: string;
+}
+
+export interface NeedInput {
+  categoryId: string;
+  optionIds: string[];
+  contextText?: string;
+}

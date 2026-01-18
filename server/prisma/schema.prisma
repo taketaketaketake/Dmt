@@ -161,11 +161,15 @@ model Project {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
+  // Project Needs
+  needsReminderSentAt DateTime? // Track when last reminder was sent
+
   // Relations
   creator       Profile               @relation("ProjectCreator", fields: [creatorId], references: [id], onDelete: Cascade)
   categories    ProjectCategory[]
   collaborators ProjectCollaborator[]
   followers     ProjectFollow[]
+  needs         ProjectNeed[]
 
   // Indexes
   @@index([creatorId])
@@ -272,4 +276,73 @@ model ProjectFollow {
 
   @@unique([userId, projectId])
   @@index([userId])
+}
+
+// =============================================================================
+// PROJECT NEEDS (Two-level taxonomy)
+// =============================================================================
+
+model NeedCategory {
+  id        String   @id @default(cuid())
+  name      String   // "Capital & Financial"
+  slug      String   @unique // "capital-financial"
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  // Relations
+  options      NeedOption[]
+  projectNeeds ProjectNeed[]
+
+  @@index([slug])
+  @@index([active])
+}
+
+model NeedOption {
+  id         String   @id @default(cuid())
+  categoryId String
+  name       String   // "Seeking pre-seed / seed funding"
+  slug       String   // "seeking-preseed-seed"
+  sortOrder  Int      @default(0)
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  // Relations
+  category           NeedCategory        @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  projectNeedOptions ProjectNeedOption[]
+
+  @@unique([categoryId, slug])
+  @@index([categoryId])
+  @@index([active])
+}
+
+model ProjectNeed {
+  id          String   @id @default(cuid())
+  projectId   String
+  categoryId  String
+  contextText String?  // Optional 180-char context
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  project  Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  category NeedCategory         @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  options  ProjectNeedOption[]
+
+  @@unique([projectId, categoryId]) // One need entry per category per project
+  @@index([projectId])
+  @@index([updatedAt])
+}
+
+model ProjectNeedOption {
+  projectNeedId String
+  optionId      String
+  createdAt     DateTime @default(now())
+
+  // Relations
+  projectNeed ProjectNeed @relation(fields: [projectNeedId], references: [id], onDelete: Cascade)
+  option      NeedOption  @relation(fields: [optionId], references: [id], onDelete: Restrict)
+
+  @@id([projectNeedId, optionId])
+  @@index([projectNeedId])
 }

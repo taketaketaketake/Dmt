@@ -124,3 +124,52 @@ export async function sendProfileRejectedEmail({ to, profileName, rejectionNote 
     `,
   });
 }
+
+// =============================================================================
+// PROJECT NEEDS REMINDER EMAIL
+// =============================================================================
+
+interface NeedReminderParams {
+  to: string;
+  profileName: string;
+  projectTitle: string;
+  projectId: string;
+}
+
+export async function sendNeedReminderEmail({ to, profileName, projectTitle, projectId }: NeedReminderParams): Promise<void> {
+  if (env.isDev) {
+    console.log("\n========================================");
+    console.log("NEED REMINDER EMAIL (dev mode):");
+    console.log(`To: ${to}`);
+    console.log(`Profile: ${profileName}`);
+    console.log(`Project: ${projectTitle}`);
+    console.log(`Project ID: ${projectId}`);
+    console.log("========================================\n");
+    return;
+  }
+
+  await resend.emails.send({
+    from: env.EMAIL_FROM,
+    to,
+    subject: `Update your needs for ${projectTitle}`,
+    html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
+        <h1 style="font-size: 24px; font-weight: 600; margin-bottom: 24px; color: #1a1a1a;">
+          Keep your project needs current
+        </h1>
+        <p style="font-size: 16px; line-height: 1.5; color: #4a4a4a; margin-bottom: 24px;">
+          Hi ${profileName},
+        </p>
+        <p style="font-size: 16px; line-height: 1.5; color: #4a4a4a; margin-bottom: 24px;">
+          It's been a while since you updated the needs for <strong>${projectTitle}</strong>. Keeping your needs current helps the community know how they can support you.
+        </p>
+        <a href="${env.APP_URL}/account/projects" style="display: inline-block; background-color: #1a1a1a; color: #ffffff; padding: 12px 24px; text-decoration: none; font-size: 16px; font-weight: 500;">
+          Update Project Needs
+        </a>
+        <p style="font-size: 14px; color: #888; margin-top: 32px;">
+          If your needs are still accurate, you can dismiss this reminder by visiting your project and saving without changes.
+        </p>
+      </div>
+    `,
+  });
+}

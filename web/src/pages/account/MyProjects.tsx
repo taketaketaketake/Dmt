@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "../../components/ui";
+import { NeedsEditor } from "../../components/NeedsEditor";
 import { useAuth } from "../../contexts";
 import { projects as projectsApi } from "../../lib/api";
 import type { Project, ProjectStatus } from "../../data/types";
@@ -337,6 +338,8 @@ export function MyProjectsPage() {
                   </button>
                 )}
               </div>
+
+              <NeedsEditor projectId={project.id} />
             </div>
           ))}
         </div>

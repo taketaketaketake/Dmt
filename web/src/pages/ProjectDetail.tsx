@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Portrait, Badge } from "../components/ui";
+import { NeedsDisplay } from "../components/NeedsDisplay";
 import { projects as projectsApi, follows as followsApi, type ProjectDetail } from "../lib/api";
 import styles from "./ProjectDetail.module.css";
 
@@ -130,6 +131,9 @@ export function ProjectDetailPage() {
               </nav>
             </section>
           )}
+
+          {/* Project Needs */}
+          {id && <NeedsDisplay projectId={id} />}
         </main>
 
         {/* Sidebar */}

@@ -11,6 +11,9 @@ import type {
   ProjectListItem,
   Job,
   JobListItem,
+  NeedCategory,
+  ProjectNeed,
+  NeedInput,
 } from "../data/types";
 
 // Base URL - in dev, proxy handles this; in prod, same origin
@@ -194,6 +197,25 @@ export const projects = {
     request<{ message: string }>(`/api/projects/${id}`, {
       method: "DELETE",
     }),
+
+  // Project needs
+  getNeeds: (projectId: string) =>
+    request<{ needs: ProjectNeed[] }>(`/api/projects/${projectId}/needs`),
+
+  updateNeeds: (projectId: string, needs: NeedInput[]) =>
+    request<{ needs: ProjectNeed[] }>(`/api/projects/${projectId}/needs`, {
+      method: "PUT",
+      body: JSON.stringify({ needs }),
+    }),
+};
+
+// =============================================================================
+// NEEDS TAXONOMY API
+// =============================================================================
+
+export const needs = {
+  taxonomy: () =>
+    request<{ categories: NeedCategory[] }>("/api/needs/taxonomy"),
 };
 
 // =============================================================================

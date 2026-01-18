@@ -1,0 +1,65 @@
+/* =============================================================================
+   NEEDS DISPLAY
+   Read-only display of project needs
+   ============================================================================= */
+
+.container {
+  margin-top: var(--space-8);
+  padding-top: var(--space-8);
+  border-top: 1px solid var(--color-border);
+}
+
+.title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--space-1);
+}
+
+.subtitle {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-6);
+}
+
+/* -----------------------------------------------------------------------------
+   LIST
+   ----------------------------------------------------------------------------- */
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.need {
+  background-color: var(--color-ink-light);
+  padding: var(--space-4);
+}
+
+.categoryName {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--space-2);
+}
+
+.options {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.option {
+  font-size: var(--text-sm);
+  background-color: var(--color-ink);
+  padding: var(--space-1) var(--space-3);
+}
+
+.context {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin-top: var(--space-3);
+  font-style: italic;
+}
