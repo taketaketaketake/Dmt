@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { prisma } from "../lib/prisma.js";
 import { requireAuth, authAndApproved, authAndAdmin } from "../middleware/auth.js";
-import { sanitizeText, sanitizeMultilineText, sanitizeUrl } from "../lib/sanitize.js";
+import { sanitizeProjectInput, sanitizeNeedContext } from "../lib/sanitize.js";
 
 // =============================================================================
 // TYPES
@@ -114,22 +114,21 @@ export async function projectRoutes(app: FastifyInstance) {
         return reply.status(403).send({ error: "Profile must be approved to create projects" });
       }
 
-      const { title, description, status, websiteUrl, repoUrl } = request.body;
+      // Sanitize all input through centralized sanitizer
+      const sanitized = sanitizeProjectInput(request.body);
 
-      // Validate and sanitize input
-      const sanitizedTitle = sanitizeText(title);
-      if (!sanitizedTitle) {
+      if (!sanitized.title) {
         return reply.status(400).send({ error: "Title is required" });
       }
 
       const project = await prisma.project.create({
         data: {
           creatorId: profile.id,
-          title: sanitizedTitle,
-          description: sanitizeMultilineText(description),
-          status: status || "active",
-          websiteUrl: sanitizeUrl(websiteUrl),
-          repoUrl: sanitizeUrl(repoUrl),
+          title: sanitized.title,
+          description: sanitized.description,
+          status: request.body.status || "active",
+          websiteUrl: sanitized.websiteUrl,
+          repoUrl: sanitized.repoUrl,
         },
       });
 
@@ -269,23 +268,23 @@ export async function projectRoutes(app: FastifyInstance) {
         return reply.status(403).send({ error: "Not authorized to update this project" });
       }
 
-      const { title, description, status, websiteUrl, repoUrl } = request.body;
+      // Sanitize all input through centralized sanitizer
+      const sanitized = sanitizeProjectInput(request.body);
 
-      // Build update data with sanitization
+      // Build update data
       const updateData: Record<string, unknown> = {};
 
-      if (title !== undefined) {
-        const sanitizedTitle = sanitizeText(title);
-        if (!sanitizedTitle) {
+      if (sanitized.title !== undefined) {
+        if (!sanitized.title) {
           return reply.status(400).send({ error: "Title cannot be empty" });
         }
-        updateData.title = sanitizedTitle;
+        updateData.title = sanitized.title;
       }
 
-      if (description !== undefined) updateData.description = sanitizeMultilineText(description);
-      if (status !== undefined) updateData.status = status;
-      if (websiteUrl !== undefined) updateData.websiteUrl = sanitizeUrl(websiteUrl);
-      if (repoUrl !== undefined) updateData.repoUrl = sanitizeUrl(repoUrl);
+      if (sanitized.description !== undefined) updateData.description = sanitized.description;
+      if (request.body.status !== undefined) updateData.status = request.body.status;
+      if (sanitized.websiteUrl !== undefined) updateData.websiteUrl = sanitized.websiteUrl;
+      if (sanitized.repoUrl !== undefined) updateData.repoUrl = sanitized.repoUrl;
 
       const updatedProject = await prisma.project.update({
         where: { id },
@@ -540,7 +539,7 @@ export async function projectRoutes(app: FastifyInstance) {
             data: {
               projectId: id,
               categoryId: need.categoryId,
-              contextText: need.contextText?.trim() || null,
+              contextText: sanitizeNeedContext(need.contextText),
             },
           });
 

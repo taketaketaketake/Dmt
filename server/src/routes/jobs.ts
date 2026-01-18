@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { prisma } from "../lib/prisma.js";
 import { requireAuth, authAndApproved, authAndEmployer } from "../middleware/auth.js";
+import { sanitizeJobInput } from "../lib/sanitize.js";
 
 // =============================================================================
 // TYPES
@@ -60,14 +61,16 @@ export async function jobRoutes(app: FastifyInstance) {
         return reply.status(403).send({ error: "Profile must be approved to post jobs" });
       }
 
-      const { title, companyName, description, type, applyUrl, expiresAt } = request.body;
+      // Sanitize all input through centralized sanitizer
+      const sanitized = sanitizeJobInput(request.body);
+      const { type, expiresAt } = request.body;
 
       // Validate required fields
-      if (!title || typeof title !== "string" || title.trim().length === 0) {
+      if (!sanitized.title) {
         return reply.status(400).send({ error: "Title is required" });
       }
 
-      if (!companyName || typeof companyName !== "string" || companyName.trim().length === 0) {
+      if (!sanitized.companyName) {
         return reply.status(400).send({ error: "Company name is required" });
       }
 
@@ -75,15 +78,8 @@ export async function jobRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: "Job type is required" });
       }
 
-      if (!applyUrl || typeof applyUrl !== "string" || applyUrl.trim().length === 0) {
-        return reply.status(400).send({ error: "Apply URL is required" });
-      }
-
-      // Validate URL format
-      try {
-        new URL(applyUrl);
-      } catch {
-        return reply.status(400).send({ error: "Apply URL must be a valid URL" });
+      if (!sanitized.applyUrl) {
+        return reply.status(400).send({ error: "Apply URL is required (must be valid URL)" });
       }
 
       // Calculate expiry date
@@ -101,11 +97,11 @@ export async function jobRoutes(app: FastifyInstance) {
       const job = await prisma.job.create({
         data: {
           posterId: profile.id,
-          title: title.trim(),
-          companyName: companyName.trim(),
-          description: description?.trim() || null,
+          title: sanitized.title,
+          companyName: sanitized.companyName,
+          description: sanitized.description,
           type,
-          applyUrl: applyUrl.trim(),
+          applyUrl: sanitized.applyUrl,
           expiresAt: expiry,
           active: true,
         },
@@ -233,38 +229,35 @@ export async function jobRoutes(app: FastifyInstance) {
         return reply.status(403).send({ error: "Not authorized to update this job" });
       }
 
-      const { title, companyName, description, type, applyUrl, active, expiresAt } = request.body;
+      // Sanitize all input through centralized sanitizer
+      const sanitized = sanitizeJobInput(request.body);
+      const { type, active, expiresAt } = request.body;
 
       // Build update data
       const updateData: Record<string, unknown> = {};
 
-      if (title !== undefined) {
-        if (typeof title !== "string" || title.trim().length === 0) {
+      if (sanitized.title !== undefined) {
+        if (!sanitized.title) {
           return reply.status(400).send({ error: "Title cannot be empty" });
         }
-        updateData.title = title.trim();
+        updateData.title = sanitized.title;
       }
 
-      if (companyName !== undefined) {
-        if (typeof companyName !== "string" || companyName.trim().length === 0) {
+      if (sanitized.companyName !== undefined) {
+        if (!sanitized.companyName) {
           return reply.status(400).send({ error: "Company name cannot be empty" });
         }
-        updateData.companyName = companyName.trim();
+        updateData.companyName = sanitized.companyName;
       }
 
-      if (description !== undefined) updateData.description = description?.trim() || null;
+      if (sanitized.description !== undefined) updateData.description = sanitized.description;
       if (type !== undefined) updateData.type = type;
 
-      if (applyUrl !== undefined) {
-        if (typeof applyUrl !== "string" || applyUrl.trim().length === 0) {
-          return reply.status(400).send({ error: "Apply URL cannot be empty" });
+      if (sanitized.applyUrl !== undefined) {
+        if (!sanitized.applyUrl) {
+          return reply.status(400).send({ error: "Apply URL cannot be empty (must be valid URL)" });
         }
-        try {
-          new URL(applyUrl);
-        } catch {
-          return reply.status(400).send({ error: "Apply URL must be a valid URL" });
-        }
-        updateData.applyUrl = applyUrl.trim();
+        updateData.applyUrl = sanitized.applyUrl;
       }
 
       if (active !== undefined) updateData.active = active;

@@ -1,13 +1,13 @@
 // =============================================================================
 // INPUT SANITIZATION
-// Basic XSS prevention for user-generated content
+// Centralized sanitization per resource type
+// RULE: All user input goes through resource-specific sanitizers
 // =============================================================================
 
 /**
  * Escapes HTML special characters to prevent XSS
- * Use for any user-generated text that will be rendered
  */
-export function escapeHtml(text: string): string {
+function escapeHtml(text: string): string {
   const htmlEscapes: Record<string, string> = {
     "&": "&amp;",
     "<": "&lt;",
@@ -110,4 +110,115 @@ export function sanitizeHandle(handle: string | null | undefined): string | null
   }
 
   return sanitized;
+}
+
+// =============================================================================
+// RESOURCE-SPECIFIC SANITIZERS
+// All user input for a resource goes through these functions
+// =============================================================================
+
+/**
+ * Profile input - sanitizes all profile fields
+ */
+export interface ProfileInput {
+  name?: string;
+  handle?: string;
+  bio?: string;
+  location?: string;
+  portraitUrl?: string;
+  websiteUrl?: string;
+  twitterHandle?: string;
+  linkedinUrl?: string;
+  githubHandle?: string;
+}
+
+export interface SanitizedProfileInput {
+  name?: string | null;
+  handle?: string | null;
+  bio?: string | null;
+  location?: string | null;
+  portraitUrl?: string | null;
+  websiteUrl?: string | null;
+  twitterHandle?: string | null;
+  linkedinUrl?: string | null;
+  githubHandle?: string | null;
+}
+
+export function sanitizeProfileInput(input: ProfileInput): SanitizedProfileInput {
+  return {
+    name: input.name !== undefined ? sanitizeText(input.name) : undefined,
+    handle: input.handle !== undefined ? sanitizeHandle(input.handle) : undefined,
+    bio: input.bio !== undefined ? sanitizeMultilineText(input.bio) : undefined,
+    location: input.location !== undefined ? sanitizeText(input.location) : undefined,
+    portraitUrl: input.portraitUrl !== undefined ? sanitizeUrl(input.portraitUrl) : undefined,
+    websiteUrl: input.websiteUrl !== undefined ? sanitizeUrl(input.websiteUrl) : undefined,
+    twitterHandle: input.twitterHandle !== undefined ? sanitizeHandle(input.twitterHandle) : undefined,
+    linkedinUrl: input.linkedinUrl !== undefined ? sanitizeUrl(input.linkedinUrl) : undefined,
+    githubHandle: input.githubHandle !== undefined ? sanitizeHandle(input.githubHandle) : undefined,
+  };
+}
+
+/**
+ * Project input - sanitizes all project fields
+ */
+export interface ProjectInput {
+  title?: string;
+  description?: string;
+  websiteUrl?: string;
+  repoUrl?: string;
+}
+
+export interface SanitizedProjectInput {
+  title?: string | null;
+  description?: string | null;
+  websiteUrl?: string | null;
+  repoUrl?: string | null;
+}
+
+export function sanitizeProjectInput(input: ProjectInput): SanitizedProjectInput {
+  return {
+    title: input.title !== undefined ? sanitizeText(input.title) : undefined,
+    description: input.description !== undefined ? sanitizeMultilineText(input.description) : undefined,
+    websiteUrl: input.websiteUrl !== undefined ? sanitizeUrl(input.websiteUrl) : undefined,
+    repoUrl: input.repoUrl !== undefined ? sanitizeUrl(input.repoUrl) : undefined,
+  };
+}
+
+/**
+ * Job input - sanitizes all job fields
+ */
+export interface JobInput {
+  title?: string;
+  companyName?: string;
+  description?: string;
+  applyUrl?: string;
+}
+
+export interface SanitizedJobInput {
+  title?: string | null;
+  companyName?: string | null;
+  description?: string | null;
+  applyUrl?: string | null;
+}
+
+export function sanitizeJobInput(input: JobInput): SanitizedJobInput {
+  return {
+    title: input.title !== undefined ? sanitizeText(input.title) : undefined,
+    companyName: input.companyName !== undefined ? sanitizeText(input.companyName) : undefined,
+    description: input.description !== undefined ? sanitizeMultilineText(input.description) : undefined,
+    applyUrl: input.applyUrl !== undefined ? sanitizeUrl(input.applyUrl) : undefined,
+  };
+}
+
+/**
+ * Project need context - sanitizes context text
+ */
+export function sanitizeNeedContext(text: string | null | undefined): string | null {
+  if (!text) return null;
+
+  const sanitized = sanitizeText(text);
+  if (!sanitized) return null;
+
+  // Max 180 chars for need context
+  return sanitized.slice(0, 180);
 }

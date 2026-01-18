@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { prisma } from "../lib/prisma.js";
 import { requireAuth, authAndApproved } from "../middleware/auth.js";
-import { sanitizeText, sanitizeMultilineText, sanitizeUrl, sanitizeHandle } from "../lib/sanitize.js";
+import { sanitizeProfileInput } from "../lib/sanitize.js";
 
 // =============================================================================
 // TYPES
@@ -84,20 +84,19 @@ export async function profileRoutes(app: FastifyInstance) {
         return reply.status(409).send({ error: "Profile already exists" });
       }
 
-      const { name, handle, bio, location, portraitUrl, websiteUrl, twitterHandle, linkedinUrl, githubHandle } = request.body;
+      // Sanitize all input through centralized sanitizer
+      const sanitized = sanitizeProfileInput(request.body);
 
       // Validate required fields
-      if (!name || typeof name !== "string" || name.trim().length === 0) {
+      if (!sanitized.name) {
         return reply.status(400).send({ error: "Name is required" });
       }
 
-      if (!handle || typeof handle !== "string") {
-        return reply.status(400).send({ error: "Handle is required" });
+      if (!sanitized.handle) {
+        return reply.status(400).send({ error: "Handle is required (3-30 chars, lowercase alphanumeric)" });
       }
 
-      const normalizedHandle = handle.toLowerCase().trim();
-
-      if (!isValidHandle(normalizedHandle)) {
+      if (!isValidHandle(sanitized.handle)) {
         return reply.status(400).send({
           error: "Handle must be 3-30 characters, lowercase letters, numbers, and underscores only"
         });
@@ -105,26 +104,26 @@ export async function profileRoutes(app: FastifyInstance) {
 
       // Check handle uniqueness
       const handleTaken = await prisma.profile.findUnique({
-        where: { handle: normalizedHandle },
+        where: { handle: sanitized.handle },
       });
 
       if (handleTaken) {
         return reply.status(409).send({ error: "Handle is already taken" });
       }
 
-      // Create profile in draft status with sanitized input
+      // Create profile in draft status
       const profile = await prisma.profile.create({
         data: {
           userId: user.id,
-          name: sanitizeText(name) || name.trim(), // name is required, fallback to trim
-          handle: normalizedHandle,
-          bio: sanitizeMultilineText(bio),
-          location: sanitizeText(location),
-          portraitUrl: sanitizeUrl(portraitUrl),
-          websiteUrl: sanitizeUrl(websiteUrl),
-          twitterHandle: sanitizeHandle(twitterHandle),
-          linkedinUrl: sanitizeUrl(linkedinUrl),
-          githubHandle: sanitizeHandle(githubHandle),
+          name: sanitized.name,
+          handle: sanitized.handle,
+          bio: sanitized.bio,
+          location: sanitized.location,
+          portraitUrl: sanitized.portraitUrl,
+          websiteUrl: sanitized.websiteUrl,
+          twitterHandle: sanitized.twitterHandle,
+          linkedinUrl: sanitized.linkedinUrl,
+          githubHandle: sanitized.githubHandle,
           approvalStatus: "draft",
         },
       });
@@ -183,7 +182,8 @@ export async function profileRoutes(app: FastifyInstance) {
         });
       }
 
-      const { name, handle, bio, location, portraitUrl, websiteUrl, twitterHandle, linkedinUrl, githubHandle } = request.body;
+      // Sanitize all input through centralized sanitizer
+      const sanitized = sanitizeProfileInput(request.body);
 
       // Check if this is an approved profile making major changes
       const isApproved = profile.approvalStatus === "approved";
@@ -192,27 +192,24 @@ export async function profileRoutes(app: FastifyInstance) {
       // Build update data
       const updateData: Record<string, unknown> = {};
 
-      if (name !== undefined) {
-        const sanitizedName = sanitizeText(name);
-        if (!sanitizedName) {
+      if (sanitized.name !== undefined) {
+        if (!sanitized.name) {
           return reply.status(400).send({ error: "Name cannot be empty" });
         }
-        updateData.name = sanitizedName;
+        updateData.name = sanitized.name;
       }
 
-      if (handle !== undefined) {
-        const normalizedHandle = handle.toLowerCase().trim();
-
-        if (!isValidHandle(normalizedHandle)) {
+      if (sanitized.handle !== undefined) {
+        if (!sanitized.handle || !isValidHandle(sanitized.handle)) {
           return reply.status(400).send({
             error: "Handle must be 3-30 characters, lowercase letters, numbers, and underscores only"
           });
         }
 
         // Check uniqueness only if handle is changing
-        if (normalizedHandle !== profile.handle) {
+        if (sanitized.handle !== profile.handle) {
           const handleTaken = await prisma.profile.findUnique({
-            where: { handle: normalizedHandle },
+            where: { handle: sanitized.handle },
           });
 
           if (handleTaken) {
@@ -220,17 +217,17 @@ export async function profileRoutes(app: FastifyInstance) {
           }
         }
 
-        updateData.handle = normalizedHandle;
+        updateData.handle = sanitized.handle;
       }
 
-      // Sanitize all user input
-      if (bio !== undefined) updateData.bio = sanitizeMultilineText(bio);
-      if (location !== undefined) updateData.location = sanitizeText(location);
-      if (portraitUrl !== undefined) updateData.portraitUrl = sanitizeUrl(portraitUrl);
-      if (websiteUrl !== undefined) updateData.websiteUrl = sanitizeUrl(websiteUrl);
-      if (twitterHandle !== undefined) updateData.twitterHandle = sanitizeHandle(twitterHandle);
-      if (linkedinUrl !== undefined) updateData.linkedinUrl = sanitizeUrl(linkedinUrl);
-      if (githubHandle !== undefined) updateData.githubHandle = sanitizeHandle(githubHandle);
+      // Apply remaining sanitized fields
+      if (sanitized.bio !== undefined) updateData.bio = sanitized.bio;
+      if (sanitized.location !== undefined) updateData.location = sanitized.location;
+      if (sanitized.portraitUrl !== undefined) updateData.portraitUrl = sanitized.portraitUrl;
+      if (sanitized.websiteUrl !== undefined) updateData.websiteUrl = sanitized.websiteUrl;
+      if (sanitized.twitterHandle !== undefined) updateData.twitterHandle = sanitized.twitterHandle;
+      if (sanitized.linkedinUrl !== undefined) updateData.linkedinUrl = sanitized.linkedinUrl;
+      if (sanitized.githubHandle !== undefined) updateData.githubHandle = sanitized.githubHandle;
 
       // Handle status changes based on current status and edit type
       if (profile.approvalStatus === "rejected") {
