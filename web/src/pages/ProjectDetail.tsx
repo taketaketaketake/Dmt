@@ -2,11 +2,13 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Portrait, Badge } from "../components/ui";
 import { NeedsDisplay } from "../components/NeedsDisplay";
+import { useAuth } from "../contexts";
 import { projects as projectsApi, follows as followsApi, type ProjectDetail } from "../lib/api";
 import styles from "./ProjectDetail.module.css";
 
 export function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { isAuthenticated } = useAuth();
   const [project, setProject] = useState<ProjectDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,16 +27,20 @@ export function ProjectDetailPage() {
         setProject(data.project);
         setIsLoading(false);
 
-        // Check if following (separate call to avoid blocking page load)
-        followsApi.check(id).then((data) => {
-          setIsFollowing(data.following);
-        });
+        // Check if following (only when authenticated)
+        if (isAuthenticated) {
+          followsApi.check(id).then((data) => {
+            setIsFollowing(data.following);
+          }).catch(() => {
+            // User may not be approved yet; leave as not following
+          });
+        }
       })
       .catch((err) => {
         setError(err.message || "Failed to load project");
         setIsLoading(false);
       });
-  }, [id]);
+  }, [id, isAuthenticated]);
 
   const toggleFollow = useCallback(async () => {
     if (!id || isTogglingFollow) return;
@@ -137,15 +143,17 @@ export function ProjectDetailPage() {
         </main>
 
         {/* Sidebar */}
-        <aside className={styles.sidebar}>
-          <button
-            className={`${styles.actionButton} ${isFollowing ? styles.actionButtonActive : ""}`}
-            onClick={toggleFollow}
-            disabled={isTogglingFollow}
-          >
-            {isFollowing ? "Unfollow project" : "Follow project"}
-          </button>
-        </aside>
+        {isAuthenticated && (
+          <aside className={styles.sidebar}>
+            <button
+              className={`${styles.actionButton} ${isFollowing ? styles.actionButtonActive : ""}`}
+              onClick={toggleFollow}
+              disabled={isTogglingFollow}
+            >
+              {isFollowing ? "Unfollow project" : "Follow project"}
+            </button>
+          </aside>
+        )}
       </div>
     </div>
   );
