@@ -101,6 +101,12 @@ async function handleCheckoutCompleted(
     return;
   }
 
+  // Idempotency: skip if already an employer
+  if (user.isEmployer) {
+    app.log.info(`User ${user.id} already has employer capability, skipping`);
+    return;
+  }
+
   // Grant employer capability
   await prisma.user.update({
     where: { id: user.id },
@@ -132,6 +138,12 @@ async function handleSubscriptionDeleted(
 
   if (!user) {
     app.log.error(`customer.subscription.deleted: No user found for customer ${customerId}`);
+    return;
+  }
+
+  // Idempotency: skip if already not an employer
+  if (!user.isEmployer) {
+    app.log.info(`User ${user.id} already lacks employer capability, skipping`);
     return;
   }
 
@@ -170,8 +182,13 @@ async function handlePaymentFailed(
     return;
   }
 
+  // Idempotency: skip if already not an employer
+  if (!user.isEmployer) {
+    app.log.info(`User ${user.id} already lacks employer capability, skipping`);
+    return;
+  }
+
   // Revoke employer capability on payment failure
-  // TODO: Could implement grace period - for now, immediate revocation
   await prisma.user.update({
     where: { id: user.id },
     data: { isEmployer: false },

@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { authAndAdmin } from "../middleware/auth.js";
 import { prisma } from "../lib/prisma.js";
+import { parsePagination, paginationMeta } from "../lib/pagination.js";
 import { sendProfileApprovedEmail, sendProfileRejectedEmail, sendNeedReminderEmail } from "../lib/email.js";
 
 // =============================================================================
@@ -15,6 +16,11 @@ interface RejectProfileBody {
   note?: string;
 }
 
+interface PaginationQuery {
+  limit?: string;
+  offset?: string;
+}
+
 // =============================================================================
 // ADMIN ROUTES
 // =============================================================================
@@ -26,29 +32,41 @@ export async function adminRoutes(app: FastifyInstance) {
 
   // GET /admin/profiles/pending
   // List profiles pending review
-  app.get(
+  app.get<{ Querystring: PaginationQuery }>(
     "/profiles/pending",
     { preHandler: authAndAdmin() },
     async (request, reply) => {
-      const profiles = await prisma.profile.findMany({
-        where: {
-          approvalStatus: "pending_review",
-        },
-        orderBy: {
-          updatedAt: "asc", // Oldest first (FIFO queue)
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              createdAt: true,
+      const { limit, offset } = parsePagination(request.query);
+
+      const whereClause = {
+        approvalStatus: "pending_review" as const,
+      };
+
+      const [profiles, total] = await Promise.all([
+        prisma.profile.findMany({
+          where: whereClause,
+          orderBy: {
+            updatedAt: "asc", // Oldest first (FIFO queue)
+          },
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                createdAt: true,
+              },
             },
           },
-        },
-      });
+          take: limit,
+          skip: offset,
+        }),
+        prisma.profile.count({ where: whereClause }),
+      ]);
 
-      return reply.status(200).send({ profiles });
+      return reply.status(200).send({
+        profiles,
+        pagination: paginationMeta(total, limit, offset),
+      });
     }
   );
 
@@ -208,25 +226,35 @@ export async function adminRoutes(app: FastifyInstance) {
 
   // GET /admin/users
   // List all users
-  app.get(
+  app.get<{ Querystring: PaginationQuery }>(
     "/users",
     { preHandler: authAndAdmin() },
-    async (_request, reply) => {
-      const users = await prisma.user.findMany({
-        orderBy: { createdAt: "desc" },
-        include: {
-          profile: {
-            select: {
-              id: true,
-              name: true,
-              handle: true,
-              approvalStatus: true,
+    async (request, reply) => {
+      const { limit, offset } = parsePagination(request.query);
+
+      const [users, total] = await Promise.all([
+        prisma.user.findMany({
+          orderBy: { createdAt: "desc" },
+          include: {
+            profile: {
+              select: {
+                id: true,
+                name: true,
+                handle: true,
+                approvalStatus: true,
+              },
             },
           },
-        },
-      });
+          take: limit,
+          skip: offset,
+        }),
+        prisma.user.count(),
+      ]);
 
-      return reply.status(200).send({ users });
+      return reply.status(200).send({
+        users,
+        pagination: paginationMeta(total, limit, offset),
+      });
     }
   );
 

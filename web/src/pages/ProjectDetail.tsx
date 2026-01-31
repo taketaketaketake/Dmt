@@ -4,16 +4,19 @@ import { Portrait, Badge } from "../components/ui";
 import { NeedsDisplay } from "../components/NeedsDisplay";
 import { useAuth } from "../contexts";
 import { projects as projectsApi, follows as followsApi, type ProjectDetail } from "../lib/api";
+import { usePageTitle } from "../hooks/usePageTitle";
 import styles from "./ProjectDetail.module.css";
 
 export function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { isAuthenticated } = useAuth();
   const [project, setProject] = useState<ProjectDetail | null>(null);
+  usePageTitle(project?.title ?? "Project");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFollowing, setIsFollowing] = useState(false);
   const [isTogglingFollow, setIsTogglingFollow] = useState(false);
+  const [followError, setFollowError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -46,16 +49,19 @@ export function ProjectDetailPage() {
     if (!id || isTogglingFollow) return;
 
     setIsTogglingFollow(true);
+    setFollowError(null);
+    const wasFollowing = isFollowing;
+    setIsFollowing(!wasFollowing);
     try {
-      if (isFollowing) {
+      if (wasFollowing) {
         await followsApi.remove(id);
-        setIsFollowing(false);
       } else {
         await followsApi.add(id);
-        setIsFollowing(true);
       }
     } catch {
-      // Silently fail - could add error toast later
+      setIsFollowing(wasFollowing);
+      setFollowError("Failed to update follow. Please try again.");
+      setTimeout(() => setFollowError(null), 3000);
     }
     setIsTogglingFollow(false);
   }, [id, isFollowing, isTogglingFollow]);
@@ -152,6 +158,7 @@ export function ProjectDetailPage() {
             >
               {isFollowing ? "Unfollow project" : "Follow project"}
             </button>
+            {followError && <p className={styles.error}>{followError}</p>}
           </aside>
         )}
       </div>

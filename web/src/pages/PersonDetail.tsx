@@ -2,17 +2,20 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Portrait } from "../components/ui";
 import { profiles as profilesApi, projects as projectsApi, favorites as favoritesApi } from "../lib/api";
+import { usePageTitle } from "../hooks/usePageTitle";
 import type { Profile, ProjectListItem } from "../data/types";
 import styles from "./PersonDetail.module.css";
 
 export function PersonDetailPage() {
   const { handle } = useParams<{ handle: string }>();
   const [profile, setProfile] = useState<Profile | null>(null);
+  usePageTitle(profile?.name ?? "Profile");
   const [projects, setProjects] = useState<ProjectListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFavorited, setIsFavorited] = useState(false);
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
+  const [favoriteError, setFavoriteError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!handle) return;
@@ -46,16 +49,19 @@ export function PersonDetailPage() {
     if (!profile || isTogglingFavorite) return;
 
     setIsTogglingFavorite(true);
+    setFavoriteError(null);
+    const wasFavorited = isFavorited;
+    setIsFavorited(!wasFavorited);
     try {
-      if (isFavorited) {
+      if (wasFavorited) {
         await favoritesApi.remove(profile.id);
-        setIsFavorited(false);
       } else {
         await favoritesApi.add(profile.id);
-        setIsFavorited(true);
       }
     } catch {
-      // Silently fail - could add error toast later
+      setIsFavorited(wasFavorited);
+      setFavoriteError("Failed to update favorite. Please try again.");
+      setTimeout(() => setFavoriteError(null), 3000);
     }
     setIsTogglingFavorite(false);
   }, [profile, isFavorited, isTogglingFavorite]);
@@ -147,6 +153,7 @@ export function PersonDetailPage() {
           >
             {isFavorited ? "Remove from favorites" : "Add to favorites"}
           </button>
+          {favoriteError && <p className={styles.error}>{favoriteError}</p>}
         </aside>
 
         {/* Main Content */}

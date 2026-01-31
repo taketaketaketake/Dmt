@@ -2,11 +2,13 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Portrait } from "../../components/ui";
 import { admin as adminApi, type AdminUserDetail } from "../../lib/api";
+import { usePageTitle } from "../../hooks/usePageTitle";
 import styles from "./UserDetail.module.css";
 
 export function UserDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [user, setUser] = useState<AdminUserDetail | null>(null);
+  usePageTitle(user?.profile?.name ? `User: ${user.profile.name}` : "User Detail");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);

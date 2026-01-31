@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "../components/ui";
 import { jobs as jobsApi } from "../lib/api";
+import { usePageTitle } from "../hooks/usePageTitle";
 import type { JobListItem } from "../data/types";
 import styles from "./Jobs.module.css";
 
@@ -13,6 +14,7 @@ const jobTypeLabels: Record<string, string> = {
 };
 
 export function JobsPage() {
+  usePageTitle("Jobs");
   const [jobs, setJobs] = useState<JobListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Portrait, Badge } from "../components/ui";
 import { projects as projectsApi } from "../lib/api";
+import { usePageTitle } from "../hooks/usePageTitle";
 import type { ProjectListItem } from "../data/types";
 import styles from "./Projects.module.css";
 
 export function ProjectsPage() {
+  usePageTitle("Projects");
   const [projects, setProjects] = useState<ProjectListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

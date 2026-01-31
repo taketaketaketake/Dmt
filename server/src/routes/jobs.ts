@@ -95,6 +95,9 @@ export async function jobRoutes(app: FastifyInstance) {
         if (isNaN(expiry.getTime())) {
           return reply.status(400).send({ error: "Invalid expiry date" });
         }
+        if (expiry <= new Date()) {
+          return reply.status(400).send({ error: "Expiry date must be in the future" });
+        }
       } else {
         expiry = new Date();
         expiry.setDate(expiry.getDate() + DEFAULT_EXPIRY_DAYS);
@@ -286,6 +289,9 @@ export async function jobRoutes(app: FastifyInstance) {
         const expiry = new Date(expiresAt);
         if (isNaN(expiry.getTime())) {
           return reply.status(400).send({ error: "Invalid expiry date" });
+        }
+        if (expiry <= new Date()) {
+          return reply.status(400).send({ error: "Expiry date must be in the future" });
         }
         updateData.expiresAt = expiry;
       }

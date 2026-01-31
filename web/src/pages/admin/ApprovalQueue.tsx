@@ -2,9 +2,11 @@ import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Portrait } from "../../components/ui";
 import { admin as adminApi, type AdminProfile } from "../../lib/api";
+import { usePageTitle } from "../../hooks/usePageTitle";
 import styles from "./ApprovalQueue.module.css";
 
 export function ApprovalQueuePage() {
+  usePageTitle("Approval Queue");
   const [profiles, setProfiles] = useState<AdminProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

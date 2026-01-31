@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Portrait, Badge } from "../components/ui";
 import { jobs as jobsApi, type JobDetail } from "../lib/api";
+import { usePageTitle } from "../hooks/usePageTitle";
 import styles from "./JobDetail.module.css";
 
 const jobTypeLabels: Record<string, string> = {
@@ -14,6 +15,7 @@ const jobTypeLabels: Record<string, string> = {
 export function JobDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [job, setJob] = useState<JobDetail | null>(null);
+  usePageTitle(job?.title ?? "Job");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

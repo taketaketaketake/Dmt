@@ -5,6 +5,7 @@ import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import fastifyStatic from "@fastify/static";
+import multipart from "@fastify/multipart";
 import { join } from "path";
 import { randomUUID } from "crypto";
 import { env } from "./lib/env.js";
@@ -67,14 +68,13 @@ app.addContentTypeParser(
   }
 );
 
-// Add multipart support for file uploads (returns raw buffer)
-app.addContentTypeParser(
-  "multipart/form-data",
-  { parseAs: "buffer" },
-  (_req, body: Buffer, done) => {
-    done(null, body);
-  }
-);
+// Multipart support for file uploads
+await app.register(multipart, {
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB
+    files: 1,
+  },
+});
 
 // Plugins
 await app.register(cookie, {

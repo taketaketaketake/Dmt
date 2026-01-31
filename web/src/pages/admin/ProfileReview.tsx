@@ -2,12 +2,14 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Portrait } from "../../components/ui";
 import { admin as adminApi, type AdminProfile } from "../../lib/api";
+import { usePageTitle } from "../../hooks/usePageTitle";
 import styles from "./ProfileReview.module.css";
 
 export function ProfileReviewPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<AdminProfile | null>(null);
+  usePageTitle(profile ? `Review: ${profile.name}` : "Profile Review");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);

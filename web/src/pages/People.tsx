@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Portrait } from "../components/ui";
 import { profiles as profilesApi } from "../lib/api";
+import { usePageTitle } from "../hooks/usePageTitle";
 import type { ProfileListItem } from "../data/types";
 import styles from "./People.module.css";
 
 export function PeoplePage() {
+  usePageTitle("People");
   const [profiles, setProfiles] = useState<ProfileListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

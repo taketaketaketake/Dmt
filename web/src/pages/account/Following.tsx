@@ -2,13 +2,16 @@ import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "../../components/ui";
 import { follows as followsApi, type FollowItem } from "../../lib/api";
+import { usePageTitle } from "../../hooks/usePageTitle";
 import styles from "./Following.module.css";
 
 export function FollowingPage() {
+  usePageTitle("Following");
   const [follows, setFollows] = useState<FollowItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
+  const [unfollowError, setUnfollowError] = useState<string | null>(null);
 
   useEffect(() => {
     followsApi
@@ -25,11 +28,13 @@ export function FollowingPage() {
 
   const unfollow = useCallback(async (projectId: string) => {
     setRemovingIds((prev) => new Set(prev).add(projectId));
+    setUnfollowError(null);
     try {
       await followsApi.remove(projectId);
       setFollows((prev) => prev.filter((f) => f.project.id !== projectId));
     } catch {
-      // Silently fail
+      setUnfollowError("Failed to unfollow. Please try again.");
+      setTimeout(() => setUnfollowError(null), 3000);
     }
     setRemovingIds((prev) => {
       const next = new Set(prev);
@@ -68,6 +73,8 @@ export function FollowingPage() {
           {follows.length} project{follows.length !== 1 ? "s" : ""} followed
         </p>
       </header>
+
+      {unfollowError && <p className={styles.error}>{unfollowError}</p>}
 
       {follows.length === 0 ? (
         <div className={styles.empty}>

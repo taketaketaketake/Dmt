@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../contexts";
+import { usePageTitle } from "../hooks/usePageTitle";
 import styles from "./Login.module.css";
 
 export function LoginPage() {
+  usePageTitle("Login");
   const { login, isAuthenticated } = useAuth();
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);

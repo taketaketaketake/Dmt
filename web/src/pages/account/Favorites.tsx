@@ -2,13 +2,16 @@ import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Portrait } from "../../components/ui";
 import { favorites as favoritesApi, type FavoriteItem } from "../../lib/api";
+import { usePageTitle } from "../../hooks/usePageTitle";
 import styles from "./Favorites.module.css";
 
 export function FavoritesPage() {
+  usePageTitle("Favorites");
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
+  const [removeError, setRemoveError] = useState<string | null>(null);
 
   useEffect(() => {
     favoritesApi
@@ -25,11 +28,13 @@ export function FavoritesPage() {
 
   const removeFavorite = useCallback(async (profileId: string) => {
     setRemovingIds((prev) => new Set(prev).add(profileId));
+    setRemoveError(null);
     try {
       await favoritesApi.remove(profileId);
       setFavorites((prev) => prev.filter((f) => f.profile.id !== profileId));
     } catch {
-      // Silently fail
+      setRemoveError("Failed to remove favorite. Please try again.");
+      setTimeout(() => setRemoveError(null), 3000);
     }
     setRemovingIds((prev) => {
       const next = new Set(prev);
@@ -68,6 +73,8 @@ export function FavoritesPage() {
           {favorites.length} {favorites.length === 1 ? "person" : "people"} saved
         </p>
       </header>
+
+      {removeError && <p className={styles.error}>{removeError}</p>}
 
       {favorites.length === 0 ? (
         <div className={styles.empty}>

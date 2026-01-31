@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Badge } from "../../components/ui";
 import { jobs as jobsApi } from "../../lib/api";
 import { useAuth } from "../../contexts";
+import { usePageTitle } from "../../hooks/usePageTitle";
 import type { Job, JobType } from "../../data/types";
 import styles from "./MyJobs.module.css";
 
@@ -43,6 +44,7 @@ const jobTypeLabels: Record<JobType, string> = {
 };
 
 export function MyJobsPage() {
+  usePageTitle("My Jobs");
   const { user } = useAuth();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState(true);

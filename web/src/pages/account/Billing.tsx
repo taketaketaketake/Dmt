@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { billing as billingApi } from "../../lib/api";
+import { usePageTitle } from "../../hooks/usePageTitle";
 import styles from "./Billing.module.css";
 
 export function BillingPage() {
+  usePageTitle("Billing");
   const [isEmployer, setIsEmployer] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -28,6 +30,7 @@ export function BillingPage() {
       window.location.href = data.url;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to start checkout");
+    } finally {
       setIsSubmitting(false);
     }
   }, []);
@@ -39,6 +42,7 @@ export function BillingPage() {
       window.location.href = data.url;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to open portal");
+    } finally {
       setIsSubmitting(false);
     }
   }, []);

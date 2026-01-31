@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Badge } from "../../components/ui";
 import { NeedsEditor } from "../../components/NeedsEditor";
 import { useAuth } from "../../contexts";
+import { usePageTitle } from "../../hooks/usePageTitle";
 import { projects as projectsApi } from "../../lib/api";
 import type { Project, ProjectStatus } from "../../data/types";
 import styles from "./MyProjects.module.css";
@@ -34,6 +35,7 @@ function projectToForm(project: Project): ProjectFormData {
 }
 
 export function MyProjectsPage() {
+  usePageTitle("My Projects");
   const { profile } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);

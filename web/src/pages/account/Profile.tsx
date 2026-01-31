@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, type FormEvent, type ChangeEv
 import { Portrait } from "../../components/ui";
 import { useAuth } from "../../contexts";
 import { profiles as profilesApi, uploads as uploadsApi, ApiError } from "../../lib/api";
+import { usePageTitle } from "../../hooks/usePageTitle";
 import type { Profile } from "../../data/types";
 import styles from "./Profile.module.css";
 
@@ -61,6 +62,7 @@ function StatusMessage({ status }: { status: Profile["approvalStatus"] }) {
 }
 
 export function ProfilePage() {
+  usePageTitle("My Profile");
   const { profile: authProfile, refresh } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [form, setForm] = useState<FormData>(emptyForm);
