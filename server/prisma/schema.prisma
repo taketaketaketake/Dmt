@@ -225,6 +225,7 @@ model Job {
   @@index([posterId])
   @@index([active])
   @@index([expiresAt])
+  @@index([active, expiresAt])
 }
 
 // =============================================================================
@@ -332,6 +333,7 @@ model ProjectNeed {
   @@unique([projectId, categoryId]) // One need entry per category per project
   @@index([projectId])
   @@index([updatedAt])
+  @@index([projectId, updatedAt])
 }
 
 model ProjectNeedOption {

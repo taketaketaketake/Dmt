@@ -522,4 +522,38 @@ export async function adminRoutes(app: FastifyInstance) {
       });
     }
   );
+
+  // ---------------------------------------------------------------------------
+  // SESSION CLEANUP
+  // ---------------------------------------------------------------------------
+
+  // POST /admin/tasks/cleanup-sessions
+  // Delete expired sessions and used/expired magic link tokens
+  app.post(
+    "/tasks/cleanup-sessions",
+    { preHandler: authAndAdmin() },
+    async (_request, reply) => {
+      const now = new Date();
+
+      const [deletedSessions, deletedTokens] = await Promise.all([
+        prisma.session.deleteMany({
+          where: { expiresAt: { lt: now } },
+        }),
+        prisma.magicLinkToken.deleteMany({
+          where: {
+            OR: [
+              { expiresAt: { lt: now } },
+              { used: true },
+            ],
+          },
+        }),
+      ]);
+
+      return reply.status(200).send({
+        message: "Cleanup complete",
+        deletedSessions: deletedSessions.count,
+        deletedTokens: deletedTokens.count,
+      });
+    }
+  );
 }

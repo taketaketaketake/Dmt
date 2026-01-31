@@ -95,6 +95,16 @@ export async function getUserFromSession(sessionId: string): Promise<AuthUser | 
     return null;
   }
 
+  // Sliding expiry: refresh if less than half the max age remains
+  const halfLife = (env.SESSION_MAX_AGE_DAYS * 24 * 60 * 60 * 1000) / 2;
+  const timeRemaining = session.expiresAt.getTime() - Date.now();
+  if (timeRemaining < halfLife) {
+    await prisma.session.update({
+      where: { id: sessionId },
+      data: { expiresAt: getSessionExpiry() },
+    });
+  }
+
   const { user } = session;
   return {
     id: user.id,

@@ -7,6 +7,7 @@ import rateLimit from "@fastify/rate-limit";
 import fastifyStatic from "@fastify/static";
 import multipart from "@fastify/multipart";
 import { join } from "path";
+import { existsSync } from "fs";
 import { randomUUID } from "crypto";
 import { env } from "./lib/env.js";
 import { prisma } from "./lib/prisma.js";
@@ -249,10 +250,33 @@ await app.register(webhookRoutes, { prefix: "/webhooks" });
 await app.register(uploadRoutes, { prefix: "/api/uploads" });
 await app.register(needsRoutes, { prefix: "/api/needs" });
 
-// Health check
-app.get("/health", async () => {
-  return { status: "ok" };
+// Health check — verifies database connectivity for load balancers
+app.get("/health", async (_request, reply) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    return { status: "ok" };
+  } catch (err) {
+    app.log.error({ err }, "Health check failed: database unreachable");
+    return reply.status(503).send({ status: "error", message: "Database unreachable" });
+  }
 });
+
+// Serve frontend build in production
+// In dev, Vite dev server handles this via proxy
+const WEB_DIST = join(process.cwd(), "..", "web", "dist");
+if (env.isProd && existsSync(WEB_DIST)) {
+  await app.register(fastifyStatic, {
+    root: WEB_DIST,
+    prefix: "/",
+    wildcard: false,
+    decorateReply: false,
+  });
+
+  // SPA fallback: serve index.html for unmatched routes (client-side routing)
+  app.setNotFoundHandler(async (_request, reply) => {
+    return reply.sendFile("index.html", WEB_DIST);
+  });
+}
 
 // Catch unhandled rejections to prevent process crashes
 process.on("unhandledRejection", (reason) => {
