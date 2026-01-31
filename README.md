@@ -170,5 +170,6 @@ cd web && npm run dev
 - [Product overview](project_overview.md) — Original product brief
 - [Product requirements](PRD.md) — Detailed feature specs
 - [Brand guidelines](BRAND.md) — Visual identity and design principles
-- [System spec](SYSTEM_SPEC.md) — Technical architecture
+- [Architecture](architecture.md) — System structure, data flow, responsibility boundaries
+- [System spec](SYSTEM_SPEC.md) — Domain objects, user states, endpoints
 - [Project needs](docs/PROJECT_NEEDS.md) — Needs taxonomy system
