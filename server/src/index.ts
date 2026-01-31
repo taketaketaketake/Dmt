@@ -254,6 +254,16 @@ app.get("/health", async () => {
   return { status: "ok" };
 });
 
+// Catch unhandled rejections to prevent process crashes
+process.on("unhandledRejection", (reason) => {
+  app.log.error({ err: reason }, "Unhandled promise rejection");
+});
+
+process.on("uncaughtException", (err) => {
+  app.log.fatal({ err }, "Uncaught exception — shutting down");
+  process.exit(1);
+});
+
 // Graceful shutdown
 const shutdown = async () => {
   app.log.info("Shutting down...");

@@ -10,6 +10,7 @@ import {
   JobsPage,
   JobDetailPage,
   AccountPage,
+  NotFoundPage,
 } from "./pages";
 import {
   ProfilePage,
@@ -84,7 +85,7 @@ function App() {
 
         {/* Default redirect */}
         <Route path="/" element={<Navigate to="/people" replace />} />
-        <Route path="*" element={<Navigate to="/people" replace />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
   );

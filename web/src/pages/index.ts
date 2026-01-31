@@ -6,3 +6,4 @@ export { ProjectDetailPage } from "./ProjectDetail";
 export { JobsPage } from "./Jobs";
 export { JobDetailPage } from "./JobDetail";
 export { AccountPage } from "./Account";
+export { NotFoundPage } from "./NotFound";
