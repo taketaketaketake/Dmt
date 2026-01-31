@@ -85,7 +85,8 @@ web/             React frontend
 
 ## Further reading
 
-- [Product overview](project_overview.md) — Vision and philosophy
+- [Vision](vision.md) — Why this exists, what it is, what it isn't
+- [Product overview](project_overview.md) — Original product brief
 - [Product requirements](PRD.md) — Detailed feature specs
 - [Brand guidelines](BRAND.md) — Visual identity and design principles
 - [System spec](SYSTEM_SPEC.md) — Technical architecture
