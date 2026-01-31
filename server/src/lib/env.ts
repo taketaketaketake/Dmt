@@ -30,8 +30,11 @@ export const env = {
   MAGIC_LINK_EXPIRY_MINUTES: parseInt(optionalEnv("MAGIC_LINK_EXPIRY_MINUTES", "15"), 10),
   APP_URL: requireEnv("APP_URL"),
 
-  // Resend
-  RESEND_API_KEY: requireEnv("RESEND_API_KEY"),
+  // SMTP (email)
+  SMTP_HOST: optionalEnv("SMTP_HOST", "smtp.gmail.com"),
+  SMTP_PORT: parseInt(optionalEnv("SMTP_PORT", "465"), 10),
+  SMTP_USER: requireEnv("SMTP_USER"),
+  SMTP_PASS: requireEnv("SMTP_PASS"),
   EMAIL_FROM: optionalEnv("EMAIL_FROM", "Detroit Directory <noreply@example.com>"),
 
   // Stripe

@@ -1,7 +1,15 @@
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 import { env } from "./env.js";
 
-export const resend = new Resend(env.RESEND_API_KEY);
+const transporter = nodemailer.createTransport({
+  host: env.SMTP_HOST,
+  port: env.SMTP_PORT,
+  secure: env.SMTP_PORT === 465,
+  auth: {
+    user: env.SMTP_USER,
+    pass: env.SMTP_PASS,
+  },
+});
 
 interface SendMagicLinkParams {
   to: string;
@@ -18,7 +26,7 @@ export async function sendMagicLinkEmail({ to, magicLinkUrl }: SendMagicLinkPara
     return;
   }
 
-  await resend.emails.send({
+  await transporter.sendMail({
     from: env.EMAIL_FROM,
     to,
     subject: "Sign in to Detroit Directory",
@@ -60,7 +68,7 @@ export async function sendProfileApprovedEmail({ to, profileName }: ProfileAppro
     return;
   }
 
-  await resend.emails.send({
+  await transporter.sendMail({
     from: env.EMAIL_FROM,
     to,
     subject: "Your profile has been approved",
@@ -101,7 +109,7 @@ export async function sendProfileRejectedEmail({ to, profileName, rejectionNote 
     ? `<p style="font-size: 16px; line-height: 1.5; color: #4a4a4a; margin-bottom: 24px; padding: 16px; background-color: #f5f5f5;"><strong>Note:</strong> ${rejectionNote}</p>`
     : "";
 
-  await resend.emails.send({
+  await transporter.sendMail({
     from: env.EMAIL_FROM,
     to,
     subject: "Your profile needs changes",
@@ -148,7 +156,7 @@ export async function sendNeedReminderEmail({ to, profileName, projectTitle, pro
     return;
   }
 
-  await resend.emails.send({
+  await transporter.sendMail({
     from: env.EMAIL_FROM,
     to,
     subject: `Update your needs for ${projectTitle}`,

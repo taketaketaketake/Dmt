@@ -72,9 +72,6 @@ export function PeoplePage() {
               <div className={styles.cardContent}>
                 <h2 className={styles.name}>{profile.name}</h2>
                 <p className={styles.handle}>@{profile.handle}</p>
-                {profile.location && (
-                  <p className={styles.location}>{profile.location}</p>
-                )}
                 {profile.bio && (
                   <p className={styles.bio}>{profile.bio}</p>
                 )}

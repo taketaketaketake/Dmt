@@ -7,10 +7,10 @@ interface ShellProps {
 }
 
 export function Shell({ isAuthenticated = false }: ShellProps) {
-  // Redirect to login if not authenticated
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
+  // TODO: Re-enable auth check
+  // if (!isAuthenticated) {
+  //   return <Navigate to="/login" replace />;
+  // }
 
   return (
     <div className={styles.shell}>

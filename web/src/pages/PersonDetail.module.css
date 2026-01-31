@@ -95,6 +95,21 @@
   width: 100%;
 }
 
+@media (max-width: 768px) {
+  .actionButton {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    z-index: 100;
+    background: var(--color-bg);
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    padding: var(--space-4);
+  }
+}
+
 .actionButton:hover {
   color: var(--color-text-primary);
   border-color: var(--color-text-secondary);

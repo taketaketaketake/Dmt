@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { authAndAdmin } from "../middleware/auth.js";
 import { prisma } from "../lib/prisma.js";
-import { sendProfileApprovedEmail, sendProfileRejectedEmail, sendNeedReminderEmail } from "../lib/resend.js";
+import { sendProfileApprovedEmail, sendProfileRejectedEmail, sendNeedReminderEmail } from "../lib/email.js";
 
 // =============================================================================
 // TYPES

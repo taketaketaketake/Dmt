@@ -203,6 +203,7 @@ async function main() {
         creatorId: profiles[0].id,
         title: "FactoryOS",
         description: "Open-source operating system for CNC machines. Modernizing legacy equipment with real-time monitoring, predictive maintenance, and remote operation capabilities.",
+        websiteUrl: "https://factoryos.io",
         repoUrl: "https://github.com/mayachen/factoryos",
         status: "active",
       },

@@ -1,7 +1,16 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts";
 import styles from "./Account.module.css";
 
 export function AccountPage() {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await logout();
+    navigate("/login");
+  };
+
   return (
     <div className="container">
       <div className={styles.layout}>
@@ -65,8 +74,7 @@ export function AccountPage() {
             </NavLink>
           </nav>
 
-          {/* TODO: Wire to POST /auth/logout */}
-          <button className={styles.signOutButton}>
+          <button className={styles.signOutButton} onClick={handleSignOut}>
             Sign out
           </button>
         </aside>

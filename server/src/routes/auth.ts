@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { prisma } from "../lib/prisma.js";
 import { env } from "../lib/env.js";
-import { sendMagicLinkEmail } from "../lib/resend.js";
+import { sendMagicLinkEmail } from "../lib/email.js";
 import {
   createMagicLinkToken,
   verifyMagicLinkToken,
