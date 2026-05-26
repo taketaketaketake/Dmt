@@ -3,7 +3,7 @@ services:
     image: postgres:16-alpine
     container_name: detroit-postgres
     ports:
-      - "5433:5432"
+      - "5438:5432"
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password

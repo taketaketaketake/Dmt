@@ -53,7 +53,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     (req, body: Buffer, done) => {
       (req as unknown as { rawBody: Buffer }).rawBody = body;
       try {
-        const json = JSON.parse(body.toString());
+        const json = body.length > 0 ? JSON.parse(body.toString()) : {};
         done(null, json);
       } catch (err) {
         done(err as Error, undefined);

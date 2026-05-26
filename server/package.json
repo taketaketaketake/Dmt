@@ -29,6 +29,9 @@
     "nodemailer": "^7.0.13",
     "stripe": "^20.2.0"
   },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
   "devDependencies": {
     "@types/node": "^22.10.7",
     "@types/nodemailer": "^7.0.9",
