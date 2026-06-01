@@ -5,8 +5,9 @@ import { join } from "path";
 import { existsSync } from "fs";
 import { requireAuth } from "../middleware/auth.js";
 import { env } from "../lib/env.js";
+import { putObject } from "../lib/storage.js";
 
-// Upload directory - in production, use cloud storage
+// Local fallback directory, used only when R2 is not configured (dev).
 const UPLOAD_DIR = join(process.cwd(), "uploads");
 
 // Allowed image types and their canonical extensions
@@ -19,8 +20,8 @@ const ALLOWED_TYPES = Object.keys(MIME_TO_EXT);
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 export const uploadRoutes: FastifyPluginAsync = async (app) => {
-  // Ensure upload directory exists
-  if (!existsSync(UPLOAD_DIR)) {
+  // Ensure the local fallback directory exists when R2 is not configured.
+  if (!env.isR2Configured && !existsSync(UPLOAD_DIR)) {
     await mkdir(UPLOAD_DIR, { recursive: true });
   }
 
@@ -56,16 +57,19 @@ export const uploadRoutes: FastifyPluginAsync = async (app) => {
     // Derive extension from validated MIME type, not user-supplied filename
     const ext = MIME_TO_EXT[file.mimetype];
     const filename = `${uploadType}-${nanoid(12)}${ext}`;
-    const filepath = join(UPLOAD_DIR, filename);
 
-    // Save file
+    // Production (and any env with R2 configured): store in Cloudflare R2.
+    if (env.isR2Configured) {
+      const key = `${uploadType}/${filename}`;
+      const url = await putObject(key, buffer, file.mimetype);
+      return { url, filename };
+    }
+
+    // Dev fallback: write to local disk and serve via /uploads static route.
+    const filepath = join(UPLOAD_DIR, filename);
     await writeFile(filepath, buffer);
 
-    // Return URL
-    const url = env.isDev
-      ? `http://localhost:${env.PORT}/uploads/${filename}`
-      : `${env.APP_URL}/uploads/${filename}`;
-
+    const url = `http://localhost:${env.PORT}/uploads/${filename}`;
     return { url, filename };
   });
 };

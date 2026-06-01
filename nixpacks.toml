@@ -1,0 +1,29 @@
+# Nixpacks build config for Railway — single-service deploy.
+# Builds the Vite frontend and the Fastify server, then the server serves
+# web/dist as static files (see server/src/index.ts). There is no root
+# package.json, so every phase is declared explicitly here.
+
+providers = ['node']
+
+[phases.setup]
+# openssl is required by Prisma's query engine at build and runtime.
+nixPkgs = ['nodejs_22', 'openssl']
+
+[phases.install]
+cmds = [
+  'npm --prefix server ci',
+  'npm --prefix web ci',
+]
+
+[phases.build]
+cmds = [
+  'npm --prefix web run build',        # -> web/dist
+  'npm --prefix server run db:generate', # prisma client
+  'npm --prefix server run build',     # tsc -> server/dist
+]
+
+[start]
+# Must run from the server dir: index.ts resolves the frontend via
+# process.cwd()/../web/dist. migrate deploy applies pending migrations at
+# boot, when DATABASE_URL is available.
+cmd = 'cd server && npx prisma migrate deploy && node dist/index.js'
