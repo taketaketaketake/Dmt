@@ -34,10 +34,11 @@ export const env = {
   RESEND_API_KEY: optionalEnv("RESEND_API_KEY", ""),
   EMAIL_FROM: optionalEnv("EMAIL_FROM", "Detroit Directory <noreply@example.com>"),
 
-  // Stripe
-  STRIPE_SECRET_KEY: requireEnv("STRIPE_SECRET_KEY"),
-  STRIPE_WEBHOOK_SECRET: requireEnv("STRIPE_WEBHOOK_SECRET"),
-  STRIPE_PRICE_ID: requireEnv("STRIPE_PRICE_ID"), // Employer subscription price
+  // Stripe (billing). Optional so the app can run with billing disabled;
+  // billing endpoints return an error until these are configured.
+  STRIPE_SECRET_KEY: optionalEnv("STRIPE_SECRET_KEY", ""),
+  STRIPE_WEBHOOK_SECRET: optionalEnv("STRIPE_WEBHOOK_SECRET", ""),
+  STRIPE_PRICE_ID: optionalEnv("STRIPE_PRICE_ID", ""), // Employer subscription price
 
   // Cloudflare R2 (object storage for uploads).
   // Optional in dev/test (falls back to local disk); required in production.
@@ -62,6 +63,9 @@ export const env = {
         this.R2_BUCKET &&
         this.R2_PUBLIC_URL
     );
+  },
+  get isStripeConfigured() {
+    return Boolean(this.STRIPE_SECRET_KEY && this.STRIPE_PRICE_ID);
   },
 } as const;
 
