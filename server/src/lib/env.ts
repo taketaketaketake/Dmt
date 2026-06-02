@@ -30,11 +30,8 @@ export const env = {
   MAGIC_LINK_EXPIRY_MINUTES: parseInt(optionalEnv("MAGIC_LINK_EXPIRY_MINUTES", "15"), 10),
   APP_URL: requireEnv("APP_URL"),
 
-  // SMTP (email)
-  SMTP_HOST: optionalEnv("SMTP_HOST", "smtp.gmail.com"),
-  SMTP_PORT: parseInt(optionalEnv("SMTP_PORT", "465"), 10),
-  SMTP_USER: requireEnv("SMTP_USER"),
-  SMTP_PASS: requireEnv("SMTP_PASS"),
+  // Email (Resend). RESEND_API_KEY is optional in dev/test, required in prod.
+  RESEND_API_KEY: optionalEnv("RESEND_API_KEY", ""),
   EMAIL_FROM: optionalEnv("EMAIL_FROM", "Detroit Directory <noreply@example.com>"),
 
   // Stripe
@@ -75,4 +72,9 @@ if (env.isProd && !env.isR2Configured) {
     "Cloudflare R2 is not configured. Set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, " +
       "R2_SECRET_ACCESS_KEY, R2_BUCKET, and R2_PUBLIC_URL in production."
   );
+}
+
+// Fail fast: email delivery (Resend) must be configured in production.
+if (env.isProd && !env.RESEND_API_KEY) {
+  throw new Error("RESEND_API_KEY is not set. It is required in production.");
 }

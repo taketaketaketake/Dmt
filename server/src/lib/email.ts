@@ -1,15 +1,29 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 import { env } from "./env.js";
 
-const transporter = nodemailer.createTransport({
-  host: env.SMTP_HOST,
-  port: env.SMTP_PORT,
-  secure: env.SMTP_PORT === 465,
-  auth: {
-    user: env.SMTP_USER,
-    pass: env.SMTP_PASS,
-  },
-});
+// Lazy client init so importing this module (e.g. in tests, where it's mocked)
+// doesn't require RESEND_API_KEY to be present.
+let resend: Resend | null = null;
+
+function getClient(): Resend {
+  if (!resend) {
+    resend = new Resend(env.RESEND_API_KEY);
+  }
+  return resend;
+}
+
+async function sendEmail(to: string, subject: string, html: string): Promise<void> {
+  const { error } = await getClient().emails.send({
+    from: env.EMAIL_FROM,
+    to,
+    subject,
+    html,
+  });
+
+  if (error) {
+    throw new Error(`Failed to send email to ${to}: ${error.message}`);
+  }
+}
 
 interface SendMagicLinkParams {
   to: string;
@@ -26,11 +40,10 @@ export async function sendMagicLinkEmail({ to, magicLinkUrl }: SendMagicLinkPara
     return;
   }
 
-  await transporter.sendMail({
-    from: env.EMAIL_FROM,
+  await sendEmail(
     to,
-    subject: "Sign in to Detroit Directory",
-    html: `
+    "Sign in to Detroit Directory",
+    `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
         <h1 style="font-size: 24px; font-weight: 600; margin-bottom: 24px; color: #1a1a1a;">
           Sign in to Detroit Directory
@@ -45,8 +58,8 @@ export async function sendMagicLinkEmail({ to, magicLinkUrl }: SendMagicLinkPara
           If you didn't request this email, you can safely ignore it.
         </p>
       </div>
-    `,
-  });
+    `
+  );
 }
 
 // =============================================================================
@@ -68,11 +81,10 @@ export async function sendProfileApprovedEmail({ to, profileName }: ProfileAppro
     return;
   }
 
-  await transporter.sendMail({
-    from: env.EMAIL_FROM,
+  await sendEmail(
     to,
-    subject: "Your profile has been approved",
-    html: `
+    "Your profile has been approved",
+    `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
         <h1 style="font-size: 24px; font-weight: 600; margin-bottom: 24px; color: #1a1a1a;">
           Welcome to Detroit Directory
@@ -84,8 +96,8 @@ export async function sendProfileApprovedEmail({ to, profileName }: ProfileAppro
           View Directory
         </a>
       </div>
-    `,
-  });
+    `
+  );
 }
 
 interface ProfileRejectionParams {
@@ -109,11 +121,10 @@ export async function sendProfileRejectedEmail({ to, profileName, rejectionNote 
     ? `<p style="font-size: 16px; line-height: 1.5; color: #4a4a4a; margin-bottom: 24px; padding: 16px; background-color: #f5f5f5;"><strong>Note:</strong> ${rejectionNote}</p>`
     : "";
 
-  await transporter.sendMail({
-    from: env.EMAIL_FROM,
+  await sendEmail(
     to,
-    subject: "Your profile needs changes",
-    html: `
+    "Your profile needs changes",
+    `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
         <h1 style="font-size: 24px; font-weight: 600; margin-bottom: 24px; color: #1a1a1a;">
           Profile Review Update
@@ -129,8 +140,8 @@ export async function sendProfileRejectedEmail({ to, profileName, rejectionNote 
           Edit Profile
         </a>
       </div>
-    `,
-  });
+    `
+  );
 }
 
 // =============================================================================
@@ -156,11 +167,10 @@ export async function sendNeedReminderEmail({ to, profileName, projectTitle, pro
     return;
   }
 
-  await transporter.sendMail({
-    from: env.EMAIL_FROM,
+  await sendEmail(
     to,
-    subject: `Update your needs for ${projectTitle}`,
-    html: `
+    `Update your needs for ${projectTitle}`,
+    `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
         <h1 style="font-size: 24px; font-weight: 600; margin-bottom: 24px; color: #1a1a1a;">
           Keep your project needs current
@@ -178,6 +188,6 @@ export async function sendNeedReminderEmail({ to, profileName, projectTitle, pro
           If your needs are still accurate, you can dismiss this reminder by visiting your project and saving without changes.
         </p>
       </div>
-    `,
-  });
+    `
+  );
 }
