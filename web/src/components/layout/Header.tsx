@@ -1,7 +1,10 @@
 import { Link, NavLink } from "react-router-dom";
+import { useAuth } from "../../contexts";
 import styles from "./Header.module.css";
 
 export function Header() {
+  const { user } = useAuth();
+
   return (
     <header className={styles.header}>
       <div className={styles.container}>
@@ -43,6 +46,16 @@ export function Header() {
           >
             Account
           </NavLink>
+          {user?.isAdmin && (
+            <NavLink
+              to="/admin"
+              className={({ isActive }) =>
+                isActive ? `${styles.navLink} ${styles.active}` : styles.navLink
+              }
+            >
+              Admin
+            </NavLink>
+          )}
         </nav>
       </div>
     </header>

@@ -24,6 +24,12 @@ enum ProfileApprovalStatus {
   rejected
 }
 
+enum JobModerationStatus {
+  pending
+  approved
+  rejected
+}
+
 enum ProjectStatus {
   active
   completed
@@ -214,6 +220,11 @@ model Job {
   type        JobType
   applyUrl    String
   active      Boolean  @default(true)
+  // Moderation: jobs publish instantly (active=true) but new posts start as
+  // `pending` so admins can review them. Approving clears the flag; rejecting
+  // also sets active=false to take the post down.
+  moderationStatus JobModerationStatus @default(pending)
+  reviewedAt       DateTime?
   expiresAt   DateTime
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -226,6 +237,7 @@ model Job {
   @@index([active])
   @@index([expiresAt])
   @@index([active, expiresAt])
+  @@index([moderationStatus])
 }
 
 // =============================================================================

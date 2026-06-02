@@ -113,6 +113,8 @@ export async function jobRoutes(app: FastifyInstance) {
           applyUrl: sanitized.applyUrl,
           expiresAt: expiry,
           active: true,
+          // Jobs go live immediately but are flagged for admin review.
+          moderationStatus: "pending",
         },
       });
 

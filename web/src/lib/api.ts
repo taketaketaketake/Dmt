@@ -419,6 +419,35 @@ export interface AdminUserDetail extends AdminUser {
   };
 }
 
+export interface AdminJob {
+  id: string;
+  title: string;
+  companyName: string;
+  description?: string;
+  type: string;
+  applyUrl: string;
+  active: boolean;
+  moderationStatus: string;
+  reviewedAt?: string;
+  expiresAt: string;
+  createdAt: string;
+  poster: {
+    id: string;
+    name: string;
+    handle: string;
+    portraitUrl?: string;
+    user: {
+      id: string;
+      email: string;
+    };
+  };
+}
+
+export interface AdminStats {
+  pendingProfiles: number;
+  pendingJobs: number;
+}
+
 export const admin = {
   // Approval queue
   pendingProfiles: () =>
@@ -465,6 +494,23 @@ export const admin = {
     request<{ message: string }>(`/admin/jobs/${id}`, {
       method: "DELETE",
     }),
+
+  // Job review queue
+  pendingJobs: () =>
+    request<{ jobs: AdminJob[] }>("/admin/jobs/pending"),
+
+  approveJob: (id: string) =>
+    request<{ job: AdminJob; message: string }>(`/admin/jobs/${id}/approve`, {
+      method: "POST",
+    }),
+
+  rejectJob: (id: string) =>
+    request<{ job: AdminJob; message: string }>(`/admin/jobs/${id}/reject`, {
+      method: "POST",
+    }),
+
+  // Dashboard stats (tab badge counts)
+  stats: () => request<AdminStats>("/admin/stats"),
 };
 
 // =============================================================================

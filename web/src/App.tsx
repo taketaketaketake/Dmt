@@ -23,6 +23,7 @@ import {
 import {
   AdminShell,
   ApprovalQueuePage,
+  JobQueuePage,
   ProfileReviewPage,
   UsersPage,
   UserDetailPage,
@@ -79,6 +80,7 @@ function App() {
           <Route index element={<Navigate to="/admin/queue" replace />} />
           <Route path="queue" element={<ApprovalQueuePage />} />
           <Route path="queue/:id" element={<ProfileReviewPage />} />
+          <Route path="jobs" element={<JobQueuePage />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="users/:id" element={<UserDetailPage />} />
         </Route>

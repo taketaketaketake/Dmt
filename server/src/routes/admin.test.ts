@@ -6,6 +6,7 @@ import {
   resetPrismaMock,
   mockUser,
   mockProfile,
+  mockJob,
   mockSession,
   authCookie,
   sendProfileApprovedEmail,
@@ -54,6 +55,10 @@ describe("Admin Routes", () => {
       { method: "POST" as const, url: "/admin/profiles/some-id/reject" },
       { method: "POST" as const, url: "/admin/users/some-id/suspend" },
       { method: "POST" as const, url: "/admin/users/some-id/reinstate" },
+      { method: "GET" as const, url: "/admin/jobs/pending" },
+      { method: "POST" as const, url: "/admin/jobs/some-id/approve" },
+      { method: "POST" as const, url: "/admin/jobs/some-id/reject" },
+      { method: "GET" as const, url: "/admin/stats" },
     ];
 
     for (const route of adminRoutes) {
@@ -298,6 +303,157 @@ describe("Admin Routes", () => {
         where: { id: "user-2" },
         data: { status: "approved" },
       });
+    });
+  });
+
+  // =========================================================================
+  // GET /admin/jobs/pending
+  // =========================================================================
+  describe("GET /admin/jobs/pending", () => {
+    it("returns live jobs awaiting review with pagination", async () => {
+      stubAdminSession();
+      const job = mockJob({ moderationStatus: "pending" });
+      prismaMock.job.findMany.mockResolvedValue([job] as never);
+      prismaMock.job.count.mockResolvedValue(1 as never);
+
+      const response = await app.inject({
+        method: "GET",
+        url: "/admin/jobs/pending",
+        headers: { cookie: authCookie() },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.jobs).toHaveLength(1);
+      expect(body.pagination.total).toBe(1);
+      // Only pending + active jobs should be queried
+      expect(prismaMock.job.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { moderationStatus: "pending", active: true },
+        })
+      );
+    });
+  });
+
+  // =========================================================================
+  // POST /admin/jobs/:id/approve
+  // =========================================================================
+  describe("POST /admin/jobs/:id/approve", () => {
+    it("returns 404 when job not found", async () => {
+      stubAdminSession();
+      prismaMock.job.findUnique.mockResolvedValue(null as never);
+
+      const response = await app.inject({
+        method: "POST",
+        url: "/admin/jobs/nonexistent/approve",
+        headers: { cookie: authCookie() },
+      });
+      expect(response.statusCode).toBe(404);
+    });
+
+    it("returns 400 when job is not pending", async () => {
+      stubAdminSession();
+      prismaMock.job.findUnique.mockResolvedValue(
+        mockJob({ moderationStatus: "approved" }) as never
+      );
+
+      const response = await app.inject({
+        method: "POST",
+        url: "/admin/jobs/job-1/approve",
+        headers: { cookie: authCookie() },
+      });
+      expect(response.statusCode).toBe(400);
+      expect(response.json().error).toContain("Cannot approve job with status");
+    });
+
+    it("approves a pending job and keeps it live", async () => {
+      stubAdminSession();
+      const job = mockJob({ moderationStatus: "pending" });
+      prismaMock.job.findUnique.mockResolvedValue(job as never);
+      prismaMock.job.update.mockResolvedValue(
+        { ...job, moderationStatus: "approved" } as never
+      );
+
+      const response = await app.inject({
+        method: "POST",
+        url: "/admin/jobs/job-1/approve",
+        headers: { cookie: authCookie() },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json().message).toBe("Job approved");
+      expect(prismaMock.job.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "job-1" },
+          data: expect.objectContaining({ moderationStatus: "approved" }),
+        })
+      );
+    });
+  });
+
+  // =========================================================================
+  // POST /admin/jobs/:id/reject
+  // =========================================================================
+  describe("POST /admin/jobs/:id/reject", () => {
+    it("returns 400 when job is not pending", async () => {
+      stubAdminSession();
+      prismaMock.job.findUnique.mockResolvedValue(
+        mockJob({ moderationStatus: "approved" }) as never
+      );
+
+      const response = await app.inject({
+        method: "POST",
+        url: "/admin/jobs/job-1/reject",
+        headers: { cookie: authCookie() },
+      });
+      expect(response.statusCode).toBe(400);
+    });
+
+    it("rejects a pending job and takes it down (active=false)", async () => {
+      stubAdminSession();
+      const job = mockJob({ moderationStatus: "pending" });
+      prismaMock.job.findUnique.mockResolvedValue(job as never);
+      prismaMock.job.update.mockResolvedValue(
+        { ...job, moderationStatus: "rejected", active: false } as never
+      );
+
+      const response = await app.inject({
+        method: "POST",
+        url: "/admin/jobs/job-1/reject",
+        headers: { cookie: authCookie() },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json().message).toBe("Job rejected");
+      expect(prismaMock.job.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "job-1" },
+          data: expect.objectContaining({
+            moderationStatus: "rejected",
+            active: false,
+          }),
+        })
+      );
+    });
+  });
+
+  // =========================================================================
+  // GET /admin/stats
+  // =========================================================================
+  describe("GET /admin/stats", () => {
+    it("returns pending profile and job counts", async () => {
+      stubAdminSession();
+      prismaMock.profile.count.mockResolvedValue(3 as never);
+      prismaMock.job.count.mockResolvedValue(2 as never);
+
+      const response = await app.inject({
+        method: "GET",
+        url: "/admin/stats",
+        headers: { cookie: authCookie() },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual({ pendingProfiles: 3, pendingJobs: 2 });
     });
   });
 });

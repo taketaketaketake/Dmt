@@ -89,6 +89,42 @@ export function mockProfile(overrides: Partial<{
 }
 
 /**
+ * Factory: create a mock Job record
+ */
+export function mockJob(overrides: Partial<{
+  id: string;
+  posterId: string;
+  title: string;
+  companyName: string;
+  description: string | null;
+  type: string;
+  applyUrl: string;
+  active: boolean;
+  moderationStatus: string;
+  reviewedAt: Date | null;
+  expiresAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}> = {}) {
+  return {
+    id: "job-1",
+    posterId: "profile-1",
+    title: "Senior Engineer",
+    companyName: "Acme Co",
+    description: null,
+    type: "full_time",
+    applyUrl: "https://example.com/apply",
+    active: true,
+    moderationStatus: "pending",
+    reviewedAt: null,
+    expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    createdAt: new Date("2025-01-01"),
+    updatedAt: new Date("2025-01-01"),
+    ...overrides,
+  };
+}
+
+/**
  * Factory: create a mock Session record with nested user
  */
 export function mockSession(overrides: Partial<{

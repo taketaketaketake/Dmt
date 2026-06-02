@@ -6,7 +6,7 @@ import { usePageTitle } from "../../hooks/usePageTitle";
 import styles from "./ApprovalQueue.module.css";
 
 export function ApprovalQueuePage() {
-  usePageTitle("Approval Queue");
+  usePageTitle("Pending Users");
   const [profiles, setProfiles] = useState<AdminProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +37,7 @@ export function ApprovalQueuePage() {
   return (
     <div>
       <header className={styles.header}>
-        <h2 className={styles.title}>Approval Queue</h2>
+        <h2 className={styles.title}>Pending Users</h2>
         <span className={styles.count}>
           {profiles.length} pending
         </span>
@@ -45,7 +45,7 @@ export function ApprovalQueuePage() {
 
       {profiles.length === 0 ? (
         <div className={styles.empty}>
-          <p>No profiles pending review.</p>
+          <p>No users pending review.</p>
         </div>
       ) : (
         <div className={styles.list}>

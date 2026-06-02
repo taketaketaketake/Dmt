@@ -12,6 +12,10 @@ interface ProfileIdParams {
   id: string;
 }
 
+interface JobIdParams {
+  id: string;
+}
+
 interface RejectProfileBody {
   note?: string;
 }
@@ -411,6 +415,149 @@ export async function adminRoutes(app: FastifyInstance) {
       });
 
       return reply.status(200).send({ message: "Job removed" });
+    }
+  );
+
+  // ---------------------------------------------------------------------------
+  // JOB REVIEW QUEUE
+  // Jobs publish instantly but are flagged `pending` for admin review.
+  // ---------------------------------------------------------------------------
+
+  // GET /admin/jobs/pending
+  // List live jobs awaiting moderation review (FIFO: oldest first)
+  app.get<{ Querystring: PaginationQuery }>(
+    "/jobs/pending",
+    { preHandler: authAndAdmin() },
+    async (request, reply) => {
+      const { limit, offset } = parsePagination(request.query);
+
+      const whereClause = {
+        moderationStatus: "pending" as const,
+        active: true,
+      };
+
+      const [jobs, total] = await Promise.all([
+        prisma.job.findMany({
+          where: whereClause,
+          orderBy: {
+            createdAt: "asc", // Oldest first (FIFO queue)
+          },
+          include: {
+            poster: {
+              select: {
+                id: true,
+                name: true,
+                handle: true,
+                portraitUrl: true,
+                user: {
+                  select: {
+                    id: true,
+                    email: true,
+                  },
+                },
+              },
+            },
+          },
+          take: limit,
+          skip: offset,
+        }),
+        prisma.job.count({ where: whereClause }),
+      ]);
+
+      return reply.status(200).send({
+        jobs,
+        pagination: paginationMeta(total, limit, offset),
+      });
+    }
+  );
+
+  // POST /admin/jobs/:id/approve
+  // Clear the review flag (pending -> approved). The job stays live.
+  app.post<{ Params: JobIdParams }>(
+    "/jobs/:id/approve",
+    { preHandler: authAndAdmin() },
+    async (request, reply) => {
+      const { id } = request.params;
+
+      const job = await prisma.job.findUnique({ where: { id } });
+
+      if (!job) {
+        return reply.status(404).send({ error: "Job not found" });
+      }
+
+      if (job.moderationStatus !== "pending") {
+        return reply.status(400).send({
+          error: `Cannot approve job with status: ${job.moderationStatus}`,
+        });
+      }
+
+      const updatedJob = await prisma.job.update({
+        where: { id },
+        data: {
+          moderationStatus: "approved",
+          reviewedAt: new Date(),
+        },
+      });
+
+      return reply.status(200).send({
+        job: updatedJob,
+        message: "Job approved",
+      });
+    }
+  );
+
+  // POST /admin/jobs/:id/reject
+  // Reject a pending job (pending -> rejected) and take it down (active=false).
+  app.post<{ Params: JobIdParams }>(
+    "/jobs/:id/reject",
+    { preHandler: authAndAdmin() },
+    async (request, reply) => {
+      const { id } = request.params;
+
+      const job = await prisma.job.findUnique({ where: { id } });
+
+      if (!job) {
+        return reply.status(404).send({ error: "Job not found" });
+      }
+
+      if (job.moderationStatus !== "pending") {
+        return reply.status(400).send({
+          error: `Cannot reject job with status: ${job.moderationStatus}`,
+        });
+      }
+
+      const updatedJob = await prisma.job.update({
+        where: { id },
+        data: {
+          moderationStatus: "rejected",
+          reviewedAt: new Date(),
+          active: false, // Take the post down
+        },
+      });
+
+      return reply.status(200).send({
+        job: updatedJob,
+        message: "Job rejected",
+      });
+    }
+  );
+
+  // ---------------------------------------------------------------------------
+  // DASHBOARD STATS
+  // Lightweight counts that power the admin tab badges.
+  // ---------------------------------------------------------------------------
+
+  // GET /admin/stats
+  app.get(
+    "/stats",
+    { preHandler: authAndAdmin() },
+    async (_request, reply) => {
+      const [pendingProfiles, pendingJobs] = await Promise.all([
+        prisma.profile.count({ where: { approvalStatus: "pending_review" } }),
+        prisma.job.count({ where: { moderationStatus: "pending", active: true } }),
+      ]);
+
+      return reply.status(200).send({ pendingProfiles, pendingJobs });
     }
   );
 
