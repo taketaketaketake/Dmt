@@ -10,9 +10,13 @@ providers = ['node']
 nixPkgs = ['nodejs_22', 'openssl']
 
 [phases.install]
+# --include=dev forces devDependencies (typescript, vite, prisma CLI) to be
+# installed even though NODE_ENV=production is set on the service, which npm
+# would otherwise read as --omit=dev. They're needed to build and to run
+# `prisma migrate deploy` at start.
 cmds = [
-  'npm --prefix server ci',
-  'npm --prefix web ci',
+  'npm --prefix server ci --include=dev',
+  'npm --prefix web ci --include=dev',
 ]
 
 [phases.build]
