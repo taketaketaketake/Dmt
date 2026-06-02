@@ -612,4 +612,76 @@ export async function projectRoutes(app: FastifyInstance) {
       return reply.status(200).send({ needs: responseNeeds });
     }
   );
+
+  // ---------------------------------------------------------------------------
+  // GET /api/projects/:id/matches
+  // Approved people whose skills overlap this project's needs (supply for demand)
+  // Same visibility rules as GET /:id/needs.
+  // ---------------------------------------------------------------------------
+  app.get<{ Params: ProjectIdParams }>(
+    "/:id/matches",
+    { preHandler: [requireAuth] },
+    async (request, reply) => {
+      const user = request.user!;
+      const { id } = request.params;
+
+      const project = await prisma.project.findUnique({
+        where: { id },
+        select: {
+          creator: { select: { userId: true, approvalStatus: true } },
+          needs: { select: { options: { select: { optionId: true } } } },
+        },
+      });
+
+      if (!project) {
+        return reply.status(404).send({ error: "Project not found" });
+      }
+
+      // Check access (mirrors GET /:id/needs)
+      const isOwner = project.creator.userId === user.id;
+      const isAdmin = user.isAdmin;
+      if (!isOwner && !isAdmin) {
+        if (user.status !== "approved") {
+          return reply.status(403).send({ error: "Account pending approval" });
+        }
+        if (project.creator.approvalStatus !== "approved") {
+          return reply.status(404).send({ error: "Project not found" });
+        }
+      }
+
+      const optionIds = [
+        ...new Set(project.needs.flatMap((n) => n.options.map((o) => o.optionId))),
+      ];
+      if (optionIds.length === 0) {
+        return reply.status(200).send({ people: [] });
+      }
+
+      const profiles = await prisma.profile.findMany({
+        where: {
+          approvalStatus: "approved",
+          // Don't suggest the project's own creator
+          userId: { not: project.creator.userId },
+          skills: { some: { optionId: { in: optionIds } } },
+        },
+        orderBy: { name: "asc" },
+        select: {
+          id: true,
+          name: true,
+          handle: true,
+          portraitUrl: true,
+          skills: {
+            where: { optionId: { in: optionIds } },
+            select: { option: { select: { id: true, name: true, slug: true } } },
+          },
+        },
+      });
+
+      const people = profiles.map(({ skills, ...p }) => ({
+        ...p,
+        matchedSkills: skills.map((s) => s.option),
+      }));
+
+      return reply.status(200).send({ people });
+    }
+  );
 }

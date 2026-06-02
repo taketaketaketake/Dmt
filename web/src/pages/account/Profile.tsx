@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, type FormEvent, type ChangeEvent } from "react";
 import { Portrait } from "../../components/ui";
+import { SkillsEditor } from "../../components/SkillsEditor";
 import { useAuth } from "../../contexts";
 import { profiles as profilesApi, uploads as uploadsApi, ApiError } from "../../lib/api";
 import { usePageTitle } from "../../hooks/usePageTitle";
@@ -626,6 +627,8 @@ export function ProfilePage() {
           )}
         </div>
       </div>
+
+      <SkillsEditor />
     </div>
   );
 }

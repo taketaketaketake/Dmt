@@ -7,6 +7,7 @@ import type {
   User,
   Profile,
   ProfileListItem,
+  ProjectStatus,
   Project,
   ProjectListItem,
   Job,
@@ -14,6 +15,7 @@ import type {
   NeedCategory,
   ProjectNeed,
   NeedInput,
+  SkillTag,
 } from "../data/types";
 
 // Base URL - in dev, proxy handles this; in prod, same origin
@@ -128,15 +130,47 @@ export interface ProfileUpdateData {
   githubHandle?: string;
 }
 
+// A skill matched between supply (people) and demand (project needs)
+export interface MatchedSkill {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export interface MatchingProject {
+  id: string;
+  title: string;
+  description?: string;
+  status: ProjectStatus;
+  creator: { id: string; name: string; handle: string; portraitUrl?: string };
+  matchedSkills: MatchedSkill[];
+}
+
 export const profiles = {
+  // Directory list is filtered client-side; request the full page (server caps
+  // at 100). Switch to server-side filtering if the directory outgrows that.
   list: () =>
-    request<{ profiles: ProfileListItem[] }>("/api/profiles"),
+    request<{ profiles: ProfileListItem[] }>("/api/profiles?limit=100"),
 
   get: (handle: string) =>
     request<{ profile: Profile }>(`/api/profiles/${handle}`),
 
   me: () =>
     request<{ profile: Profile }>("/api/profiles/me"),
+
+  skills: () =>
+    request<{ skills: SkillTag[] }>("/api/profiles/me/skills"),
+
+  updateSkills: (optionIds: string[]) =>
+    request<{ skills: SkillTag[] }>("/api/profiles/me/skills", {
+      method: "PUT",
+      body: JSON.stringify({ optionIds }),
+    }),
+
+  matchingProjects: (handle: string) =>
+    request<{ projects: MatchingProject[] }>(
+      `/api/profiles/${handle}/matching-projects`
+    ),
 
   create: (data: ProfileCreateData) =>
     request<{ profile: Profile }>("/api/profiles", {
@@ -207,15 +241,29 @@ export const projects = {
       method: "PUT",
       body: JSON.stringify({ needs }),
     }),
+
+  // People whose skills match this project's needs
+  matches: (projectId: string) =>
+    request<{ people: ProjectMatchPerson[] }>(`/api/projects/${projectId}/matches`),
 };
+
+export interface ProjectMatchPerson {
+  id: string;
+  name: string;
+  handle: string;
+  portraitUrl?: string;
+  matchedSkills: MatchedSkill[];
+}
 
 // =============================================================================
 // NEEDS TAXONOMY API
 // =============================================================================
 
 export const needs = {
-  taxonomy: () =>
-    request<{ categories: NeedCategory[] }>("/api/needs/taxonomy"),
+  taxonomy: (opts?: { offerable?: boolean }) =>
+    request<{ categories: NeedCategory[] }>(
+      `/api/needs/taxonomy${opts?.offerable ? "?offerable=1" : ""}`
+    ),
 };
 
 // =============================================================================

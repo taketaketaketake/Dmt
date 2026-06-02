@@ -13,6 +13,9 @@ export const mockProfiles = {
   create: vi.fn(),
   update: vi.fn(),
   submit: vi.fn(),
+  skills: vi.fn(),
+  updateSkills: vi.fn(),
+  matchingProjects: vi.fn(),
 };
 
 export const mockProjects = {
@@ -24,6 +27,7 @@ export const mockProjects = {
   delete: vi.fn(),
   getNeeds: vi.fn(),
   updateNeeds: vi.fn(),
+  matches: vi.fn(),
 };
 
 export const mockNeeds = {

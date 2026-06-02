@@ -41,6 +41,45 @@ interface PaginationQuery {
   offset?: string;
 }
 
+interface UpdateSkillsBody {
+  optionIds: string[];
+}
+
+// Max number of skills a person can list on their profile
+const MAX_SKILLS = 10;
+
+// =============================================================================
+// HELPER: Skill tag selection + formatting
+// People's skills reference the same NeedOption rows projects use for needs,
+// so the directory can be filtered and matched against project demand.
+// =============================================================================
+
+const skillSelect = {
+  select: {
+    option: {
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        category: { select: { slug: true } },
+      },
+    },
+  },
+} as const;
+
+type SkillRow = {
+  option: { id: string; name: string; slug: string; category: { slug: string } };
+};
+
+function formatSkills(skills: SkillRow[] = []) {
+  return skills.map((s) => ({
+    id: s.option.id,
+    name: s.option.name,
+    slug: s.option.slug,
+    categorySlug: s.option.category.slug,
+  }));
+}
+
 // =============================================================================
 // HELPER: Validate handle format
 // =============================================================================
@@ -303,6 +342,90 @@ export async function profileRoutes(app: FastifyInstance) {
   );
 
   // ---------------------------------------------------------------------------
+  // GET /api/profiles/me/skills
+  // Get own skill tags (authenticated user)
+  // ---------------------------------------------------------------------------
+  app.get(
+    "/me/skills",
+    { preHandler: [requireAuth] },
+    async (request, reply) => {
+      const user = request.user!;
+
+      const profile = await prisma.profile.findUnique({
+        where: { userId: user.id },
+        select: { id: true, skills: skillSelect },
+      });
+
+      if (!profile) {
+        return reply.status(404).send({ error: "Profile not found" });
+      }
+
+      return reply.status(200).send({ skills: formatSkills(profile.skills) });
+    }
+  );
+
+  // ---------------------------------------------------------------------------
+  // PUT /api/profiles/me/skills
+  // Replace own skill tags atomically (authenticated user)
+  // Body: { optionIds: string[] } - referencing offerable NeedOptions
+  // ---------------------------------------------------------------------------
+  app.put<{ Body: UpdateSkillsBody }>(
+    "/me/skills",
+    { preHandler: [requireAuth] },
+    async (request, reply) => {
+      const user = request.user!;
+      const { optionIds } = request.body ?? {};
+
+      if (!Array.isArray(optionIds)) {
+        return reply.status(400).send({ error: "optionIds must be an array" });
+      }
+
+      // De-duplicate before validating and storing
+      const uniqueIds = [...new Set(optionIds)];
+
+      if (uniqueIds.length > MAX_SKILLS) {
+        return reply.status(400).send({ error: `Maximum ${MAX_SKILLS} skills allowed` });
+      }
+
+      const profile = await prisma.profile.findUnique({
+        where: { userId: user.id },
+        select: { id: true },
+      });
+
+      if (!profile) {
+        return reply.status(404).send({ error: "Profile not found" });
+      }
+
+      // Every option must exist, be active, and be offerable as a skill
+      if (uniqueIds.length > 0) {
+        const validCount = await prisma.needOption.count({
+          where: { id: { in: uniqueIds }, active: true, offerable: true },
+        });
+        if (validCount !== uniqueIds.length) {
+          return reply.status(400).send({ error: "One or more skills are invalid" });
+        }
+      }
+
+      // Atomic replace: clear existing skills, then set the new selection
+      await prisma.$transaction(async (tx) => {
+        await tx.profileSkill.deleteMany({ where: { profileId: profile.id } });
+        if (uniqueIds.length > 0) {
+          await tx.profileSkill.createMany({
+            data: uniqueIds.map((optionId) => ({ profileId: profile.id, optionId })),
+          });
+        }
+      });
+
+      const skills = await prisma.profileSkill.findMany({
+        where: { profileId: profile.id },
+        select: skillSelect.select,
+      });
+
+      return reply.status(200).send({ skills: formatSkills(skills) });
+    }
+  );
+
+  // ---------------------------------------------------------------------------
   // GET /api/profiles
   // List approved profiles (members only)
   // Supports pagination: ?limit=20&offset=0
@@ -330,6 +453,8 @@ export async function profileRoutes(app: FastifyInstance) {
             bio: true,
             location: true,
             portraitUrl: true,
+            // Skill tags power the /people filter and supply<->demand matching
+            skills: skillSelect,
             // Don't expose external links in list view
           },
           take: limit,
@@ -343,7 +468,10 @@ export async function profileRoutes(app: FastifyInstance) {
       ]);
 
       return reply.status(200).send({
-        profiles,
+        profiles: profiles.map(({ skills, ...p }) => ({
+          ...p,
+          skills: formatSkills(skills),
+        })),
         pagination: paginationMeta(total, limit, offset),
       });
     }
@@ -372,6 +500,7 @@ export async function profileRoutes(app: FastifyInstance) {
               email: true,
             },
           },
+          skills: skillSelect,
         },
       });
 
@@ -387,7 +516,8 @@ export async function profileRoutes(app: FastifyInstance) {
 
       // Owners and admins can always view
       if (isOwner || isAdmin) {
-        return reply.status(200).send({ profile });
+        const { skills, ...rest } = profile;
+        return reply.status(200).send({ profile: { ...rest, skills: formatSkills(skills) } });
       }
 
       // Members can only view approved profiles
@@ -400,8 +530,70 @@ export async function profileRoutes(app: FastifyInstance) {
       }
 
       // Return approved profile without sensitive data
-      const { user: _, ...profileData } = profile;
-      return reply.status(200).send({ profile: profileData });
+      const { user: _, skills, ...profileData } = profile;
+      return reply.status(200).send({ profile: { ...profileData, skills: formatSkills(skills) } });
+    }
+  );
+
+  // ---------------------------------------------------------------------------
+  // GET /api/profiles/:handle/matching-projects
+  // Active projects whose needs overlap this person's skills (demand for supply)
+  // ---------------------------------------------------------------------------
+  app.get<{ Params: ProfileParams }>(
+    "/:handle/matching-projects",
+    { preHandler: authAndApproved() },
+    async (request, reply) => {
+      const { handle } = request.params;
+
+      const profile = await prisma.profile.findUnique({
+        where: { handle: handle.toLowerCase() },
+        select: {
+          approvalStatus: true,
+          skills: { select: { optionId: true } },
+        },
+      });
+
+      if (!profile || profile.approvalStatus !== "approved") {
+        return reply.status(404).send({ error: "Profile not found" });
+      }
+
+      const optionIds = profile.skills.map((s) => s.optionId);
+      if (optionIds.length === 0) {
+        return reply.status(200).send({ projects: [] });
+      }
+
+      const projects = await prisma.project.findMany({
+        where: {
+          status: "active",
+          needs: { some: { options: { some: { optionId: { in: optionIds } } } } },
+        },
+        orderBy: { updatedAt: "desc" },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          status: true,
+          creator: {
+            select: { id: true, name: true, handle: true, portraitUrl: true },
+          },
+          needs: {
+            where: { options: { some: { optionId: { in: optionIds } } } },
+            select: {
+              options: {
+                where: { optionId: { in: optionIds } },
+                select: { option: { select: { id: true, name: true, slug: true } } },
+              },
+            },
+          },
+        },
+      });
+
+      const result = projects.map(({ needs, ...p }) => ({
+        ...p,
+        matchedSkills: needs.flatMap((n) => n.options.map((o) => o.option)),
+      }));
+
+      return reply.status(200).send({ projects: result });
     }
   );
 }

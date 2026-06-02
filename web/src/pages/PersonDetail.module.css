@@ -158,6 +158,37 @@
 }
 
 /* -----------------------------------------------------------------------------
+   SKILLS
+   ----------------------------------------------------------------------------- */
+
+.skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.skill {
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-light);
+  padding: var(--space-2) var(--space-3);
+}
+
+/* Matched-skill tags shown on matching project cards (paper surface) */
+.matchTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.matchTag {
+  font-size: var(--text-xs);
+  color: var(--color-text-on-paper-secondary);
+  background-color: var(--color-paper-dim);
+  padding: 2px var(--space-2);
+}
+
+/* -----------------------------------------------------------------------------
    PROJECTS LIST
    ----------------------------------------------------------------------------- */
 

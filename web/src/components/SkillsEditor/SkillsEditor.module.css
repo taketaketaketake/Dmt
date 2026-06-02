@@ -1,0 +1,153 @@
+/* =============================================================================
+   SKILLS EDITOR
+   Toggle-chip multi-select for a person's offered skills (paper/light context)
+   ============================================================================= */
+
+.container {
+  background-color: var(--color-paper);
+  padding: var(--space-8);
+  margin-top: var(--space-6);
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: var(--space-2);
+}
+
+.title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-text-on-paper);
+}
+
+.count {
+  font-size: var(--text-sm);
+  color: var(--color-text-on-paper-secondary);
+}
+
+.hint {
+  font-size: var(--text-sm);
+  color: var(--color-text-on-paper-secondary);
+  margin-bottom: var(--space-6);
+}
+
+.loading {
+  font-size: var(--text-sm);
+  color: var(--color-text-on-paper-secondary);
+}
+
+.error {
+  font-size: var(--text-sm);
+  color: #c53030;
+  margin-bottom: var(--space-4);
+}
+
+/* -----------------------------------------------------------------------------
+   GROUPED CHIPS
+   ----------------------------------------------------------------------------- */
+
+.group {
+  margin-bottom: var(--space-5);
+}
+
+.groupName {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--color-text-on-paper-secondary);
+  margin-bottom: var(--space-3);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.chip {
+  font-size: var(--text-sm);
+  color: var(--color-text-on-paper);
+  background-color: white;
+  border: 1px solid var(--color-border-on-paper);
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  /* Comfortable tap target on mobile */
+  min-height: 40px;
+}
+
+.chip:hover:not(:disabled) {
+  border-color: var(--color-text-on-paper);
+}
+
+.chipActive {
+  background-color: var(--color-text-on-paper);
+  border-color: var(--color-text-on-paper);
+  color: var(--color-paper);
+}
+
+.chip:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* -----------------------------------------------------------------------------
+   ACTIONS
+   ----------------------------------------------------------------------------- */
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding-top: var(--space-5);
+  margin-top: var(--space-2);
+  border-top: 1px solid var(--color-border-on-paper);
+}
+
+.cancelButton {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  background-color: transparent;
+  color: var(--color-text-on-paper-secondary);
+  border: 1px solid var(--color-border-on-paper);
+  padding: var(--space-3) var(--space-5);
+  cursor: pointer;
+}
+
+.cancelButton:hover {
+  color: var(--color-text-on-paper);
+  border-color: var(--color-text-on-paper);
+}
+
+.cancelButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.saveButton {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  background-color: var(--color-text-on-paper);
+  color: var(--color-paper);
+  border: none;
+  padding: var(--space-3) var(--space-6);
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.saveButton:hover {
+  opacity: 0.85;
+}
+
+.saveButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

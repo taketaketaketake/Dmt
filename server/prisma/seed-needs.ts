@@ -7,10 +7,18 @@ const prisma = new PrismaClient();
 // V1 TAXONOMY DATA
 // =============================================================================
 
+interface TaxonomyOption {
+  name: string;
+  slug: string;
+  // Whether a person can offer this as a skill (supply side). Demand-only
+  // options (funding, exposure, access) default to false.
+  offerable?: boolean;
+}
+
 interface TaxonomyCategory {
   name: string;
   slug: string;
-  options: { name: string; slug: string }[];
+  options: TaxonomyOption[];
 }
 
 const taxonomy: TaxonomyCategory[] = [
@@ -23,63 +31,63 @@ const taxonomy: TaxonomyCategory[] = [
       { name: "Introductions to VCs", slug: "intro-vcs" },
       { name: "Grant opportunities", slug: "grant-opportunities" },
       { name: "Revenue / customer leads", slug: "revenue-customer-leads" },
-      { name: "Pricing or monetization guidance", slug: "pricing-monetization" },
+      { name: "Pricing or monetization guidance", slug: "pricing-monetization", offerable: true },
     ],
   },
   {
     name: "People & Partners",
     slug: "people-partners",
     options: [
-      { name: "Technical co-founder", slug: "technical-cofounder" },
-      { name: "Product / design partner", slug: "product-design-partner" },
-      { name: "Business / operations partner", slug: "business-ops-partner" },
-      { name: "Sales or growth partner", slug: "sales-growth-partner" },
-      { name: "Advisors / mentors", slug: "advisors-mentors" },
-      { name: "Early employees or contractors", slug: "early-employees" },
+      { name: "Technical co-founder", slug: "technical-cofounder", offerable: true },
+      { name: "Product / design partner", slug: "product-design-partner", offerable: true },
+      { name: "Business / operations partner", slug: "business-ops-partner", offerable: true },
+      { name: "Sales or growth partner", slug: "sales-growth-partner", offerable: true },
+      { name: "Advisors / mentors", slug: "advisors-mentors", offerable: true },
+      { name: "Early employees or contractors", slug: "early-employees", offerable: true },
     ],
   },
   {
     name: "Product & Engineering",
     slug: "product-engineering",
     options: [
-      { name: "Architecture or technical review", slug: "architecture-review" },
-      { name: "MVP build support", slug: "mvp-build-support" },
-      { name: "AI / ML expertise", slug: "ai-ml-expertise" },
-      { name: "Data engineering / analytics", slug: "data-engineering" },
-      { name: "Security or infrastructure guidance", slug: "security-infra" },
-      { name: "Hardware / physical product expertise", slug: "hardware-expertise" },
+      { name: "Architecture or technical review", slug: "architecture-review", offerable: true },
+      { name: "MVP build support", slug: "mvp-build-support", offerable: true },
+      { name: "AI / ML expertise", slug: "ai-ml-expertise", offerable: true },
+      { name: "Data engineering / analytics", slug: "data-engineering", offerable: true },
+      { name: "Security or infrastructure guidance", slug: "security-infra", offerable: true },
+      { name: "Hardware / physical product expertise", slug: "hardware-expertise", offerable: true },
     ],
   },
   {
     name: "Design & UX",
     slug: "design-ux",
     options: [
-      { name: "UX / product design feedback", slug: "ux-design-feedback" },
-      { name: "Brand or identity help", slug: "brand-identity" },
-      { name: "Design systems or UI polish", slug: "design-systems" },
-      { name: "Prototyping or user testing", slug: "prototyping-testing" },
+      { name: "UX / product design feedback", slug: "ux-design-feedback", offerable: true },
+      { name: "Brand or identity help", slug: "brand-identity", offerable: true },
+      { name: "Design systems or UI polish", slug: "design-systems", offerable: true },
+      { name: "Prototyping or user testing", slug: "prototyping-testing", offerable: true },
     ],
   },
   {
     name: "Go-to-Market & Growth",
     slug: "go-to-market",
     options: [
-      { name: "Customer discovery / interviews", slug: "customer-discovery" },
-      { name: "Marketing or growth strategy", slug: "marketing-growth" },
-      { name: "Distribution partnerships", slug: "distribution-partnerships" },
-      { name: "Enterprise sales guidance", slug: "enterprise-sales" },
-      { name: "Community or developer adoption", slug: "community-adoption" },
+      { name: "Customer discovery / interviews", slug: "customer-discovery", offerable: true },
+      { name: "Marketing or growth strategy", slug: "marketing-growth", offerable: true },
+      { name: "Distribution partnerships", slug: "distribution-partnerships", offerable: true },
+      { name: "Enterprise sales guidance", slug: "enterprise-sales", offerable: true },
+      { name: "Community or developer adoption", slug: "community-adoption", offerable: true },
     ],
   },
   {
     name: "Legal, Ops & Business Setup",
     slug: "legal-ops-business",
     options: [
-      { name: "Incorporation or entity setup", slug: "incorporation-setup" },
-      { name: "IP or patent guidance", slug: "ip-patent" },
-      { name: "Contracts or compliance", slug: "contracts-compliance" },
-      { name: "Accounting / finance setup", slug: "accounting-finance" },
-      { name: "Operations or logistics help", slug: "operations-logistics" },
+      { name: "Incorporation or entity setup", slug: "incorporation-setup", offerable: true },
+      { name: "IP or patent guidance", slug: "ip-patent", offerable: true },
+      { name: "Contracts or compliance", slug: "contracts-compliance", offerable: true },
+      { name: "Accounting / finance setup", slug: "accounting-finance", offerable: true },
+      { name: "Operations or logistics help", slug: "operations-logistics", offerable: true },
     ],
   },
   {
@@ -161,11 +169,13 @@ async function seedNeedsTaxonomy() {
           slug: optionData.slug,
           sortOrder: optionIndex,
           active: true,
+          offerable: optionData.offerable ?? false,
         },
         update: {
           name: optionData.name,
           sortOrder: optionIndex,
           active: true,
+          offerable: optionData.offerable ?? false,
         },
       });
     }

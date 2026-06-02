@@ -129,6 +129,7 @@ model Profile {
   // Relations
   user                User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   categories          ProfileCategory[]
+  skills              ProfileSkill[]
   projectsCreated     Project[]             @relation("ProjectCreator")
   projectCollaborations ProjectCollaborator[]
   jobsPosted          Job[]
@@ -318,15 +319,36 @@ model NeedOption {
   slug       String   // "seeking-preseed-seed"
   sortOrder  Int      @default(0)
   active     Boolean  @default(true)
+  // Whether this option is something a person can offer as a skill (supply side),
+  // not just something a project can ask for (demand side). Demand-only options
+  // (e.g. "Seeking funding", "Press exposure") stay false.
+  offerable  Boolean  @default(false)
   createdAt  DateTime @default(now())
 
   // Relations
   category           NeedCategory        @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   projectNeedOptions ProjectNeedOption[]
+  profileSkills      ProfileSkill[]
 
   @@unique([categoryId, slug])
   @@index([categoryId])
   @@index([active])
+}
+
+// A skill a person offers, drawn from the same NeedOption taxonomy that projects
+// use to express needs. This shared vocabulary is what makes supply<->demand
+// matching a simple join.
+model ProfileSkill {
+  profileId String
+  optionId  String
+  createdAt DateTime @default(now())
+
+  // Relations
+  profile Profile    @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  option  NeedOption @relation(fields: [optionId], references: [id], onDelete: Restrict)
+
+  @@id([profileId, optionId])
+  @@index([optionId])
 }
 
 model ProjectNeed {
