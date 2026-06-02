@@ -36,7 +36,9 @@ if (env.isProd && existsSync(WEB_DIST)) {
     root: WEB_DIST,
     prefix: "/",
     wildcard: false,
-    decorateReply: false,
+    // decorateReply must stay enabled: the SPA fallback below relies on
+    // reply.sendFile(). With it disabled, every client-side route (e.g.
+    // /people) and missing asset (e.g. /favicon.ico) threw a 500.
   });
 
   // SPA fallback: serve index.html for unmatched routes (client-side routing)
