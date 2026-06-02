@@ -63,6 +63,44 @@ export async function sendMagicLinkEmail({ to, magicLinkUrl }: SendMagicLinkPara
 }
 
 // =============================================================================
+// NEW MEMBER NOTIFICATION (to superusers/admins)
+// =============================================================================
+
+interface NewMemberNotificationParams {
+  to: string;
+  memberEmail: string;
+}
+
+export async function sendNewMemberNotificationEmail({ to, memberEmail }: NewMemberNotificationParams): Promise<void> {
+  if (env.isDev) {
+    console.log("\n========================================");
+    console.log("NEW MEMBER NOTIFICATION EMAIL (dev mode):");
+    console.log(`To: ${to}`);
+    console.log(`New member: ${memberEmail}`);
+    console.log("========================================\n");
+    return;
+  }
+
+  await sendEmail(
+    to,
+    "New member signup on Detroit Directory",
+    `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
+        <h1 style="font-size: 24px; font-weight: 600; margin-bottom: 24px; color: #1a1a1a;">
+          New member signup
+        </h1>
+        <p style="font-size: 16px; line-height: 1.5; color: #4a4a4a; margin-bottom: 24px;">
+          <strong>${memberEmail}</strong> just signed up and is pending review.
+        </p>
+        <a href="${env.APP_URL}/admin" style="display: inline-block; background-color: #1a1a1a; color: #ffffff; padding: 12px 24px; text-decoration: none; font-size: 16px; font-weight: 500;">
+          Review in Admin Dashboard
+        </a>
+      </div>
+    `
+  );
+}
+
+// =============================================================================
 // PROFILE APPROVAL EMAILS
 // =============================================================================
 
