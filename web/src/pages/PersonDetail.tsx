@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Portrait } from "../components/ui";
-import { profiles as profilesApi, projects as projectsApi, favorites as favoritesApi } from "../lib/api";
+import { profiles as profilesApi, projects as projectsApi, favorites as favoritesApi, type MatchingProject } from "../lib/api";
 import { usePageTitle } from "../hooks/usePageTitle";
 import type { Profile, ProjectListItem } from "../data/types";
 import styles from "./PersonDetail.module.css";
@@ -11,6 +11,7 @@ export function PersonDetailPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   usePageTitle(profile?.name ?? "Profile");
   const [projects, setProjects] = useState<ProjectListItem[]>([]);
+  const [matchingProjects, setMatchingProjects] = useState<MatchingProject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFavorited, setIsFavorited] = useState(false);
@@ -38,6 +39,14 @@ export function PersonDetailPage() {
         favoritesApi.check(profileData.profile.id).then((data) => {
           setIsFavorited(data.favorited);
         });
+
+        // Projects whose needs match this person's skills (non-blocking)
+        profilesApi
+          .matchingProjects(handle)
+          .then((data) => setMatchingProjects(data.projects))
+          .catch(() => {
+            /* matches are best-effort; ignore failures */
+          });
       })
       .catch((err) => {
         setError(err.message || "Failed to load profile");
@@ -162,6 +171,43 @@ export function PersonDetailPage() {
             <section className={styles.section}>
               <h2 className={styles.sectionTitle}>About</h2>
               <p className={styles.bio}>{profile.bio}</p>
+            </section>
+          )}
+
+          {profile.skills && profile.skills.length > 0 && (
+            <section className={styles.section}>
+              <h2 className={styles.sectionTitle}>Skills</h2>
+              <div className={styles.skills}>
+                {profile.skills.map((skill) => (
+                  <span key={skill.id} className={styles.skill}>
+                    {skill.name}
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {matchingProjects.length > 0 && (
+            <section className={styles.section}>
+              <h2 className={styles.sectionTitle}>Projects looking for these skills</h2>
+              <div className={styles.projectsList}>
+                {matchingProjects.map((project) => (
+                  <Link
+                    key={project.id}
+                    to={`/projects/${project.id}`}
+                    className={styles.projectCard}
+                  >
+                    <h3 className={styles.projectTitle}>{project.title}</h3>
+                    <div className={styles.matchTags}>
+                      {project.matchedSkills.map((s) => (
+                        <span key={s.id} className={styles.matchTag}>
+                          {s.name}
+                        </span>
+                      ))}
+                    </div>
+                  </Link>
+                ))}
+              </div>
             </section>
           )}
 

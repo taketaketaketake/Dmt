@@ -278,4 +278,198 @@ describe("Profile Routes", () => {
       );
     });
   });
+
+  // =========================================================================
+  // GET /api/profiles/me/skills
+  // =========================================================================
+  describe("GET /api/profiles/me/skills", () => {
+    it("returns own skill tags", async () => {
+      stubApprovedSession();
+      prismaMock.profile.findUnique.mockResolvedValue({
+        id: "profile-1",
+        skills: [
+          {
+            option: {
+              id: "o1",
+              name: "AI / ML expertise",
+              slug: "ai-ml-expertise",
+              category: { slug: "product-engineering" },
+            },
+          },
+        ],
+      } as never);
+
+      const response = await app.inject({
+        method: "GET",
+        url: "/api/profiles/me/skills",
+        headers: { cookie: authCookie() },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json().skills).toEqual([
+        {
+          id: "o1",
+          name: "AI / ML expertise",
+          slug: "ai-ml-expertise",
+          categorySlug: "product-engineering",
+        },
+      ]);
+    });
+
+    it("returns 404 when no profile exists", async () => {
+      stubApprovedSession();
+      prismaMock.profile.findUnique.mockResolvedValue(null as never);
+
+      const response = await app.inject({
+        method: "GET",
+        url: "/api/profiles/me/skills",
+        headers: { cookie: authCookie() },
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+  });
+
+  // =========================================================================
+  // PUT /api/profiles/me/skills
+  // =========================================================================
+  describe("PUT /api/profiles/me/skills", () => {
+    it("rejects a non-array body", async () => {
+      stubApprovedSession();
+
+      const response = await app.inject({
+        method: "PUT",
+        url: "/api/profiles/me/skills",
+        headers: { cookie: authCookie() },
+        payload: { optionIds: "not-an-array" },
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(response.json().error).toContain("must be an array");
+    });
+
+    it("rejects more than the maximum number of skills", async () => {
+      stubApprovedSession();
+      const tooMany = Array.from({ length: 11 }, (_, i) => `o${i}`);
+
+      const response = await app.inject({
+        method: "PUT",
+        url: "/api/profiles/me/skills",
+        headers: { cookie: authCookie() },
+        payload: { optionIds: tooMany },
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(response.json().error).toContain("Maximum");
+    });
+
+    it("rejects options that are not offerable or do not exist", async () => {
+      stubApprovedSession();
+      prismaMock.profile.findUnique.mockResolvedValue({ id: "profile-1" } as never);
+      // Only 1 of the 2 requested ids is valid+offerable
+      prismaMock.needOption.count.mockResolvedValue(1 as never);
+
+      const response = await app.inject({
+        method: "PUT",
+        url: "/api/profiles/me/skills",
+        headers: { cookie: authCookie() },
+        payload: { optionIds: ["o1", "not-offerable"] },
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(response.json().error).toContain("invalid");
+    });
+
+    it("saves a valid, de-duplicated selection", async () => {
+      stubApprovedSession();
+      prismaMock.profile.findUnique.mockResolvedValue({ id: "profile-1" } as never);
+      prismaMock.needOption.count.mockResolvedValue(1 as never);
+      prismaMock.$transaction.mockImplementation(
+        async (cb: (tx: typeof prismaMock) => unknown) => cb(prismaMock)
+      );
+      prismaMock.profileSkill.deleteMany.mockResolvedValue({ count: 0 } as never);
+      prismaMock.profileSkill.createMany.mockResolvedValue({ count: 1 } as never);
+      prismaMock.profileSkill.findMany.mockResolvedValue([
+        {
+          option: {
+            id: "o1",
+            name: "AI / ML expertise",
+            slug: "ai-ml-expertise",
+            category: { slug: "product-engineering" },
+          },
+        },
+      ] as never);
+
+      const response = await app.inject({
+        method: "PUT",
+        url: "/api/profiles/me/skills",
+        headers: { cookie: authCookie() },
+        // Duplicate id should be collapsed to a single skill
+        payload: { optionIds: ["o1", "o1"] },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json().skills).toHaveLength(1);
+      // De-duplicated to a single create
+      expect(prismaMock.profileSkill.createMany).toHaveBeenCalledWith({
+        data: [{ profileId: "profile-1", optionId: "o1" }],
+      });
+    });
+  });
+
+  // =========================================================================
+  // GET /api/profiles/:handle/matching-projects
+  // =========================================================================
+  describe("GET /api/profiles/:handle/matching-projects", () => {
+    it("returns active projects whose needs overlap the person's skills", async () => {
+      stubApprovedSession();
+      prismaMock.profile.findUnique.mockResolvedValue({
+        approvalStatus: "approved",
+        skills: [{ optionId: "o1" }],
+      } as never);
+      prismaMock.project.findMany.mockResolvedValue([
+        {
+          id: "proj-1",
+          title: "Cool Project",
+          description: "desc",
+          status: "active",
+          creator: { id: "c1", name: "Creator", handle: "creator", portraitUrl: null },
+          needs: [
+            { options: [{ option: { id: "o1", name: "AI / ML expertise", slug: "ai-ml-expertise" } }] },
+          ],
+        },
+      ] as never);
+
+      const response = await app.inject({
+        method: "GET",
+        url: "/api/profiles/someone/matching-projects",
+        headers: { cookie: authCookie() },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const { projects } = response.json();
+      expect(projects).toHaveLength(1);
+      expect(projects[0].matchedSkills).toEqual([
+        { id: "o1", name: "AI / ML expertise", slug: "ai-ml-expertise" },
+      ]);
+    });
+
+    it("returns an empty list when the person has no skills", async () => {
+      stubApprovedSession();
+      prismaMock.profile.findUnique.mockResolvedValue({
+        approvalStatus: "approved",
+        skills: [],
+      } as never);
+
+      const response = await app.inject({
+        method: "GET",
+        url: "/api/profiles/someone/matching-projects",
+        headers: { cookie: authCookie() },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json().projects).toEqual([]);
+      expect(prismaMock.project.findMany).not.toHaveBeenCalled();
+    });
+  });
 });

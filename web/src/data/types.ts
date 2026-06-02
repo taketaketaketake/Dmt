@@ -16,6 +16,14 @@ export interface User {
   isAdmin: boolean;
 }
 
+// A skill a person offers, drawn from the shared needs taxonomy
+export interface SkillTag {
+  id: string; // NeedOption id
+  name: string;
+  slug: string;
+  categorySlug: string;
+}
+
 export interface Profile {
   id: string;
   name: string;
@@ -28,6 +36,7 @@ export interface Profile {
   linkedinUrl?: string;
   githubHandle?: string;
   approvalStatus: ProfileApprovalStatus;
+  skills?: SkillTag[];
 }
 
 export interface Project {
@@ -61,6 +70,7 @@ export interface ProfileListItem {
   bio?: string;
   location?: string;
   portraitUrl?: string;
+  skills?: SkillTag[];
 }
 
 export interface ProjectListItem {
@@ -89,6 +99,7 @@ export interface NeedOption {
   name: string;
   slug: string;
   sortOrder: number;
+  offerable?: boolean;
 }
 
 export interface NeedCategory {

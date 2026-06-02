@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "../../components/ui";
 import { NeedsEditor } from "../../components/NeedsEditor";
+import { ProjectMatches } from "../../components/ProjectMatches";
 import { useAuth } from "../../contexts";
 import { usePageTitle } from "../../hooks/usePageTitle";
 import { projects as projectsApi } from "../../lib/api";
@@ -342,6 +343,7 @@ export function MyProjectsPage() {
               </div>
 
               <NeedsEditor projectId={project.id} />
+              <ProjectMatches projectId={project.id} />
             </div>
           ))}
         </div>

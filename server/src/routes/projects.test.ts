@@ -285,4 +285,70 @@ describe("Project Routes", () => {
       expect(response.statusCode).toBe(403);
     });
   });
+
+  // =========================================================================
+  // GET /api/projects/:id/matches
+  // =========================================================================
+  describe("GET /api/projects/:id/matches", () => {
+    it("returns people whose skills overlap the project's needs", async () => {
+      stubApprovedSession();
+      prismaMock.project.findUnique.mockResolvedValue({
+        creator: { userId: "user-1", approvalStatus: "approved" },
+        needs: [{ options: [{ optionId: "o1" }] }],
+      } as never);
+      prismaMock.profile.findMany.mockResolvedValue([
+        {
+          id: "profile-2",
+          name: "Helper",
+          handle: "helper",
+          portraitUrl: null,
+          skills: [{ option: { id: "o1", name: "AI / ML expertise", slug: "ai-ml-expertise" } }],
+        },
+      ] as never);
+
+      const response = await app.inject({
+        method: "GET",
+        url: "/api/projects/proj-1/matches",
+        headers: { cookie: authCookie() },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const { people } = response.json();
+      expect(people).toHaveLength(1);
+      expect(people[0].matchedSkills).toEqual([
+        { id: "o1", name: "AI / ML expertise", slug: "ai-ml-expertise" },
+      ]);
+    });
+
+    it("returns an empty list when the project has no needs", async () => {
+      stubApprovedSession();
+      prismaMock.project.findUnique.mockResolvedValue({
+        creator: { userId: "user-1", approvalStatus: "approved" },
+        needs: [],
+      } as never);
+
+      const response = await app.inject({
+        method: "GET",
+        url: "/api/projects/proj-1/matches",
+        headers: { cookie: authCookie() },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json().people).toEqual([]);
+      expect(prismaMock.profile.findMany).not.toHaveBeenCalled();
+    });
+
+    it("returns 404 for a non-existent project", async () => {
+      stubApprovedSession();
+      prismaMock.project.findUnique.mockResolvedValue(null as never);
+
+      const response = await app.inject({
+        method: "GET",
+        url: "/api/projects/missing/matches",
+        headers: { cookie: authCookie() },
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+  });
 });
