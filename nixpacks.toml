@@ -29,5 +29,6 @@ cmds = [
 [start]
 # Must run from the server dir: index.ts resolves the frontend via
 # process.cwd()/../web/dist. migrate deploy applies pending migrations at
-# boot, when DATABASE_URL is available.
-cmd = 'cd server && npx prisma migrate deploy && node dist/index.js'
+# boot, when DATABASE_URL is available. The needs seed is idempotent (upserts)
+# and keeps the taxonomy + offerable skill flags in sync on every deploy.
+cmd = 'cd server && npx prisma migrate deploy && npx tsx prisma/seed-needs.ts && node dist/index.js'
