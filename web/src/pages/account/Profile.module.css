@@ -336,3 +336,18 @@
   color: var(--color-text-on-paper);
   border-color: var(--color-text-on-paper);
 }
+
+/* -----------------------------------------------------------------------------
+   RESPONSIVE
+   ----------------------------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  .card {
+    padding: var(--space-5);
+  }
+
+  .portraitSection {
+    margin-bottom: var(--space-6);
+    padding-bottom: var(--space-6);
+  }
+}

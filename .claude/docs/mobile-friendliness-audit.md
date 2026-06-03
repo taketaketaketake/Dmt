@@ -16,9 +16,11 @@ mobile-friendly with a hamburger menu and is **not** listed here.
 
 ---
 
-> **Status:** High- and medium-priority pages below were refactored with `640px`
-> media queries on 2026-06-02 (incl. the PersonDetail fixed-button vs. sticky-sidebar
-> bug). The low-priority / polish section is still open.
+> **Status:** ✅ All sections complete — refactored 2026-06-02. High, medium, and
+> low-priority pages now carry `640px` (and where relevant `768px`) media queries,
+> including the PersonDetail fixed-button vs. sticky-sidebar bug fix. A few
+> low-priority items were already mobile-safe and were intentionally left as-is
+> (see notes in the low-priority section).
 
 ## High-priority pages (✅ done — refactored 2026-06-02)
 
@@ -90,26 +92,24 @@ mobile-friendly with a hamburger menu and is **not** listed here.
 
 ---
 
-## Low-priority / polish
+## Low-priority / polish (✅ done — refactored 2026-06-02)
 
 ### `pages/JobDetail.module.css` *(768px query; sidebar collapses fine)*
-- `.title` — `--text-4xl` doesn't scale.
-
-### `pages/Account.module.css` *(768px query; sidebar reflows)*
-- Sidebar stays narrow on mid-size tablets; optional intermediate breakpoint.
+- ✅ `.title` 4xl→3xl and `.company` xl→lg at 640px.
 
 ### `pages/admin/AdminShell.module.css`
-- `.headerInner` / `.main` — `max-width: 1200px` with `--space-6` padding; reduce padding on phones.
-
-### `pages/admin/Users.module.css` *(768px query converts grid → column)*
-- Table is dense between 640–768px; optional intermediate breakpoint.
+- ✅ `.headerInner` wraps, `.tabs` get their own full-width scrollable row, and `.headerInner`/`.main` padding trimmed at 640px.
 
 ### `pages/account/Profile.module.css` *(640px query for `.fieldGroup`)*
-- `.card` — `padding: --space-8` not reduced on mobile; `.portraitSection` flex row doesn't stack.
+- ✅ `.card` padding 8→5 and `.portraitSection` spacing trimmed at 640px. (`.portraitSection` was already `flex-direction: column`, so no stacking change was needed.)
 
-### Components
-- `components/SkillsEditor.module.css` — `.container { padding: --space-8 }` excessive on mobile.
-- `components/ProjectMatches.module.css` — `.person` flex row doesn't stack (ellipsis truncation softens it).
+### `components/SkillsEditor.module.css`
+- ✅ `.container` padding 8→5 at 640px.
+
+### Already fine — no change made (avoiding no-op media queries)
+- `pages/Account.module.css` — already reflows to a single column at 768px; the 200px sidebar on mid-size tablets is acceptable.
+- `pages/admin/Users.module.css` — the 768px query already converts the table to stacked rows for everything ≤768px, so there is no dense 640–768px gap.
+- `components/ProjectMatches.module.css` — `.person` is a small avatar + name row; `.personSkills` already truncates with ellipsis and `.personInfo` has `min-width: 0`, so it holds up on phones.
 - `components/NeedsDisplay`, `NeedsEditor`, `FilterSelect`, `ui/` — already column/wrap-based or have queries; no critical issues.
 
 ---
