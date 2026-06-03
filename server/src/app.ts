@@ -214,7 +214,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await app.register(followsRoutes, { prefix: "/api/follows" });
   await app.register(jobRoutes, { prefix: "/api/jobs" });
   await app.register(apiRoutes, { prefix: "/api" });
-  await app.register(adminRoutes, { prefix: "/admin" });
+  await app.register(adminRoutes, { prefix: "/api/admin" });
   await app.register(billingRoutes, { prefix: "/billing" });
   await app.register(webhookRoutes, { prefix: "/webhooks" });
   await app.register(uploadRoutes, { prefix: "/api/uploads" });
