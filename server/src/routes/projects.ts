@@ -302,6 +302,9 @@ export async function projectRoutes(app: FastifyInstance) {
               approvalStatus: true,
             },
           },
+          categories: {
+            select: { category: { select: { id: true, name: true, slug: true } } },
+          },
           // TODO: Phase 4+ - Include collaborators when implemented
         },
       });
@@ -309,6 +312,13 @@ export async function projectRoutes(app: FastifyInstance) {
       if (!project) {
         return reply.status(404).send({ error: "Project not found" });
       }
+
+      // Flatten categories to match the create/update/list response shape
+      const { categories = [], ...projectData } = project;
+      const responseProject = {
+        ...projectData,
+        categories: categories.map((c) => c.category),
+      };
 
       // Check access
       const isOwner = project.creator.userId === user.id;
@@ -318,7 +328,7 @@ export async function projectRoutes(app: FastifyInstance) {
 
       // Owners and admins can always view
       if (isOwner || isAdmin) {
-        return reply.status(200).send({ project });
+        return reply.status(200).send({ project: responseProject });
       }
 
       // Members can only view if their account is approved
@@ -331,7 +341,7 @@ export async function projectRoutes(app: FastifyInstance) {
         return reply.status(404).send({ error: "Project not found" });
       }
 
-      return reply.status(200).send({ project });
+      return reply.status(200).send({ project: responseProject });
     }
   );
 

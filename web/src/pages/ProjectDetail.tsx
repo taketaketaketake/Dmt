@@ -105,6 +105,14 @@ export function ProjectDetailPage() {
               <span>{project.creator.name}</span>
             </Link>
           </div>
+
+          {project.categories && project.categories.length > 0 && (
+            <div className={styles.categories}>
+              {project.categories.map((category) => (
+                <Badge key={category.id}>{category.name}</Badge>
+              ))}
+            </div>
+          )}
         </header>
 
         {/* Main Content */}
