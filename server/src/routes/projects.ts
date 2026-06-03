@@ -14,6 +14,7 @@ interface CreateProjectBody {
   status?: "active" | "completed" | "archived";
   websiteUrl?: string;
   repoUrl?: string;
+  categoryIds?: string[];
 }
 
 interface UpdateProjectBody {
@@ -22,7 +23,11 @@ interface UpdateProjectBody {
   status?: "active" | "completed" | "archived";
   websiteUrl?: string;
   repoUrl?: string;
+  categoryIds?: string[];
 }
+
+// Max industry categories a project can be tagged with
+const MAX_PROJECT_CATEGORIES = 2;
 
 interface ProjectIdParams {
   id: string;
@@ -92,6 +97,24 @@ function validateNeedsInput(needs: NeedInput[]): { valid: boolean; error?: strin
   return { valid: true };
 }
 
+// Validate category ids: de-duplicate, cap, and confirm they're real industries.
+async function validateCategoryIds(
+  categoryIds: string[]
+): Promise<{ valid: boolean; ids: string[]; error?: string }> {
+  const ids = [...new Set(categoryIds)];
+  if (ids.length > MAX_PROJECT_CATEGORIES) {
+    return { valid: false, ids, error: `Maximum ${MAX_PROJECT_CATEGORIES} categories allowed` };
+  }
+  if (ids.length === 0) return { valid: true, ids };
+  const count = await prisma.category.count({
+    where: { id: { in: ids }, type: "industry" },
+  });
+  if (count !== ids.length) {
+    return { valid: false, ids, error: "Invalid category" };
+  }
+  return { valid: true, ids };
+}
+
 // =============================================================================
 // PROJECT ROUTES
 // =============================================================================
@@ -127,6 +150,12 @@ export async function projectRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: "Title is required" });
       }
 
+      // Validate optional industry categories before creating anything
+      const categoryCheck = await validateCategoryIds(request.body.categoryIds ?? []);
+      if (!categoryCheck.valid) {
+        return reply.status(400).send({ error: categoryCheck.error });
+      }
+
       const project = await prisma.project.create({
         data: {
           creatorId: profile.id,
@@ -135,10 +164,21 @@ export async function projectRoutes(app: FastifyInstance) {
           status: request.body.status || "active",
           websiteUrl: sanitized.websiteUrl,
           repoUrl: sanitized.repoUrl,
+          categories: {
+            create: categoryCheck.ids.map((categoryId) => ({ categoryId })),
+          },
+        },
+        include: {
+          categories: {
+            select: { category: { select: { id: true, name: true, slug: true } } },
+          },
         },
       });
 
-      return reply.status(201).send({ project });
+      const { categories = [], ...projectData } = project;
+      return reply.status(201).send({
+        project: { ...projectData, categories: categories.map((c) => c.category) },
+      });
     }
   );
 
@@ -181,6 +221,27 @@ export async function projectRoutes(app: FastifyInstance) {
                 portraitUrl: true,
               },
             },
+            // Industry categories (for the Category filter)
+            categories: {
+              select: { category: { select: { id: true, name: true, slug: true } } },
+            },
+            // Need option tags (for the Needs filter + keyword search)
+            needs: {
+              select: {
+                options: {
+                  select: {
+                    option: {
+                      select: {
+                        id: true,
+                        name: true,
+                        slug: true,
+                        category: { select: { slug: true } },
+                      },
+                    },
+                  },
+                },
+              },
+            },
           },
           take: limit,
           skip: offset,
@@ -190,8 +251,25 @@ export async function projectRoutes(app: FastifyInstance) {
         }),
       ]);
 
+      // Flatten the join rows into compact tag arrays for the client filters
+      const shaped = projects.map(({ categories = [], needs = [], ...p }) => {
+        const needTags = needs.flatMap((n) =>
+          n.options.map((o) => ({
+            id: o.option.id,
+            name: o.option.name,
+            slug: o.option.slug,
+            categorySlug: o.option.category.slug,
+          }))
+        );
+        return {
+          ...p,
+          categories: categories.map((c) => c.category),
+          needs: needTags,
+        };
+      });
+
       return reply.status(200).send({
-        projects,
+        projects: shaped,
         pagination: paginationMeta(total, limit, offset),
       });
     }
@@ -306,12 +384,40 @@ export async function projectRoutes(app: FastifyInstance) {
       if (sanitized.websiteUrl !== undefined) updateData.websiteUrl = sanitized.websiteUrl;
       if (sanitized.repoUrl !== undefined) updateData.repoUrl = sanitized.repoUrl;
 
-      const updatedProject = await prisma.project.update({
-        where: { id },
-        data: updateData,
-      });
+      // Replace categories only when the field is provided (omitted = unchanged)
+      const updatingCategories = request.body.categoryIds !== undefined;
+      let categoryIds: string[] = [];
+      if (updatingCategories) {
+        const categoryCheck = await validateCategoryIds(request.body.categoryIds ?? []);
+        if (!categoryCheck.valid) {
+          return reply.status(400).send({ error: categoryCheck.error });
+        }
+        categoryIds = categoryCheck.ids;
+      }
 
-      return reply.status(200).send({ project: updatedProject });
+      const includeCategories = {
+        categories: {
+          select: { category: { select: { id: true, name: true, slug: true } } },
+        },
+      };
+
+      // Only wrap in a transaction when we're actually replacing categories
+      const updatedProject = updatingCategories
+        ? await prisma.$transaction(async (tx) => {
+            await tx.projectCategory.deleteMany({ where: { projectId: id } });
+            if (categoryIds.length > 0) {
+              await tx.projectCategory.createMany({
+                data: categoryIds.map((categoryId) => ({ projectId: id, categoryId })),
+              });
+            }
+            return tx.project.update({ where: { id }, data: updateData, include: includeCategories });
+          })
+        : await prisma.project.update({ where: { id }, data: updateData, include: includeCategories });
+
+      const { categories = [], ...projectData } = updatedProject;
+      return reply.status(200).send({
+        project: { ...projectData, categories: categories.map((c) => c.category) },
+      });
     }
   );
 
@@ -380,9 +486,19 @@ export async function projectRoutes(app: FastifyInstance) {
         orderBy: {
           createdAt: "desc",
         },
+        include: {
+          categories: {
+            select: { category: { select: { id: true, name: true, slug: true } } },
+          },
+        },
       });
 
-      return reply.status(200).send({ projects });
+      return reply.status(200).send({
+        projects: projects.map(({ categories = [], ...p }) => ({
+          ...p,
+          categories: categories.map((c) => c.category),
+        })),
+      });
     }
   );
 

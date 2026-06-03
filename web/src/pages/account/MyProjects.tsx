@@ -5,9 +5,11 @@ import { NeedsEditor } from "../../components/NeedsEditor";
 import { ProjectMatches } from "../../components/ProjectMatches";
 import { useAuth } from "../../contexts";
 import { usePageTitle } from "../../hooks/usePageTitle";
-import { projects as projectsApi } from "../../lib/api";
-import type { Project, ProjectStatus } from "../../data/types";
+import { projects as projectsApi, categories as categoriesApi } from "../../lib/api";
+import type { Project, ProjectStatus, CategoryTag } from "../../data/types";
 import styles from "./MyProjects.module.css";
+
+const MAX_PROJECT_CATEGORIES = 2;
 
 type ProjectFormData = {
   title: string;
@@ -15,6 +17,7 @@ type ProjectFormData = {
   status: ProjectStatus;
   websiteUrl: string;
   repoUrl: string;
+  categoryIds: string[];
 };
 
 const emptyForm: ProjectFormData = {
@@ -23,6 +26,7 @@ const emptyForm: ProjectFormData = {
   status: "active",
   websiteUrl: "",
   repoUrl: "",
+  categoryIds: [],
 };
 
 function projectToForm(project: Project): ProjectFormData {
@@ -32,6 +36,7 @@ function projectToForm(project: Project): ProjectFormData {
     status: project.status,
     websiteUrl: project.websiteUrl || "",
     repoUrl: project.repoUrl || "",
+    categoryIds: project.categories?.map((c) => c.id) ?? [],
   };
 }
 
@@ -39,6 +44,7 @@ export function MyProjectsPage() {
   usePageTitle("My Projects");
   const { profile } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
+  const [industries, setIndustries] = useState<CategoryTag[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
@@ -60,10 +66,26 @@ export function MyProjectsPage() {
 
   useEffect(() => {
     loadProjects().then(() => setIsLoading(false));
+    categoriesApi
+      .list("industry")
+      .then((data) => setIndustries(data.categories))
+      .catch(() => {
+        /* category picker is optional; ignore load failure */
+      });
   }, [loadProjects]);
 
   const handleChange = useCallback((field: keyof ProjectFormData, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+  }, []);
+
+  const toggleCategory = useCallback((id: string) => {
+    setForm((prev) => {
+      if (prev.categoryIds.includes(id)) {
+        return { ...prev, categoryIds: prev.categoryIds.filter((c) => c !== id) };
+      }
+      if (prev.categoryIds.length >= MAX_PROJECT_CATEGORIES) return prev;
+      return { ...prev, categoryIds: [...prev.categoryIds, id] };
+    });
   }, []);
 
   const handleCreate = useCallback(async (e: FormEvent) => {
@@ -81,6 +103,7 @@ export function MyProjectsPage() {
         status: form.status,
         websiteUrl: form.websiteUrl.trim() || undefined,
         repoUrl: form.repoUrl.trim() || undefined,
+        categoryIds: form.categoryIds,
       });
       setProjects((prev) => [project, ...prev]);
       setForm(emptyForm);
@@ -108,6 +131,7 @@ export function MyProjectsPage() {
         status: form.status,
         websiteUrl: form.websiteUrl.trim() || undefined,
         repoUrl: form.repoUrl.trim() || undefined,
+        categoryIds: form.categoryIds,
       });
       setProjects((prev) =>
         prev.map((p) => (p.id === project.id ? project : p))
@@ -216,6 +240,36 @@ export function MyProjectsPage() {
                 <option value="archived">Archived</option>
               </select>
             </div>
+
+            {industries.length > 0 && (
+              <div className={styles.field}>
+                <label className={styles.label}>
+                  Industry{" "}
+                  <span className={styles.labelHint}>
+                    (up to {MAX_PROJECT_CATEGORIES})
+                  </span>
+                </label>
+                <div className={styles.catChips}>
+                  {industries.map((cat) => {
+                    const isSelected = form.categoryIds.includes(cat.id);
+                    const isDisabled =
+                      !isSelected && form.categoryIds.length >= MAX_PROJECT_CATEGORIES;
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        className={`${styles.catChip} ${isSelected ? styles.catChipActive : ""}`}
+                        aria-pressed={isSelected}
+                        disabled={isDisabled}
+                        onClick={() => toggleCategory(cat.id)}
+                      >
+                        {cat.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <div className={styles.fieldGroup}>
               <div className={styles.field}>

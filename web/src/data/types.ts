@@ -39,6 +39,13 @@ export interface Profile {
   skills?: SkillTag[];
 }
 
+// A project's industry category tag
+export interface CategoryTag {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 export interface Project {
   id: string;
   title: string;
@@ -48,6 +55,7 @@ export interface Project {
   repoUrl?: string;
   createdAt: string;
   creator: Pick<Profile, "id" | "name" | "handle" | "portraitUrl">;
+  categories?: CategoryTag[];
 }
 
 export interface Job {
@@ -79,6 +87,8 @@ export interface ProjectListItem {
   description?: string;
   status: ProjectStatus;
   creator: Pick<Profile, "id" | "name" | "handle" | "portraitUrl">;
+  categories?: CategoryTag[];
+  needs?: SkillTag[];
 }
 
 export interface JobListItem {
