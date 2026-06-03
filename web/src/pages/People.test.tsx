@@ -12,14 +12,22 @@ vi.mock("./People.module.css", () => ({
 
 const TAXONOMY = {
   categories: [
+    // Skill categories still load but the Skills filter is not rendered
     {
       id: "cat-1",
       name: "Product & Engineering",
       slug: "product-engineering",
       sortOrder: 0,
+      options: [{ id: "o1", name: "AI / ML expertise", slug: "ai-ml", sortOrder: 0 }],
+    },
+    {
+      id: "cat-2",
+      name: "People & Partners",
+      slug: "people-partners",
+      sortOrder: 1,
       options: [
-        { id: "o1", name: "AI / ML expertise", slug: "ai-ml", sortOrder: 0, offerable: true },
-        { id: "o2", name: "MVP build support", slug: "mvp", sortOrder: 1, offerable: true },
+        { id: "r1", name: "Advisor / mentor", slug: "advisor", sortOrder: 0 },
+        { id: "r2", name: "Technical co-founder", slug: "cofounder", sortOrder: 1 },
       ],
     },
   ],
@@ -33,7 +41,7 @@ const PROFILES = {
       handle: "alice",
       bio: "builder",
       location: "Detroit",
-      skills: [{ id: "o1", name: "AI / ML expertise", slug: "ai-ml", categorySlug: "product-engineering" }],
+      skills: [{ id: "r1", name: "Advisor / mentor", slug: "advisor", categorySlug: "people-partners" }],
     },
     {
       id: "p2",
@@ -41,7 +49,7 @@ const PROFILES = {
       handle: "bob",
       bio: "designer",
       location: "Ann Arbor",
-      skills: [{ id: "o2", name: "MVP build support", slug: "mvp", categorySlug: "product-engineering" }],
+      skills: [{ id: "r2", name: "Technical co-founder", slug: "cofounder", categorySlug: "people-partners" }],
     },
   ],
 };
@@ -61,30 +69,35 @@ describe("PeoplePage", () => {
     expect(screen.getByRole("heading", { name: "Bob" })).toBeInTheDocument();
   });
 
+  it("does not render the Skills filter", async () => {
+    renderWithRouter(<PeoplePage />);
+    await screen.findByRole("heading", { name: "Alice" });
+
+    expect(screen.queryByRole("button", { name: /^Skills/ })).not.toBeInTheDocument();
+    // The People & Partners filter remains
+    expect(screen.getByRole("button", { name: /People & Partners/ })).toBeInTheDocument();
+  });
+
   it("narrows the list with the search box", async () => {
     const user = userEvent.setup();
     renderWithRouter(<PeoplePage />);
 
     await screen.findByRole("heading", { name: "Alice" });
 
-    await user.type(
-      screen.getByPlaceholderText(/search by name/i),
-      "Alice"
-    );
+    await user.type(screen.getByPlaceholderText(/search by name/i), "Alice");
 
     expect(screen.getByRole("heading", { name: "Alice" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Bob" })).not.toBeInTheDocument();
   });
 
-  it("filters by a skill selected from the Skills dropdown", async () => {
+  it("filters via the People & Partners dropdown", async () => {
     const user = userEvent.setup();
     renderWithRouter(<PeoplePage />);
 
     await screen.findByRole("heading", { name: "Alice" });
 
-    // Open the Skills dropdown, then check a skill only Alice has
-    await user.click(screen.getByRole("button", { name: "Skills" }));
-    await user.click(await screen.findByRole("checkbox", { name: "AI / ML expertise" }));
+    await user.click(screen.getByRole("button", { name: /People & Partners/ }));
+    await user.click(await screen.findByRole("checkbox", { name: "Advisor / mentor" }));
 
     await waitFor(() => {
       expect(screen.queryByRole("heading", { name: "Bob" })).not.toBeInTheDocument();
