@@ -35,8 +35,10 @@ export function PeoplePage() {
       });
   }, []);
 
-  // Split the taxonomy into the two filter dropdowns
-  const { skillGroups, partnerGroups } = useMemo(() => {
+  // Split the taxonomy into the two filter dropdowns. The Skills dropdown is
+  // currently removed from the page (see render below) but the grouping is kept
+  // so it can be restored without rebuilding it.
+  const { partnerGroups } = useMemo(() => {
     const skills: FilterGroup[] = [];
     const partners: FilterGroup[] = [];
     for (const cat of taxonomy) {
@@ -134,14 +136,20 @@ export function PeoplePage() {
             onChange={(e) => setQuery(e.target.value)}
             aria-label="Search people"
           />
-          {skillGroups.length > 0 && (
-            <FilterSelect
-              label="Skills"
-              groups={skillGroups}
-              selected={selected}
-              onToggle={toggleOption}
-            />
-          )}
+          {/*
+            Skills filter removed from the People page per request. Kept in code
+            so it can be restored: re-add `skillGroups` to the useMemo destructure
+            above and uncomment this block.
+
+            {skillGroups.length > 0 && (
+              <FilterSelect
+                label="Skills"
+                groups={skillGroups}
+                selected={selected}
+                onToggle={toggleOption}
+              />
+            )}
+          */}
           {partnerGroups.length > 0 && (
             <FilterSelect
               label="People & Partners"
