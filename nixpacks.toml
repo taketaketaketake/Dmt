@@ -31,4 +31,4 @@ cmds = [
 # process.cwd()/../web/dist. migrate deploy applies pending migrations at
 # boot, when DATABASE_URL is available. The needs seed is idempotent (upserts)
 # and keeps the taxonomy + offerable skill flags in sync on every deploy.
-cmd = 'cd server && npx prisma migrate deploy && npx tsx prisma/seed-needs.ts && node dist/index.js'
+cmd = 'cd server && npx prisma migrate deploy && npx tsx prisma/seed-needs.ts && npx tsx prisma/seed-categories.ts && node dist/index.js'

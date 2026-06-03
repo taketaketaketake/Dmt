@@ -76,15 +76,15 @@ describe("PeoplePage", () => {
     expect(screen.queryByRole("heading", { name: "Bob" })).not.toBeInTheDocument();
   });
 
-  it("filters by a selected skill chip", async () => {
+  it("filters by a skill selected from the Skills dropdown", async () => {
     const user = userEvent.setup();
     renderWithRouter(<PeoplePage />);
 
     await screen.findByRole("heading", { name: "Alice" });
 
-    // Open the skill picker, then select a skill only Alice has
-    await user.click(screen.getByRole("button", { name: /^skills$/i }));
-    await user.click(await screen.findByRole("button", { name: "AI / ML expertise" }));
+    // Open the Skills dropdown, then check a skill only Alice has
+    await user.click(screen.getByRole("button", { name: "Skills" }));
+    await user.click(await screen.findByRole("checkbox", { name: "AI / ML expertise" }));
 
     await waitFor(() => {
       expect(screen.queryByRole("heading", { name: "Bob" })).not.toBeInTheDocument();

@@ -351,4 +351,129 @@ describe("Project Routes", () => {
       expect(response.statusCode).toBe(404);
     });
   });
+
+  // =========================================================================
+  // Project industry categories (create / update)
+  // =========================================================================
+  describe("project categories", () => {
+    it("rejects more than the max number of categories on create", async () => {
+      stubApprovedSession();
+      prismaMock.profile.findUnique.mockResolvedValue(
+        mockProfile({ approvalStatus: "approved" }) as never
+      );
+
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/projects",
+        headers: { cookie: authCookie() },
+        payload: { title: "X", categoryIds: ["a", "b", "c"] },
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(response.json().error).toContain("Maximum");
+      expect(prismaMock.project.create).not.toHaveBeenCalled();
+    });
+
+    it("rejects an unknown / non-industry category on create", async () => {
+      stubApprovedSession();
+      prismaMock.profile.findUnique.mockResolvedValue(
+        mockProfile({ approvalStatus: "approved" }) as never
+      );
+      prismaMock.category.count.mockResolvedValue(0 as never); // id not found as industry
+
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/projects",
+        headers: { cookie: authCookie() },
+        payload: { title: "X", categoryIds: ["bogus"] },
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(response.json().error).toContain("Invalid category");
+      expect(prismaMock.project.create).not.toHaveBeenCalled();
+    });
+
+    it("creates a project with valid categories", async () => {
+      stubApprovedSession();
+      prismaMock.profile.findUnique.mockResolvedValue(
+        mockProfile({ approvalStatus: "approved" }) as never
+      );
+      prismaMock.category.count.mockResolvedValue(1 as never);
+      prismaMock.project.create.mockResolvedValue({
+        id: "proj-1",
+        title: "X",
+        status: "active",
+        categories: [{ category: { id: "c1", name: "FinTech", slug: "fintech" } }],
+      } as never);
+
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/projects",
+        headers: { cookie: authCookie() },
+        payload: { title: "X", categoryIds: ["c1"] },
+      });
+
+      expect(response.statusCode).toBe(201);
+      expect(response.json().project.categories).toEqual([
+        { id: "c1", name: "FinTech", slug: "fintech" },
+      ]);
+      expect(prismaMock.project.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            categories: { create: [{ categoryId: "c1" }] },
+          }),
+        })
+      );
+    });
+  });
+
+  // =========================================================================
+  // GET /api/projects (list payload shape)
+  // =========================================================================
+  describe("GET /api/projects list payload", () => {
+    it("flattens categories and need tags for the client filters", async () => {
+      stubApprovedSession();
+      prismaMock.project.findMany.mockResolvedValue([
+        {
+          id: "pr1",
+          title: "Alpha",
+          description: "d",
+          status: "active",
+          websiteUrl: null,
+          repoUrl: null,
+          createdAt: new Date("2025-01-01"),
+          creator: { id: "c", name: "Alice", handle: "alice", portraitUrl: null },
+          categories: [{ category: { id: "c1", name: "FinTech", slug: "fintech" } }],
+          needs: [
+            {
+              options: [
+                {
+                  option: {
+                    id: "o1",
+                    name: "AI / ML expertise",
+                    slug: "ai-ml",
+                    category: { slug: "product-engineering" },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ] as never);
+      prismaMock.project.count.mockResolvedValue(1 as never);
+
+      const response = await app.inject({
+        method: "GET",
+        url: "/api/projects",
+        headers: { cookie: authCookie() },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const project = response.json().projects[0];
+      expect(project.categories).toEqual([{ id: "c1", name: "FinTech", slug: "fintech" }]);
+      expect(project.needs).toEqual([
+        { id: "o1", name: "AI / ML expertise", slug: "ai-ml", categorySlug: "product-engineering" },
+      ]);
+    });
+  });
 });

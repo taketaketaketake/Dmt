@@ -16,6 +16,7 @@ import type {
   ProjectNeed,
   NeedInput,
   SkillTag,
+  CategoryTag,
 } from "../data/types";
 
 // Base URL - in dev, proxy handles this; in prod, same origin
@@ -206,8 +207,9 @@ export interface ProjectDetail extends Project {
 }
 
 export const projects = {
+  // Filtered client-side; request the full page (server caps at 100).
   list: () =>
-    request<{ projects: ProjectListItem[] }>("/api/projects"),
+    request<{ projects: ProjectListItem[] }>("/api/projects?limit=100"),
 
   get: (id: string) =>
     request<{ project: ProjectDetail }>(`/api/projects/${id}`),
@@ -215,13 +217,13 @@ export const projects = {
   mine: () =>
     request<{ projects: Project[] }>("/api/projects/mine"),
 
-  create: (data: { title: string; description?: string; status?: string; websiteUrl?: string; repoUrl?: string }) =>
+  create: (data: { title: string; description?: string; status?: string; websiteUrl?: string; repoUrl?: string; categoryIds?: string[] }) =>
     request<{ project: Project }>("/api/projects", {
       method: "POST",
       body: JSON.stringify(data),
     }),
 
-  update: (id: string, data: { title?: string; description?: string; status?: string; websiteUrl?: string; repoUrl?: string }) =>
+  update: (id: string, data: { title?: string; description?: string; status?: string; websiteUrl?: string; repoUrl?: string; categoryIds?: string[] }) =>
     request<{ project: Project }>(`/api/projects/${id}`, {
       method: "PUT",
       body: JSON.stringify(data),
@@ -264,6 +266,15 @@ export const needs = {
     request<{ categories: NeedCategory[] }>(
       `/api/needs/taxonomy${opts?.offerable ? "?offerable=1" : ""}`
     ),
+};
+
+// =============================================================================
+// CATEGORIES API (project industries, etc.)
+// =============================================================================
+
+export const categories = {
+  list: (type: "industry" | "project_type" | "skill" = "industry") =>
+    request<{ categories: CategoryTag[] }>(`/api/categories?type=${type}`),
 };
 
 // =============================================================================

@@ -1,10 +1,15 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Portrait } from "../components/ui";
+import { FilterSelect, type FilterGroup } from "../components/FilterSelect";
 import { profiles as profilesApi, needs as needsApi } from "../lib/api";
 import { usePageTitle } from "../hooks/usePageTitle";
 import type { ProfileListItem, NeedCategory } from "../data/types";
 import styles from "./People.module.css";
+
+// The "People & Partners" taxonomy category describes roles a person is open to
+// (co-founder, advisor, etc.); everything else offerable is a capability/skill.
+const PEOPLE_PARTNERS_SLUG = "people-partners";
 
 export function PeoplePage() {
   usePageTitle("People");
@@ -15,8 +20,7 @@ export function PeoplePage() {
 
   // Filter state
   const [query, setQuery] = useState("");
-  const [selectedSkills, setSelectedSkills] = useState<Set<string>>(new Set());
-  const [showFilters, setShowFilters] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     Promise.all([profilesApi.list(), needsApi.taxonomy({ offerable: true })])
@@ -31,8 +35,24 @@ export function PeoplePage() {
       });
   }, []);
 
-  // Map skill option id -> display name (for active-filter chips)
-  const skillNames = useMemo(() => {
+  // Split the taxonomy into the two filter dropdowns
+  const { skillGroups, partnerGroups } = useMemo(() => {
+    const skills: FilterGroup[] = [];
+    const partners: FilterGroup[] = [];
+    for (const cat of taxonomy) {
+      const group: FilterGroup = { name: cat.name, options: cat.options };
+      if (cat.slug === PEOPLE_PARTNERS_SLUG) {
+        // Roles render as a flat list (no redundant heading)
+        partners.push({ options: cat.options });
+      } else {
+        skills.push(group);
+      }
+    }
+    return { skillGroups: skills, partnerGroups: partners };
+  }, [taxonomy]);
+
+  // Option id -> display name (for active-filter chips)
+  const optionNames = useMemo(() => {
     const map = new Map<string, string>();
     for (const cat of taxonomy) {
       for (const opt of cat.options) map.set(opt.id, opt.name);
@@ -40,8 +60,8 @@ export function PeoplePage() {
     return map;
   }, [taxonomy]);
 
-  const toggleSkill = useCallback((id: string) => {
-    setSelectedSkills((prev) => {
+  const toggleOption = useCallback((id: string) => {
+    setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -51,7 +71,7 @@ export function PeoplePage() {
 
   const clearFilters = useCallback(() => {
     setQuery("");
-    setSelectedSkills(new Set());
+    setSelected(new Set());
   }, []);
 
   const filtered = useMemo(() => {
@@ -63,13 +83,12 @@ export function PeoplePage() {
           f?.toLowerCase().includes(q)
         );
       const matchesSkills =
-        selectedSkills.size === 0 ||
-        (p.skills ?? []).some((s) => selectedSkills.has(s.id));
+        selected.size === 0 || (p.skills ?? []).some((s) => selected.has(s.id));
       return matchesQuery && matchesSkills;
     });
-  }, [profiles, query, selectedSkills]);
+  }, [profiles, query, selected]);
 
-  const hasActiveFilters = query.trim() !== "" || selectedSkills.size > 0;
+  const hasActiveFilters = query.trim() !== "" || selected.size > 0;
 
   if (isLoading) {
     return (
@@ -106,7 +125,7 @@ export function PeoplePage() {
 
       {/* Filter bar */}
       <div className={styles.filterBar}>
-        <div className={styles.searchRow}>
+        <div className={styles.filterRow}>
           <input
             type="search"
             className={styles.search}
@@ -115,63 +134,39 @@ export function PeoplePage() {
             onChange={(e) => setQuery(e.target.value)}
             aria-label="Search people"
           />
-          <button
-            type="button"
-            className={`${styles.filterToggle} ${selectedSkills.size > 0 ? styles.filterToggleActive : ""}`}
-            onClick={() => setShowFilters((s) => !s)}
-            aria-expanded={showFilters}
-          >
-            Skills{selectedSkills.size > 0 ? ` (${selectedSkills.size})` : ""}
-          </button>
+          {skillGroups.length > 0 && (
+            <FilterSelect
+              label="Skills"
+              groups={skillGroups}
+              selected={selected}
+              onToggle={toggleOption}
+            />
+          )}
+          {partnerGroups.length > 0 && (
+            <FilterSelect
+              label="People & Partners"
+              groups={partnerGroups}
+              selected={selected}
+              onToggle={toggleOption}
+            />
+          )}
         </div>
 
-        {/* Active filter chips */}
         {hasActiveFilters && (
           <div className={styles.activeFilters}>
-            {[...selectedSkills].map((id) => (
+            {[...selected].map((id) => (
               <button
                 key={id}
                 type="button"
                 className={styles.activeChip}
-                onClick={() => toggleSkill(id)}
+                onClick={() => toggleOption(id)}
               >
-                {skillNames.get(id) ?? "Skill"} <span aria-hidden>×</span>
+                {optionNames.get(id) ?? "Filter"} <span aria-hidden>×</span>
               </button>
             ))}
-            <button
-              type="button"
-              className={styles.clearButton}
-              onClick={clearFilters}
-            >
+            <button type="button" className={styles.clearButton} onClick={clearFilters}>
               Clear all
             </button>
-          </div>
-        )}
-
-        {/* Expandable skill picker, grouped by category */}
-        {showFilters && (
-          <div className={styles.skillPanel}>
-            {taxonomy.map((cat) => (
-              <div key={cat.id} className={styles.skillGroup}>
-                <h2 className={styles.skillGroupName}>{cat.name}</h2>
-                <div className={styles.skillChips}>
-                  {cat.options.map((opt) => {
-                    const isSelected = selectedSkills.has(opt.id);
-                    return (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        className={`${styles.skillChip} ${isSelected ? styles.skillChipActive : ""}`}
-                        aria-pressed={isSelected}
-                        onClick={() => toggleSkill(opt.id)}
-                      >
-                        {opt.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
           </div>
         )}
       </div>
@@ -203,7 +198,7 @@ export function PeoplePage() {
                     {profile.skills.map((s) => (
                       <span
                         key={s.id}
-                        className={`${styles.cardSkill} ${selectedSkills.has(s.id) ? styles.cardSkillMatch : ""}`}
+                        className={`${styles.cardSkill} ${selected.has(s.id) ? styles.cardSkillMatch : ""}`}
                       >
                         {s.name}
                       </span>

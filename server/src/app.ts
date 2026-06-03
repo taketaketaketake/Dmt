@@ -22,6 +22,7 @@ import { billingRoutes } from "./routes/billing.js";
 import { webhookRoutes } from "./routes/webhooks.js";
 import { uploadRoutes } from "./routes/uploads.js";
 import { needsRoutes } from "./routes/needs.js";
+import { categoryRoutes } from "./routes/categories.js";
 
 // =============================================================================
 // BUILD APP
@@ -218,6 +219,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await app.register(webhookRoutes, { prefix: "/webhooks" });
   await app.register(uploadRoutes, { prefix: "/api/uploads" });
   await app.register(needsRoutes, { prefix: "/api/needs" });
+  await app.register(categoryRoutes, { prefix: "/api/categories" });
 
   // Health check
   app.get("/health", async (_request, reply) => {

@@ -34,6 +34,10 @@ export const mockNeeds = {
   taxonomy: vi.fn(),
 };
 
+export const mockCategories = {
+  list: vi.fn(),
+};
+
 export const mockJobs = {
   list: vi.fn(),
   get: vi.fn(),
@@ -61,6 +65,7 @@ vi.mock("../../lib/api", () => ({
   profiles: mockProfiles,
   projects: mockProjects,
   needs: mockNeeds,
+  categories: mockCategories,
   jobs: mockJobs,
   ApiError: mockApiError,
 }));
