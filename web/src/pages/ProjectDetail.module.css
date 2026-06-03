@@ -164,6 +164,15 @@
   align-self: start;
 }
 
+/* On mobile the layout collapses to one column and the sidebar reflows below
+   the content. Un-stick it (this override must come AFTER the sticky rule above
+   to win the cascade) so it doesn't pin and overlap the content while scrolling. */
+@media (max-width: 768px) {
+  .sidebar {
+    position: static;
+  }
+}
+
 .actionButton {
   font-size: var(--text-sm);
   font-weight: var(--font-medium);

@@ -14,12 +14,6 @@
     grid-template-columns: 1fr;
     gap: var(--space-8);
   }
-
-  /* Sidebar stacks above the content on mobile, so drop the sticky
-     positioning that would otherwise pin it mid-scroll. */
-  .sidebar {
-    position: static;
-  }
 }
 
 /* -----------------------------------------------------------------------------
@@ -30,6 +24,16 @@
   position: sticky;
   top: calc(var(--header-height) + var(--space-8));
   align-self: start;
+}
+
+/* Sidebar stacks above the content on mobile, so drop the sticky positioning
+   that would otherwise pin it and overlap the content mid-scroll. This override
+   must come AFTER the sticky rule above to win the cascade (media queries don't
+   add specificity, so source order decides). */
+@media (max-width: 768px) {
+  .sidebar {
+    position: static;
+  }
 }
 
 .portrait {

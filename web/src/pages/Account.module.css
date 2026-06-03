@@ -26,6 +26,15 @@
   align-self: start;
 }
 
+/* On mobile the layout collapses to one column and the sidebar stacks above
+   the content. Un-stick it (this override must come AFTER the sticky rule above
+   to win the cascade) so it doesn't pin and overlap the content while scrolling. */
+@media (max-width: 768px) {
+  .sidebar {
+    position: static;
+  }
+}
+
 .nav {
   display: flex;
   flex-direction: column;

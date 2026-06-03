@@ -131,9 +131,26 @@ export function ProfilePage() {
         githubHandle: form.githubHandle.trim() || undefined,
         linkedinUrl: form.linkedinUrl.trim() || undefined,
       });
+      // Move out of create mode now that the profile exists, so a retry can't
+      // hit a "profile already exists" error if submission below fails.
       setProfile(newProfile);
       setForm(profileToForm(newProfile));
       setMode("view");
+
+      // Onboarding is a single step: send the new profile straight to review so
+      // the member lands in the admin queue without a separate "submit" action.
+      try {
+        const { profile: submitted } = await profilesApi.submit();
+        setProfile(submitted);
+      } catch (submitErr) {
+        // The profile was saved but submission failed; view mode now shows a
+        // "Submit for review" button so the member can retry.
+        setError(
+          submitErr instanceof Error
+            ? `Profile saved, but submitting for review failed: ${submitErr.message}`
+            : "Profile saved, but submitting for review failed. Please try again."
+        );
+      }
       refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create profile");
@@ -346,7 +363,7 @@ export function ProfilePage() {
 
             <div className={styles.actions}>
               <button type="submit" className={styles.saveButton} disabled={isSubmitting}>
-                {isSubmitting ? "Creating..." : "Create profile"}
+                {isSubmitting ? "Submitting..." : "Submit for review"}
               </button>
             </div>
           </form>
