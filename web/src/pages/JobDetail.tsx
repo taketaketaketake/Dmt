@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Portrait, Badge } from "../components/ui";
-import { jobs as jobsApi, type JobDetail } from "../lib/api";
+import { useJob } from "../hooks/queries";
 import { usePageTitle } from "../hooks/usePageTitle";
 import styles from "./JobDetail.module.css";
 
@@ -14,30 +13,10 @@ const jobTypeLabels: Record<string, string> = {
 
 export function JobDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const [job, setJob] = useState<JobDetail | null>(null);
+  const { data: job, isPending, error } = useJob(id);
   usePageTitle(job?.title ?? "Job");
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!id) return;
-
-    setIsLoading(true);
-    setError(null);
-
-    jobsApi
-      .get(id)
-      .then((data) => {
-        setJob(data.job);
-        setIsLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message || "Failed to load job");
-        setIsLoading(false);
-      });
-  }, [id]);
-
-  if (isLoading) {
+  if (isPending) {
     return (
       <div className="container">
         <p className={styles.message}>Loading...</p>
@@ -48,7 +27,7 @@ export function JobDetailPage() {
   if (error || !job) {
     return (
       <div className="container">
-        <p className={styles.message}>{error || "Job not found"}</p>
+        <p className={styles.message}>{error?.message || "Job not found"}</p>
       </div>
     );
   }

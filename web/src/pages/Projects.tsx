@@ -2,46 +2,21 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Portrait, Badge } from "../components/ui";
 import { FilterSelect, type FilterGroup } from "../components/FilterSelect";
-import {
-  projects as projectsApi,
-  needs as needsApi,
-  categories as categoriesApi,
-} from "../lib/api";
+import { useProjectsList, useNeedsTaxonomy, useCategories } from "../hooks/queries";
 import { usePageTitle } from "../hooks/usePageTitle";
-import type { ProjectListItem, NeedCategory, CategoryTag } from "../data/types";
 import styles from "./Projects.module.css";
 
 export function ProjectsPage() {
   usePageTitle("Projects");
-  const [projects, setProjects] = useState<ProjectListItem[]>([]);
-  const [needsTaxonomy, setNeedsTaxonomy] = useState<NeedCategory[]>([]);
-  const [industries, setIndustries] = useState<CategoryTag[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: projects = [], isPending, error } = useProjectsList();
+  const { data: needsTaxonomy = [] } = useNeedsTaxonomy();
+  const { data: industries = [] } = useCategories("industry");
 
   // Filter state
   const [searchParams] = useSearchParams();
   const [query, setQuery] = useState("");
   const [selectedNeeds, setSelectedNeeds] = useState<Set<string>>(new Set());
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    Promise.all([
-      projectsApi.list(),
-      needsApi.taxonomy(),
-      categoriesApi.list("industry"),
-    ])
-      .then(([projectData, taxData, catData]) => {
-        setProjects(projectData.projects);
-        setNeedsTaxonomy(taxData.categories);
-        setIndustries(catData.categories);
-        setIsLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message || "Failed to load projects");
-        setIsLoading(false);
-      });
-  }, []);
 
   // Seed the category filter from the URL once (e.g. arriving from a project's
   // category badge: /projects?category=<slug>). The filter matches on category
@@ -121,7 +96,7 @@ export function ProjectsPage() {
   const activeIds = [...selectedNeeds, ...selectedCategories];
   const hasActiveFilters = query.trim() !== "" || activeIds.length > 0;
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <div className="container">
         <header className={styles.header}>
@@ -138,7 +113,7 @@ export function ProjectsPage() {
         <header className={styles.header}>
           <h1 className={styles.title}>Projects</h1>
         </header>
-        <p className={styles.message}>{error}</p>
+        <p className={styles.message}>{error.message || "Failed to load projects"}</p>
       </div>
     );
   }

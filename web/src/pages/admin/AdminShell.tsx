@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect } from "react";
 import { NavLink, Outlet, Navigate, useLocation } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../contexts";
-import { admin as adminApi, type AdminStats } from "../../lib/api";
+import { useAdminStats, queryKeys } from "../../hooks/queries";
 import type { AdminOutletContext } from "./adminOutlet";
 import styles from "./AdminShell.module.css";
 
@@ -14,20 +15,17 @@ interface AdminTab {
 export function AdminShell() {
   const { user, isLoading } = useAuth();
   const location = useLocation();
-  const [stats, setStats] = useState<AdminStats | null>(null);
+  const queryClient = useQueryClient();
+  const isAdmin = user?.isAdmin ?? false;
+  // Badge counts are non-critical, so failures are ignored silently.
+  const { data: stats } = useAdminStats({ enabled: isAdmin, retry: false });
 
   const refreshStats = useCallback(() => {
-    adminApi
-      .stats()
-      .then(setStats)
-      .catch(() => {
-        // Badge counts are non-critical; ignore failures silently.
-      });
-  }, []);
+    queryClient.invalidateQueries({ queryKey: queryKeys.admin.stats });
+  }, [queryClient]);
 
-  // Refresh counts on mount and whenever the active admin route changes
-  // (e.g. after approving a profile in the detail view and navigating back).
-  const isAdmin = user?.isAdmin ?? false;
+  // Refresh counts whenever the active admin route changes (e.g. after
+  // approving a profile in the detail view and navigating back).
   useEffect(() => {
     if (isAdmin) {
       refreshStats();

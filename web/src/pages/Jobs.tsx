@@ -1,9 +1,7 @@
-import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "../components/ui";
-import { jobs as jobsApi } from "../lib/api";
+import { useJobsList } from "../hooks/queries";
 import { usePageTitle } from "../hooks/usePageTitle";
-import type { JobListItem } from "../data/types";
 import styles from "./Jobs.module.css";
 
 const jobTypeLabels: Record<string, string> = {
@@ -15,24 +13,9 @@ const jobTypeLabels: Record<string, string> = {
 
 export function JobsPage() {
   usePageTitle("Jobs");
-  const [jobs, setJobs] = useState<JobListItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: jobs = [], isPending, error } = useJobsList();
 
-  useEffect(() => {
-    jobsApi
-      .list()
-      .then((data) => {
-        setJobs(data.jobs);
-        setIsLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message || "Failed to load jobs");
-        setIsLoading(false);
-      });
-  }, []);
-
-  if (isLoading) {
+  if (isPending) {
     return (
       <div className="container">
         <header className={styles.header}>
@@ -49,7 +32,7 @@ export function JobsPage() {
         <header className={styles.header}>
           <h1 className={styles.title}>Jobs</h1>
         </header>
-        <p className={styles.message}>{error}</p>
+        <p className={styles.message}>{error.message || "Failed to load jobs"}</p>
       </div>
     );
   }

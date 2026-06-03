@@ -1,35 +1,29 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { Portrait } from "../../components/ui";
-import { admin as adminApi, type AdminProfile } from "../../lib/api";
+import { admin as adminApi } from "../../lib/api";
+import { useAdminProfile, queryKeys } from "../../hooks/queries";
 import { usePageTitle } from "../../hooks/usePageTitle";
 import styles from "./ProfileReview.module.css";
 
 export function ProfileReviewPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [profile, setProfile] = useState<AdminProfile | null>(null);
+  const queryClient = useQueryClient();
+  const { data: profile, isPending: isLoading, error: loadError } = useAdminProfile(id);
   usePageTitle(profile ? `Review: ${profile.name}` : "Profile Review");
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [rejectNote, setRejectNote] = useState("");
 
-  useEffect(() => {
-    if (!id) return;
-
-    adminApi
-      .getProfile(id)
-      .then((data) => {
-        setProfile(data.profile);
-        setIsLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message || "Failed to load profile");
-        setIsLoading(false);
-      });
-  }, [id]);
+  // After a decision, refresh the pending queue and tab badge counts so the
+  // queue we navigate back to no longer lists this profile.
+  const invalidateQueue = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.admin.pendingProfiles });
+    queryClient.invalidateQueries({ queryKey: queryKeys.admin.stats });
+  }, [queryClient]);
 
   const handleApprove = useCallback(async () => {
     if (!id) return;
@@ -37,12 +31,13 @@ export function ProfileReviewPage() {
     setIsSubmitting(true);
     try {
       await adminApi.approveProfile(id);
+      invalidateQueue();
       navigate("/admin/queue");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to approve");
       setIsSubmitting(false);
     }
-  }, [id, navigate]);
+  }, [id, navigate, invalidateQueue]);
 
   const handleReject = useCallback(async () => {
     if (!id) return;
@@ -54,26 +49,27 @@ export function ProfileReviewPage() {
     setIsSubmitting(true);
     try {
       await adminApi.rejectProfile(id, rejectNote.trim());
+      invalidateQueue();
       navigate("/admin/queue");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to reject");
       setIsSubmitting(false);
     }
-  }, [id, navigate, rejectNote]);
+  }, [id, navigate, rejectNote, invalidateQueue]);
 
   if (isLoading) {
     return <p className={styles.message}>Loading...</p>;
   }
 
-  if (error && !profile) {
-    return <p className={styles.error}>{error}</p>;
+  if (loadError && !profile) {
+    return <p className={styles.error}>{loadError.message || "Failed to load profile"}</p>;
   }
 
   if (!profile) {
     return <p className={styles.message}>Profile not found</p>;
   }
 
-  const isPending = profile.approvalStatus === "pending_review";
+  const isPendingReview = profile.approvalStatus === "pending_review";
 
   return (
     <div>
@@ -184,7 +180,7 @@ export function ProfileReviewPage() {
         </div>
 
         {/* Actions */}
-        {isPending && (
+        {isPendingReview && (
           <div className={styles.actions}>
             {showRejectForm ? (
               <div className={styles.rejectForm}>
@@ -242,7 +238,7 @@ export function ProfileReviewPage() {
           </div>
         )}
 
-        {!isPending && (
+        {!isPendingReview && (
           <div className={styles.statusBanner}>
             Profile status: <strong>{profile.approvalStatus}</strong>
             {profile.rejectionNote && (

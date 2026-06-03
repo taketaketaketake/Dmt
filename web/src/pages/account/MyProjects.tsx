@@ -1,12 +1,14 @@
-import { useState, useEffect, useCallback, type FormEvent } from "react";
+import { useState, useCallback, type FormEvent } from "react";
 import { Link } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { Badge } from "../../components/ui";
 import { NeedsEditor } from "../../components/NeedsEditor";
 import { ProjectMatches } from "../../components/ProjectMatches";
 import { useAuth } from "../../contexts";
 import { usePageTitle } from "../../hooks/usePageTitle";
-import { projects as projectsApi, categories as categoriesApi } from "../../lib/api";
-import type { Project, ProjectStatus, CategoryTag } from "../../data/types";
+import { useMyProjects, useCategories, queryKeys } from "../../hooks/queries";
+import { projects as projectsApi } from "../../lib/api";
+import type { Project, ProjectStatus } from "../../data/types";
 import styles from "./MyProjects.module.css";
 
 const MAX_PROJECT_CATEGORIES = 2;
@@ -43,9 +45,9 @@ function projectToForm(project: Project): ProjectFormData {
 export function MyProjectsPage() {
   usePageTitle("My Projects");
   const { profile } = useAuth();
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [industries, setIndustries] = useState<CategoryTag[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { data: projects = [], isPending } = useMyProjects();
+  const { data: industries = [] } = useCategories("industry");
   const [error, setError] = useState<string | null>(null);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -55,24 +57,12 @@ export function MyProjectsPage() {
 
   const canCreateProjects = profile?.approvalStatus === "approved";
 
-  const loadProjects = useCallback(async () => {
-    try {
-      const data = await projectsApi.mine();
-      setProjects(data.projects);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load projects");
-    }
-  }, []);
-
-  useEffect(() => {
-    loadProjects().then(() => setIsLoading(false));
-    categoriesApi
-      .list("industry")
-      .then((data) => setIndustries(data.categories))
-      .catch(() => {
-        /* category picker is optional; ignore load failure */
-      });
-  }, [loadProjects]);
+  // After a mutation, refresh the owner's list plus the public directory list
+  // so both reflect the change on next view.
+  const invalidateProjects = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.projects.mine });
+    queryClient.invalidateQueries({ queryKey: queryKeys.projects.list });
+  }, [queryClient]);
 
   const handleChange = useCallback((field: keyof ProjectFormData, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -97,7 +87,7 @@ export function MyProjectsPage() {
     setError(null);
     setIsSubmitting(true);
     try {
-      const { project } = await projectsApi.create({
+      await projectsApi.create({
         title: form.title.trim(),
         description: form.description.trim() || undefined,
         status: form.status,
@@ -105,7 +95,7 @@ export function MyProjectsPage() {
         repoUrl: form.repoUrl.trim() || undefined,
         categoryIds: form.categoryIds,
       });
-      setProjects((prev) => [project, ...prev]);
+      invalidateProjects();
       setForm(emptyForm);
       setIsCreating(false);
     } catch (err) {
@@ -113,7 +103,7 @@ export function MyProjectsPage() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [form]);
+  }, [form, invalidateProjects]);
 
   const handleUpdate = useCallback(async (e: FormEvent) => {
     e.preventDefault();
@@ -133,9 +123,8 @@ export function MyProjectsPage() {
         repoUrl: form.repoUrl.trim() || undefined,
         categoryIds: form.categoryIds,
       });
-      setProjects((prev) =>
-        prev.map((p) => (p.id === project.id ? project : p))
-      );
+      invalidateProjects();
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects.detail(project.id) });
       setEditingProject(null);
       setForm(emptyForm);
     } catch (err) {
@@ -143,21 +132,21 @@ export function MyProjectsPage() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [editingProject, form]);
+  }, [editingProject, form, invalidateProjects, queryClient]);
 
   const handleDelete = useCallback(async (id: string) => {
     setError(null);
     setIsSubmitting(true);
     try {
       await projectsApi.delete(id);
-      setProjects((prev) => prev.filter((p) => p.id !== id));
+      invalidateProjects();
       setDeleteConfirm(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete project");
     } finally {
       setIsSubmitting(false);
     }
-  }, []);
+  }, [invalidateProjects]);
 
   const startEdit = useCallback((project: Project) => {
     setEditingProject(project);
@@ -180,7 +169,7 @@ export function MyProjectsPage() {
     setError(null);
   }, []);
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <div>
         <header className={styles.header}>

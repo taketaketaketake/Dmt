@@ -211,6 +211,13 @@ export const projects = {
   list: () =>
     request<{ projects: ProjectListItem[] }>("/api/projects?limit=100"),
 
+  // Projects by a single creator, filtered server-side (used by profile pages
+  // so they don't download the whole directory just to filter locally).
+  byCreator: (handle: string) =>
+    request<{ projects: ProjectListItem[] }>(
+      `/api/projects?creatorHandle=${encodeURIComponent(handle)}&limit=100`
+    ),
+
   get: (id: string) =>
     request<{ project: ProjectDetail }>(`/api/projects/${id}`),
 

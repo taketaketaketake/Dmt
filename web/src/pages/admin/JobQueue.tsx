@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { admin as adminApi, type AdminJob } from "../../lib/api";
+import { usePendingJobs, queryKeys } from "../../hooks/queries";
 import { usePageTitle } from "../../hooks/usePageTitle";
 import { useAdminOutlet } from "./adminOutlet";
 import styles from "./JobQueue.module.css";
@@ -14,26 +16,18 @@ const JOB_TYPE_LABELS: Record<string, string> = {
 export function JobQueuePage() {
   usePageTitle("Pending Jobs");
   const { refreshStats } = useAdminOutlet();
-  const [jobs, setJobs] = useState<AdminJob[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const { data: jobs = [], isPending, error } = usePendingJobs();
   const [actionId, setActionId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const loadJobs = useCallback(async () => {
-    try {
-      const data = await adminApi.pendingJobs();
-      setJobs(data.jobs);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load queue");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadJobs();
-  }, [loadJobs]);
+  // Reflect a moderation decision: drop it from the pending list and refresh
+  // the public jobs board + tab badge counts.
+  const afterModeration = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.admin.pendingJobs });
+    queryClient.invalidateQueries({ queryKey: queryKeys.jobs.list });
+    refreshStats();
+  }, [queryClient, refreshStats]);
 
   const handleApprove = useCallback(
     async (job: AdminJob) => {
@@ -41,8 +35,7 @@ export function JobQueuePage() {
       setActionId(job.id);
       try {
         await adminApi.approveJob(job.id);
-        setJobs((prev) => prev.filter((j) => j.id !== job.id));
-        refreshStats();
+        afterModeration();
       } catch (err) {
         setActionError(
           err instanceof Error ? err.message : "Failed to approve job"
@@ -51,7 +44,7 @@ export function JobQueuePage() {
         setActionId(null);
       }
     },
-    [refreshStats]
+    [afterModeration]
   );
 
   const handleReject = useCallback(
@@ -67,8 +60,7 @@ export function JobQueuePage() {
       setActionId(job.id);
       try {
         await adminApi.rejectJob(job.id);
-        setJobs((prev) => prev.filter((j) => j.id !== job.id));
-        refreshStats();
+        afterModeration();
       } catch (err) {
         setActionError(
           err instanceof Error ? err.message : "Failed to reject job"
@@ -77,15 +69,15 @@ export function JobQueuePage() {
         setActionId(null);
       }
     },
-    [refreshStats]
+    [afterModeration]
   );
 
-  if (isLoading) {
+  if (isPending) {
     return <p className={styles.message}>Loading...</p>;
   }
 
   if (error) {
-    return <p className={styles.error}>{error}</p>;
+    return <p className={styles.error}>{error.message || "Failed to load queue"}</p>;
   }
 
   return (

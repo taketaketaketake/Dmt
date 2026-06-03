@@ -1,6 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { admin as adminApi, type AdminUser } from "../../lib/api";
+import { useAdminUsers } from "../../hooks/queries";
 import { usePageTitle } from "../../hooks/usePageTitle";
 import styles from "./Users.module.css";
 
@@ -12,31 +11,14 @@ const statusLabels: Record<string, string> = {
 
 export function UsersPage() {
   usePageTitle("Users");
-  const [users, setUsers] = useState<AdminUser[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: users = [], isPending, error } = useAdminUsers();
 
-  const loadUsers = useCallback(async () => {
-    try {
-      const data = await adminApi.listUsers();
-      setUsers(data.users);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load users");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadUsers();
-  }, [loadUsers]);
-
-  if (isLoading) {
+  if (isPending) {
     return <p className={styles.message}>Loading...</p>;
   }
 
   if (error) {
-    return <p className={styles.error}>{error}</p>;
+    return <p className={styles.error}>{error.message || "Failed to load users"}</p>;
   }
 
   return (

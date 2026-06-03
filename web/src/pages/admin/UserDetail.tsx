@@ -1,33 +1,32 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { Portrait } from "../../components/ui";
 import { admin as adminApi, type AdminUserDetail } from "../../lib/api";
+import { useAdminUser, queryKeys } from "../../hooks/queries";
 import { usePageTitle } from "../../hooks/usePageTitle";
 import styles from "./UserDetail.module.css";
 
 export function UserDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const [user, setUser] = useState<AdminUserDetail | null>(null);
+  const queryClient = useQueryClient();
+  const { data: user, isPending: isLoading, error: loadError } = useAdminUser(id);
   usePageTitle(user?.profile?.name ? `User: ${user.profile.name}` : "User Detail");
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmAction, setConfirmAction] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!id) return;
-
-    adminApi
-      .getUser(id)
-      .then((data) => {
-        setUser(data.user);
-        setIsLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message || "Failed to load user");
-        setIsLoading(false);
-      });
-  }, [id]);
+  // Patch the cached user detail in place so moderation actions reflect
+  // immediately without a refetch.
+  const patchUser = useCallback(
+    (updater: (prev: AdminUserDetail) => AdminUserDetail) => {
+      if (!id) return;
+      queryClient.setQueryData<AdminUserDetail>(queryKeys.admin.user(id), (prev) =>
+        prev ? updater(prev) : prev
+      );
+    },
+    [id, queryClient]
+  );
 
   const handleSuspend = useCallback(async () => {
     if (!id) return;
@@ -35,14 +34,15 @@ export function UserDetailPage() {
     setIsSubmitting(true);
     try {
       const { user: updated } = await adminApi.suspendUser(id);
-      setUser((prev) => (prev ? { ...prev, status: updated.status } : prev));
+      patchUser((prev) => ({ ...prev, status: updated.status }));
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.users });
       setConfirmAction(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to suspend");
     } finally {
       setIsSubmitting(false);
     }
-  }, [id]);
+  }, [id, patchUser, queryClient]);
 
   const handleReinstate = useCallback(async () => {
     if (!id) return;
@@ -50,71 +50,76 @@ export function UserDetailPage() {
     setIsSubmitting(true);
     try {
       const { user: updated } = await adminApi.reinstateUser(id);
-      setUser((prev) => (prev ? { ...prev, status: updated.status } : prev));
+      patchUser((prev) => ({ ...prev, status: updated.status }));
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.users });
       setConfirmAction(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to reinstate");
     } finally {
       setIsSubmitting(false);
     }
-  }, [id]);
+  }, [id, patchUser, queryClient]);
 
   const handleRemoveProject = useCallback(async (projectId: string) => {
     setError(null);
     setIsSubmitting(true);
     try {
       await adminApi.removeProject(projectId);
-      setUser((prev) => {
-        if (!prev?.profile) return prev;
-        return {
-          ...prev,
-          profile: {
-            ...prev.profile,
-            projectsCreated: prev.profile.projectsCreated.map((p) =>
-              p.id === projectId ? { ...p, status: "archived" } : p
-            ),
-          },
-        };
-      });
+      patchUser((prev) =>
+        prev.profile
+          ? {
+              ...prev,
+              profile: {
+                ...prev.profile,
+                projectsCreated: prev.profile.projectsCreated.map((p) =>
+                  p.id === projectId ? { ...p, status: "archived" } : p
+                ),
+              },
+            }
+          : prev
+      );
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects.list });
       setConfirmAction(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to remove project");
     } finally {
       setIsSubmitting(false);
     }
-  }, []);
+  }, [patchUser, queryClient]);
 
   const handleRemoveJob = useCallback(async (jobId: string) => {
     setError(null);
     setIsSubmitting(true);
     try {
       await adminApi.removeJob(jobId);
-      setUser((prev) => {
-        if (!prev?.profile) return prev;
-        return {
-          ...prev,
-          profile: {
-            ...prev.profile,
-            jobsPosted: prev.profile.jobsPosted.map((j) =>
-              j.id === jobId ? { ...j, active: false } : j
-            ),
-          },
-        };
-      });
+      patchUser((prev) =>
+        prev.profile
+          ? {
+              ...prev,
+              profile: {
+                ...prev.profile,
+                jobsPosted: prev.profile.jobsPosted.map((j) =>
+                  j.id === jobId ? { ...j, active: false } : j
+                ),
+              },
+            }
+          : prev
+      );
+      queryClient.invalidateQueries({ queryKey: queryKeys.jobs.list });
       setConfirmAction(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to remove job");
     } finally {
       setIsSubmitting(false);
     }
-  }, []);
+  }, [patchUser, queryClient]);
 
   if (isLoading) {
     return <p className={styles.message}>Loading...</p>;
   }
 
-  if (error && !user) {
-    return <p className={styles.error}>{error}</p>;
+  if (loadError && !user) {
+    return <p className={styles.error}>{loadError.message || "Failed to load user"}</p>;
   }
 
   if (!user) {

@@ -1,37 +1,19 @@
-import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Portrait } from "../../components/ui";
-import { admin as adminApi, type AdminProfile } from "../../lib/api";
+import { usePendingProfiles } from "../../hooks/queries";
 import { usePageTitle } from "../../hooks/usePageTitle";
 import styles from "./ApprovalQueue.module.css";
 
 export function ApprovalQueuePage() {
   usePageTitle("Pending Users");
-  const [profiles, setProfiles] = useState<AdminProfile[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: profiles = [], isPending, error } = usePendingProfiles();
 
-  const loadProfiles = useCallback(async () => {
-    try {
-      const data = await adminApi.pendingProfiles();
-      setProfiles(data.profiles);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load queue");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadProfiles();
-  }, [loadProfiles]);
-
-  if (isLoading) {
+  if (isPending) {
     return <p className={styles.message}>Loading...</p>;
   }
 
   if (error) {
-    return <p className={styles.error}>{error}</p>;
+    return <p className={styles.error}>{error.message || "Failed to load queue"}</p>;
   }
 
   return (

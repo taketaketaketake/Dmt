@@ -2,6 +2,7 @@ import Fastify, { type FastifyInstance, type FastifyError } from "fastify";
 import cookie from "@fastify/cookie";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
+import compress from "@fastify/compress";
 import rateLimit from "@fastify/rate-limit";
 import fastifyStatic from "@fastify/static";
 import multipart from "@fastify/multipart";
@@ -101,6 +102,14 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     hidePoweredBy: true,
     noSniff: true,
     xssFilter: true,
+  });
+
+  // Response compression (gzip/brotli). Shrinks JSON API payloads and, in prod,
+  // the served JS/CSS bundle. Only compresses bodies above the threshold so we
+  // don't waste CPU on tiny responses.
+  await app.register(compress, {
+    global: true,
+    threshold: 1024,
   });
 
   // Global rate limiting (optional for tests)

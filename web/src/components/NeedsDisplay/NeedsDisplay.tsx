@@ -1,6 +1,4 @@
-import { useState, useEffect } from "react";
-import { projects as projectsApi } from "../../lib/api";
-import type { ProjectNeed } from "../../data/types";
+import { useProjectNeeds } from "../../hooks/queries";
 import styles from "./NeedsDisplay.module.css";
 
 interface NeedsDisplayProps {
@@ -8,20 +6,9 @@ interface NeedsDisplayProps {
 }
 
 export function NeedsDisplay({ projectId }: NeedsDisplayProps) {
-  const [needs, setNeeds] = useState<ProjectNeed[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: needs = [], isPending } = useProjectNeeds(projectId);
 
-  useEffect(() => {
-    projectsApi
-      .getNeeds(projectId)
-      .then((data) => setNeeds(data.needs))
-      .catch(() => {
-        // Silently fail - needs might not be accessible
-      })
-      .finally(() => setIsLoading(false));
-  }, [projectId]);
-
-  if (isLoading) {
+  if (isPending) {
     return null;
   }
 

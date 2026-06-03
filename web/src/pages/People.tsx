@@ -1,10 +1,10 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Portrait } from "../components/ui";
 import { FilterSelect, type FilterGroup } from "../components/FilterSelect";
-import { profiles as profilesApi, needs as needsApi } from "../lib/api";
+import { useProfilesList, useNeedsTaxonomy } from "../hooks/queries";
 import { usePageTitle } from "../hooks/usePageTitle";
-import type { ProfileListItem, NeedCategory } from "../data/types";
+import type { ProfileListItem } from "../data/types";
 import styles from "./People.module.css";
 
 // The "People & Partners" taxonomy category describes roles a person is open to
@@ -21,27 +21,12 @@ function matchesQuery(p: ProfileListItem, q: string): boolean {
 
 export function PeoplePage() {
   usePageTitle("People");
-  const [profiles, setProfiles] = useState<ProfileListItem[]>([]);
-  const [taxonomy, setTaxonomy] = useState<NeedCategory[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: profiles = [], isPending, error } = useProfilesList();
+  const { data: taxonomy = [] } = useNeedsTaxonomy({ offerable: true });
 
   // Filter state
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    Promise.all([profilesApi.list(), needsApi.taxonomy({ offerable: true })])
-      .then(([profileData, taxData]) => {
-        setProfiles(profileData.profiles);
-        setTaxonomy(taxData.categories);
-        setIsLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message || "Failed to load profiles");
-        setIsLoading(false);
-      });
-  }, []);
 
   // Split the taxonomy into the two filter dropdowns. The Skills dropdown is
   // currently removed from the page (see render below) but the grouping is kept
@@ -120,7 +105,7 @@ export function PeoplePage() {
 
   const hasActiveFilters = query.trim() !== "" || selected.size > 0;
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <div className="container">
         <header className={styles.header}>
@@ -137,7 +122,7 @@ export function PeoplePage() {
         <header className={styles.header}>
           <h1 className={styles.title}>People</h1>
         </header>
-        <p className={styles.message}>{error}</p>
+        <p className={styles.message}>{error.message || "Failed to load profiles"}</p>
       </div>
     );
   }

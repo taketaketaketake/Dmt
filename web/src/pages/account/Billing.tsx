@@ -1,27 +1,15 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { billing as billingApi } from "../../lib/api";
+import { useBillingStatus } from "../../hooks/queries";
 import { usePageTitle } from "../../hooks/usePageTitle";
 import styles from "./Billing.module.css";
 
 export function BillingPage() {
   usePageTitle("Billing");
-  const [isEmployer, setIsEmployer] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: status, isPending, error: loadError } = useBillingStatus();
+  const isEmployer = status?.isEmployer ?? false;
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    billingApi
-      .status()
-      .then((data) => {
-        setIsEmployer(data.isEmployer);
-        setIsLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message || "Failed to load billing status");
-        setIsLoading(false);
-      });
-  }, []);
 
   const handleCheckout = useCallback(async () => {
     setIsSubmitting(true);
@@ -47,7 +35,7 @@ export function BillingPage() {
     }
   }, []);
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <div>
         <header className={styles.header}>
@@ -64,7 +52,11 @@ export function BillingPage() {
         <h1 className={styles.title}>Billing</h1>
       </header>
 
-      {error && <p className={styles.error}>{error}</p>}
+      {(error || loadError) && (
+        <p className={styles.error}>
+          {error || loadError?.message || "Failed to load billing status"}
+        </p>
+      )}
 
       <div className={styles.card}>
         <div className={styles.status}>

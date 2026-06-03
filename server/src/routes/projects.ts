@@ -49,6 +49,13 @@ interface PaginationQuery {
   offset?: string;
 }
 
+// GET /api/projects query params: pagination plus an optional creator filter so
+// a person's project list can be fetched server-side instead of downloading the
+// whole directory and filtering in the browser.
+interface ListProjectsQuery extends PaginationQuery {
+  creatorHandle?: string;
+}
+
 // =============================================================================
 // VALIDATION HELPERS
 // =============================================================================
@@ -187,15 +194,17 @@ export async function projectRoutes(app: FastifyInstance) {
   // List visible projects (creator's profile must be approved)
   // Supports pagination: ?limit=20&offset=0
   // ---------------------------------------------------------------------------
-  app.get<{ Querystring: PaginationQuery }>(
+  app.get<{ Querystring: ListProjectsQuery }>(
     "/",
     { preHandler: authAndApproved() },
     async (request, reply) => {
       const { limit, offset } = parsePagination(request.query);
+      const creatorHandle = request.query.creatorHandle?.trim();
 
       const whereClause = {
         creator: {
           approvalStatus: "approved" as const,
+          ...(creatorHandle ? { handle: creatorHandle } : {}),
         },
       };
 

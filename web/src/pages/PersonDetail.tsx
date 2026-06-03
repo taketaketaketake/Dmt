@@ -1,81 +1,33 @@
-import { useState, useEffect, useCallback } from "react";
+import { useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Portrait } from "../components/ui";
-import { profiles as profilesApi, projects as projectsApi, favorites as favoritesApi, type MatchingProject } from "../lib/api";
+import {
+  useProfile,
+  useProjectsByCreator,
+  useMatchingProjects,
+  useFavoriteStatus,
+  useToggleFavorite,
+} from "../hooks/queries";
 import { usePageTitle } from "../hooks/usePageTitle";
-import type { Profile, ProjectListItem } from "../data/types";
 import styles from "./PersonDetail.module.css";
 
 export function PersonDetailPage() {
   const { handle } = useParams<{ handle: string }>();
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const { data: profile, isPending, error } = useProfile(handle);
   usePageTitle(profile?.name ?? "Profile");
-  const [projects, setProjects] = useState<ProjectListItem[]>([]);
-  const [matchingProjects, setMatchingProjects] = useState<MatchingProject[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isFavorited, setIsFavorited] = useState(false);
-  const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
-  const [favoriteError, setFavoriteError] = useState<string | null>(null);
+  // Projects are filtered server-side by creator, so we don't download the
+  // whole directory just to render one person's work.
+  const { data: projects = [] } = useProjectsByCreator(handle);
+  const { data: matchingProjects = [] } = useMatchingProjects(handle);
+  const { data: isFavorited = false } = useFavoriteStatus(profile?.id);
+  const toggleFavorite = useToggleFavorite();
 
-  useEffect(() => {
-    if (!handle) return;
+  const handleToggleFavorite = useCallback(() => {
+    if (!profile || toggleFavorite.isPending) return;
+    toggleFavorite.mutate({ profileId: profile.id, favorited: isFavorited });
+  }, [profile, isFavorited, toggleFavorite]);
 
-    setIsLoading(true);
-    setError(null);
-
-    // Fetch profile, projects, and favorite status in parallel
-    Promise.all([profilesApi.get(handle), projectsApi.list()])
-      .then(([profileData, projectsData]) => {
-        setProfile(profileData.profile);
-        // Filter projects by this creator
-        const creatorProjects = projectsData.projects.filter(
-          (p) => p.creator.handle === handle
-        );
-        setProjects(creatorProjects);
-        setIsLoading(false);
-
-        // Check if favorited (separate call to avoid blocking page load)
-        favoritesApi.check(profileData.profile.id).then((data) => {
-          setIsFavorited(data.favorited);
-        });
-
-        // Projects whose needs match this person's skills (non-blocking)
-        profilesApi
-          .matchingProjects(handle)
-          .then((data) => setMatchingProjects(data.projects))
-          .catch(() => {
-            /* matches are best-effort; ignore failures */
-          });
-      })
-      .catch((err) => {
-        setError(err.message || "Failed to load profile");
-        setIsLoading(false);
-      });
-  }, [handle]);
-
-  const toggleFavorite = useCallback(async () => {
-    if (!profile || isTogglingFavorite) return;
-
-    setIsTogglingFavorite(true);
-    setFavoriteError(null);
-    const wasFavorited = isFavorited;
-    setIsFavorited(!wasFavorited);
-    try {
-      if (wasFavorited) {
-        await favoritesApi.remove(profile.id);
-      } else {
-        await favoritesApi.add(profile.id);
-      }
-    } catch {
-      setIsFavorited(wasFavorited);
-      setFavoriteError("Failed to update favorite. Please try again.");
-      setTimeout(() => setFavoriteError(null), 3000);
-    }
-    setIsTogglingFavorite(false);
-  }, [profile, isFavorited, isTogglingFavorite]);
-
-  if (isLoading) {
+  if (isPending) {
     return (
       <div className="container">
         <p className={styles.message}>Loading...</p>
@@ -86,7 +38,7 @@ export function PersonDetailPage() {
   if (error || !profile) {
     return (
       <div className="container">
-        <p className={styles.message}>{error || "Profile not found"}</p>
+        <p className={styles.message}>{error?.message || "Profile not found"}</p>
       </div>
     );
   }
@@ -157,12 +109,14 @@ export function PersonDetailPage() {
 
           <button
             className={`${styles.actionButton} ${isFavorited ? styles.actionButtonActive : ""}`}
-            onClick={toggleFavorite}
-            disabled={isTogglingFavorite}
+            onClick={handleToggleFavorite}
+            disabled={toggleFavorite.isPending}
           >
             {isFavorited ? "Remove from favorites" : "Add to favorites"}
           </button>
-          {favoriteError && <p className={styles.error}>{favoriteError}</p>}
+          {toggleFavorite.isError && (
+            <p className={styles.error}>Failed to update favorite. Please try again.</p>
+          )}
         </aside>
 
         {/* Main Content */}

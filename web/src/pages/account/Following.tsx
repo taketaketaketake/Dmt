@@ -1,49 +1,25 @@
-import { useState, useEffect, useCallback } from "react";
+import { useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "../../components/ui";
-import { follows as followsApi, type FollowItem } from "../../lib/api";
+import { useFollowsList, useRemoveFollow } from "../../hooks/queries";
 import { usePageTitle } from "../../hooks/usePageTitle";
 import styles from "./Following.module.css";
 
 export function FollowingPage() {
   usePageTitle("Following");
-  const [follows, setFollows] = useState<FollowItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
-  const [unfollowError, setUnfollowError] = useState<string | null>(null);
+  const { data: follows = [], isPending, error } = useFollowsList();
+  const removeMutation = useRemoveFollow();
+  const removingId = removeMutation.isPending ? removeMutation.variables : undefined;
+  const unfollowError = removeMutation.isError;
 
-  useEffect(() => {
-    followsApi
-      .list()
-      .then((data) => {
-        setFollows(data.follows);
-        setIsLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message || "Failed to load follows");
-        setIsLoading(false);
-      });
-  }, []);
+  const unfollow = useCallback(
+    (projectId: string) => {
+      removeMutation.mutate(projectId);
+    },
+    [removeMutation]
+  );
 
-  const unfollow = useCallback(async (projectId: string) => {
-    setRemovingIds((prev) => new Set(prev).add(projectId));
-    setUnfollowError(null);
-    try {
-      await followsApi.remove(projectId);
-      setFollows((prev) => prev.filter((f) => f.project.id !== projectId));
-    } catch {
-      setUnfollowError("Failed to unfollow. Please try again.");
-      setTimeout(() => setUnfollowError(null), 3000);
-    }
-    setRemovingIds((prev) => {
-      const next = new Set(prev);
-      next.delete(projectId);
-      return next;
-    });
-  }, []);
-
-  if (isLoading) {
+  if (isPending) {
     return (
       <div>
         <header className={styles.header}>
@@ -60,7 +36,7 @@ export function FollowingPage() {
         <header className={styles.header}>
           <h1 className={styles.title}>Following</h1>
         </header>
-        <p className={styles.message}>{error}</p>
+        <p className={styles.message}>{error.message || "Failed to load follows"}</p>
       </div>
     );
   }
@@ -74,7 +50,9 @@ export function FollowingPage() {
         </p>
       </header>
 
-      {unfollowError && <p className={styles.error}>{unfollowError}</p>}
+      {unfollowError && (
+        <p className={styles.error}>Failed to unfollow. Please try again.</p>
+      )}
 
       {follows.length === 0 ? (
         <div className={styles.empty}>
@@ -108,9 +86,9 @@ export function FollowingPage() {
               <button
                 className={styles.unfollowButton}
                 onClick={() => unfollow(follow.project.id)}
-                disabled={removingIds.has(follow.project.id)}
+                disabled={removingId === follow.project.id}
               >
-                {removingIds.has(follow.project.id) ? "Removing..." : "Unfollow"}
+                {removingId === follow.project.id ? "Removing..." : "Unfollow"}
               </button>
             </div>
           ))}

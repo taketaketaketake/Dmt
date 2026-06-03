@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Portrait } from "../ui";
-import { projects as projectsApi, type ProjectMatchPerson } from "../../lib/api";
+import { useProjectMatches } from "../../hooks/queries";
 import styles from "./ProjectMatches.module.css";
 
 interface ProjectMatchesProps {
@@ -14,28 +13,9 @@ interface ProjectMatchesProps {
  * card uncluttered when there are no needs set or no matches yet.
  */
 export function ProjectMatches({ projectId }: ProjectMatchesProps) {
-  const [people, setPeople] = useState<ProjectMatchPerson[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  const { data: people = [], isPending } = useProjectMatches(projectId);
 
-  useEffect(() => {
-    let active = true;
-    projectsApi
-      .matches(projectId)
-      .then((d) => {
-        if (active) setPeople(d.people);
-      })
-      .catch(() => {
-        /* best-effort */
-      })
-      .finally(() => {
-        if (active) setLoaded(true);
-      });
-    return () => {
-      active = false;
-    };
-  }, [projectId]);
-
-  if (!loaded || people.length === 0) return null;
+  if (isPending || people.length === 0) return null;
 
   return (
     <div className={styles.container}>

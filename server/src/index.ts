@@ -39,6 +39,17 @@ if (env.isProd && existsSync(WEB_DIST)) {
     // decorateReply must stay enabled: the SPA fallback below relies on
     // reply.sendFile(). With it disabled, every client-side route (e.g.
     // /people) and missing asset (e.g. /favicon.ico) threw a 500.
+    setHeaders: (res, filePath) => {
+      // Vite emits content-hashed files under /assets, so they can be cached
+      // forever — a new deploy changes the filename. index.html (and any other
+      // unhashed root file) must always revalidate so clients pick up the new
+      // asset references after a deploy.
+      if (/[\\/]assets[\\/]/.test(filePath)) {
+        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      } else {
+        res.setHeader("Cache-Control", "no-cache");
+      }
+    },
   });
 
   // SPA fallback: serve index.html for unmatched routes (client-side routing)

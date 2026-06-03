@@ -1,9 +1,12 @@
 import { type ReactNode } from "react";
 import { render, type RenderOptions } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 /**
- * Render a component wrapped in MemoryRouter for testing.
+ * Render a component wrapped in MemoryRouter (and a fresh QueryClient) for
+ * testing. A new QueryClient per render keeps cache state isolated between
+ * tests, and retries are disabled so failed-request assertions resolve fast.
  */
 export function renderWithRouter(
   ui: ReactNode,
@@ -11,8 +14,14 @@ export function renderWithRouter(
 ) {
   const { initialEntries = ["/"], ...renderOptions } = options ?? {};
 
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: Infinity } },
+  });
+
   return render(
-    <MemoryRouter initialEntries={initialEntries}>{ui}</MemoryRouter>,
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={initialEntries}>{ui}</MemoryRouter>
+    </QueryClientProvider>,
     renderOptions
   );
 }

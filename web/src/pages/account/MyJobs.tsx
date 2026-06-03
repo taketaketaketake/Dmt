@@ -1,7 +1,9 @@
-import { useState, useEffect, useCallback, type FormEvent } from "react";
+import { useState, useCallback, type FormEvent } from "react";
 import { Link } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { Badge } from "../../components/ui";
 import { jobs as jobsApi } from "../../lib/api";
+import { useMyJobs, queryKeys } from "../../hooks/queries";
 import { useAuth } from "../../contexts";
 import { usePageTitle } from "../../hooks/usePageTitle";
 import type { Job, JobType } from "../../data/types";
@@ -46,8 +48,8 @@ const jobTypeLabels: Record<JobType, string> = {
 export function MyJobsPage() {
   usePageTitle("My Jobs");
   const { user } = useAuth();
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { data: jobs = [], isPending } = useMyJobs();
   const [error, setError] = useState<string | null>(null);
   const [editingJob, setEditingJob] = useState<Job | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -57,18 +59,11 @@ export function MyJobsPage() {
 
   const isEmployer = user?.isEmployer;
 
-  const loadJobs = useCallback(async () => {
-    try {
-      const data = await jobsApi.mine();
-      setJobs(data.jobs);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load jobs");
-    }
-  }, []);
-
-  useEffect(() => {
-    loadJobs().then(() => setIsLoading(false));
-  }, [loadJobs]);
+  // Refresh the owner's list plus the public jobs board after a mutation.
+  const invalidateJobs = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.jobs.mine });
+    queryClient.invalidateQueries({ queryKey: queryKeys.jobs.list });
+  }, [queryClient]);
 
   const handleChange = useCallback((field: keyof JobFormData, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -83,7 +78,7 @@ export function MyJobsPage() {
     setError(null);
     setIsSubmitting(true);
     try {
-      const { job } = await jobsApi.create({
+      await jobsApi.create({
         title: form.title.trim(),
         companyName: form.companyName.trim(),
         description: form.description.trim() || undefined,
@@ -91,7 +86,7 @@ export function MyJobsPage() {
         applyUrl: form.applyUrl.trim(),
         expiresAt: form.expiresAt || undefined,
       });
-      setJobs((prev) => [job, ...prev]);
+      invalidateJobs();
       setForm(emptyForm);
       setIsCreating(false);
     } catch (err) {
@@ -99,7 +94,7 @@ export function MyJobsPage() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [form]);
+  }, [form, invalidateJobs]);
 
   const handleUpdate = useCallback(async (e: FormEvent) => {
     e.preventDefault();
@@ -119,9 +114,8 @@ export function MyJobsPage() {
         applyUrl: form.applyUrl.trim(),
         expiresAt: form.expiresAt || undefined,
       });
-      setJobs((prev) =>
-        prev.map((j) => (j.id === job.id ? job : j))
-      );
+      invalidateJobs();
+      queryClient.invalidateQueries({ queryKey: queryKeys.jobs.detail(job.id) });
       setEditingJob(null);
       setForm(emptyForm);
     } catch (err) {
@@ -129,21 +123,21 @@ export function MyJobsPage() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [editingJob, form]);
+  }, [editingJob, form, invalidateJobs, queryClient]);
 
   const handleDelete = useCallback(async (id: string) => {
     setError(null);
     setIsSubmitting(true);
     try {
       await jobsApi.delete(id);
-      setJobs((prev) => prev.filter((j) => j.id !== id));
+      invalidateJobs();
       setDeleteConfirm(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete job");
     } finally {
       setIsSubmitting(false);
     }
-  }, []);
+  }, [invalidateJobs]);
 
   const startEdit = useCallback((job: Job) => {
     setEditingJob(job);
@@ -166,7 +160,7 @@ export function MyJobsPage() {
     setError(null);
   }, []);
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <div>
         <header className={styles.header}>
