@@ -74,3 +74,115 @@
   height: 16px;
   background-color: var(--color-border);
 }
+
+/* -----------------------------------------------------------------------------
+   MOBILE MENU TOGGLE (hamburger)
+   ----------------------------------------------------------------------------- */
+
+.menuToggle {
+  display: none;
+  position: relative;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-primary);
+}
+
+/* Hamburger icon built from one bar + two pseudo-element bars */
+.menuIcon,
+.menuIcon::before,
+.menuIcon::after {
+  position: absolute;
+  left: 50%;
+  width: 22px;
+  height: 2px;
+  margin-left: -11px;
+  background-color: currentColor;
+  transition:
+    transform var(--transition-fast),
+    opacity var(--transition-fast);
+}
+
+.menuIcon {
+  top: 50%;
+  margin-top: -1px;
+}
+
+.menuIcon::before,
+.menuIcon::after {
+  content: "";
+}
+
+.menuIcon::before {
+  top: -7px;
+}
+
+.menuIcon::after {
+  top: 7px;
+}
+
+/* Animate into an X when open */
+.menuIconOpen {
+  background-color: transparent;
+}
+
+.menuIconOpen::before {
+  top: 0;
+  transform: rotate(45deg);
+}
+
+.menuIconOpen::after {
+  top: 0;
+  transform: rotate(-45deg);
+}
+
+/* -----------------------------------------------------------------------------
+   RESPONSIVE
+   ----------------------------------------------------------------------------- */
+
+@media (max-width: 768px) {
+  .menuToggle {
+    display: block;
+  }
+
+  .nav {
+    position: fixed;
+    top: var(--header-height);
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: var(--space-2) var(--space-6) var(--space-4);
+    background-color: var(--color-ink-deep);
+    border-bottom: 1px solid var(--color-border);
+
+    transform: translateY(-8px);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+      transform var(--transition-fast),
+      opacity var(--transition-fast),
+      visibility var(--transition-fast);
+  }
+
+  .navOpen {
+    transform: translateY(0);
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  .navLink {
+    padding: var(--space-3) 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .divider {
+    display: none;
+  }
+}
