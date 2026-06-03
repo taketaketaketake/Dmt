@@ -299,3 +299,29 @@
   padding: 0;
   cursor: pointer;
 }
+
+/* -----------------------------------------------------------------------------
+   RESPONSIVE
+   ----------------------------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+
+  .card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+
+  .actions {
+    align-self: flex-start;
+  }
+
+  .formCard {
+    padding: var(--space-5);
+  }
+}

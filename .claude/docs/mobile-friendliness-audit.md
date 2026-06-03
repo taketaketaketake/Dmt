@@ -16,8 +16,9 @@ mobile-friendly with a hamburger menu and is **not** listed here.
 
 ---
 
-> **Status:** All high-priority pages below were refactored with `640px` media
-> queries on 2026-06-02. The remaining medium/low sections are still open.
+> **Status:** High- and medium-priority pages below were refactored with `640px`
+> media queries on 2026-06-02 (incl. the PersonDetail fixed-button vs. sticky-sidebar
+> bug). The low-priority / polish section is still open.
 
 ## High-priority pages (✅ done — refactored 2026-06-02)
 
@@ -56,7 +57,7 @@ mobile-friendly with a hamburger menu and is **not** listed here.
 
 ---
 
-## Medium-priority pages (some coverage, gaps remain)
+## Medium-priority pages (✅ done — refactored 2026-06-02)
 
 ### `pages/People.tsx` + `People.module.css` *(has 640px query for `.search`)*
 - `.grid` — `repeat(auto-fill, minmax(320px, 1fr))` cards are too wide; only 1 fits on a 375px screen. Lower the min to ~260px on phones.

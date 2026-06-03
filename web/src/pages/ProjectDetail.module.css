@@ -45,6 +45,17 @@
   line-height: var(--leading-tight);
 }
 
+@media (max-width: 640px) {
+  .titleRow {
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .title {
+    font-size: var(--text-3xl);
+  }
+}
+
 .creator {
   display: flex;
   align-items: center;

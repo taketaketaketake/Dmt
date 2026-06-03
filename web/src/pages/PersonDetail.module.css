@@ -14,6 +14,12 @@
     grid-template-columns: 1fr;
     gap: var(--space-8);
   }
+
+  /* Sidebar stacks above the content on mobile, so drop the sticky
+     positioning that would otherwise pin it mid-scroll. */
+  .sidebar {
+    position: static;
+  }
 }
 
 /* -----------------------------------------------------------------------------
@@ -93,21 +99,6 @@
   cursor: pointer;
   transition: all var(--transition-fast);
   width: 100%;
-}
-
-@media (max-width: 768px) {
-  .actionButton {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    z-index: 100;
-    background: var(--color-bg);
-    border-left: none;
-    border-right: none;
-    border-bottom: none;
-    padding: var(--space-4);
-  }
 }
 
 .actionButton:hover {
