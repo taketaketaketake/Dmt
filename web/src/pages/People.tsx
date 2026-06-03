@@ -11,6 +11,14 @@ import styles from "./People.module.css";
 // (co-founder, advisor, etc.); everything else offerable is a capability/skill.
 const PEOPLE_PARTNERS_SLUG = "people-partners";
 
+// Whether a profile matches the free-text search query (already lowercased).
+function matchesQuery(p: ProfileListItem, q: string): boolean {
+  if (!q) return true;
+  return [p.name, p.handle, p.bio, p.location].some((f) =>
+    f?.toLowerCase().includes(q)
+  );
+}
+
 export function PeoplePage() {
   usePageTitle("People");
   const [profiles, setProfiles] = useState<ProfileListItem[]>([]);
@@ -79,16 +87,36 @@ export function PeoplePage() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return profiles.filter((p) => {
-      const matchesQuery =
-        !q ||
-        [p.name, p.handle, p.bio, p.location].some((f) =>
-          f?.toLowerCase().includes(q)
-        );
       const matchesSkills =
         selected.size === 0 || (p.skills ?? []).some((s) => selected.has(s.id));
-      return matchesQuery && matchesSkills;
+      return matchesQuery(p, q) && matchesSkills;
     });
   }, [profiles, query, selected]);
+
+  // Per-option match counts shown in the dropdown. They respect the search
+  // query (so counts stay consistent with the visible list) but ignore the
+  // in-dropdown selection: within a single OR group, counts shouldn't shift as
+  // the user checks or unchecks options.
+  const optionCounts = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const counts = new Map<string, number>();
+    for (const p of profiles) {
+      if (!matchesQuery(p, q)) continue;
+      for (const s of p.skills ?? []) {
+        counts.set(s.id, (counts.get(s.id) ?? 0) + 1);
+      }
+    }
+    return counts;
+  }, [profiles, query]);
+
+  const partnerGroupsWithCounts = useMemo<FilterGroup[]>(
+    () =>
+      partnerGroups.map((g) => ({
+        ...g,
+        options: g.options.map((o) => ({ ...o, count: optionCounts.get(o.id) ?? 0 })),
+      })),
+    [partnerGroups, optionCounts]
+  );
 
   const hasActiveFilters = query.trim() !== "" || selected.size > 0;
 
@@ -150,10 +178,10 @@ export function PeoplePage() {
               />
             )}
           */}
-          {partnerGroups.length > 0 && (
+          {partnerGroupsWithCounts.length > 0 && (
             <FilterSelect
               label="People & Partners"
-              groups={partnerGroups}
+              groups={partnerGroupsWithCounts}
               selected={selected}
               onToggle={toggleOption}
             />

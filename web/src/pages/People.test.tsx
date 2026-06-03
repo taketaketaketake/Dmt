@@ -97,11 +97,38 @@ describe("PeoplePage", () => {
     await screen.findByRole("heading", { name: "Alice" });
 
     await user.click(screen.getByRole("button", { name: /People & Partners/ }));
-    await user.click(await screen.findByRole("checkbox", { name: "Advisor / mentor" }));
+    await user.click(await screen.findByRole("checkbox", { name: /^Advisor \/ mentor,/ }));
 
     await waitFor(() => {
       expect(screen.queryByRole("heading", { name: "Bob" })).not.toBeInTheDocument();
     });
     expect(screen.getByRole("heading", { name: "Alice" })).toBeInTheDocument();
+  });
+
+  it("shows per-option match counts that respect the search", async () => {
+    const user = userEvent.setup();
+    renderWithRouter(<PeoplePage />);
+    await screen.findByRole("heading", { name: "Alice" });
+
+    // Without a search, each role has exactly one matching person. The count is
+    // folded into the checkbox's accessible name (e.g. "Advisor / mentor, 1 match").
+    await user.click(screen.getByRole("button", { name: /People & Partners/ }));
+    expect(
+      await screen.findByRole("checkbox", { name: "Advisor / mentor, 1 match" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("checkbox", { name: "Technical co-founder, 1 match" })
+    ).toBeInTheDocument();
+
+    // Narrowing the search to Alice drops the co-founder count to zero while the
+    // advisor (Alice's role) stays at one.
+    await user.type(screen.getByPlaceholderText(/search by name/i), "Alice");
+    await user.click(screen.getByRole("button", { name: /People & Partners/ }));
+    expect(
+      await screen.findByRole("checkbox", { name: "Advisor / mentor, 1 match" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("checkbox", { name: "Technical co-founder, 0 matches" })
+    ).toBeInTheDocument();
   });
 });

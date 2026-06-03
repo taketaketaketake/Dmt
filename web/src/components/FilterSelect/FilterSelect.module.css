@@ -91,6 +91,22 @@
   flex-shrink: 0;
 }
 
+.optionName {
+  flex: 1 1 auto;
+}
+
+/* Right-aligned match count; tabular figures keep the column aligned. */
+.optionCount {
+  flex-shrink: 0;
+  padding-left: var(--space-3);
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.optionCountZero {
+  opacity: 0.5;
+}
+
 .option:hover {
   color: var(--color-text-primary);
 }

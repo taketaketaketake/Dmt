@@ -4,6 +4,8 @@ import styles from "./FilterSelect.module.css";
 export interface FilterOption {
   id: string;
   name: string;
+  /** Optional count of matching items, shown right-aligned next to the name. */
+  count?: number;
 }
 
 export interface FilterGroup {
@@ -82,14 +84,31 @@ export function FilterSelect({ label, groups, selected, onToggle }: FilterSelect
               {group.name && <p className={styles.groupName}>{group.name}</p>}
               {group.options.map((option) => {
                 const isSelected = selected.has(option.id);
+                const hasCount = option.count !== undefined;
                 return (
                   <label key={option.id} className={styles.option}>
                     <input
                       type="checkbox"
                       checked={isSelected}
                       onChange={() => onToggle(option.id)}
+                      // Fold the count into the accessible name so screen
+                      // readers hear "Advisor, 12 matches" rather than a bare
+                      // "12" tacked on after the label.
+                      aria-label={
+                        hasCount
+                          ? `${option.name}, ${option.count} ${option.count === 1 ? "match" : "matches"}`
+                          : undefined
+                      }
                     />
-                    <span>{option.name}</span>
+                    <span className={styles.optionName}>{option.name}</span>
+                    {hasCount && (
+                      <span
+                        aria-hidden
+                        className={`${styles.optionCount} ${option.count === 0 ? styles.optionCountZero : ""}`}
+                      >
+                        {option.count}
+                      </span>
+                    )}
                   </label>
                 );
               })}
