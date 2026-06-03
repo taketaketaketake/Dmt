@@ -20,7 +20,7 @@ export function Header() {
     <header className={styles.header}>
       <div className={styles.container}>
         <Link to="/" className={styles.logo} onClick={closeMenu}>
-          Detroit Directory
+          Social Network
         </Link>
 
         <button

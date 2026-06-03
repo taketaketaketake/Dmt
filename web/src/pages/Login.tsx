@@ -63,7 +63,7 @@ export function LoginPage() {
     <div className={styles.page}>
       <div className={styles.container}>
         <header className={styles.header}>
-          <h1 className={styles.title}>Detroit Directory</h1>
+          <h1 className={styles.title}>Social Network</h1>
           <p className={styles.tagline}>
             A curated archive of builders in Detroit
           </p>

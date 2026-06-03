@@ -32,7 +32,7 @@ export const env = {
 
   // Email (Resend). RESEND_API_KEY is optional in dev/test, required in prod.
   RESEND_API_KEY: optionalEnv("RESEND_API_KEY", ""),
-  EMAIL_FROM: optionalEnv("EMAIL_FROM", "Detroit Directory <noreply@example.com>"),
+  EMAIL_FROM: optionalEnv("EMAIL_FROM", "Social Network <noreply@example.com>"),
 
   // Stripe (billing). Optional so the app can run with billing disabled;
   // billing endpoints return an error until these are configured.
