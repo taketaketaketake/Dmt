@@ -510,66 +510,66 @@ export interface AdminStats {
 export const admin = {
   // Approval queue
   pendingProfiles: () =>
-    request<{ profiles: AdminProfile[] }>("/admin/profiles/pending"),
+    request<{ profiles: AdminProfile[] }>("/api/admin/profiles/pending"),
 
   getProfile: (id: string) =>
-    request<{ profile: AdminProfile }>(`/admin/profiles/${id}`),
+    request<{ profile: AdminProfile }>(`/api/admin/profiles/${id}`),
 
   approveProfile: (id: string) =>
-    request<{ profile: AdminProfile; message: string }>(`/admin/profiles/${id}/approve`, {
+    request<{ profile: AdminProfile; message: string }>(`/api/admin/profiles/${id}/approve`, {
       method: "POST",
     }),
 
   rejectProfile: (id: string, note?: string) =>
-    request<{ profile: AdminProfile; message: string }>(`/admin/profiles/${id}/reject`, {
+    request<{ profile: AdminProfile; message: string }>(`/api/admin/profiles/${id}/reject`, {
       method: "POST",
       body: JSON.stringify({ note }),
     }),
 
   // User management
   listUsers: () =>
-    request<{ users: AdminUser[] }>("/admin/users"),
+    request<{ users: AdminUser[] }>("/api/admin/users"),
 
   getUser: (id: string) =>
-    request<{ user: AdminUserDetail }>(`/admin/users/${id}`),
+    request<{ user: AdminUserDetail }>(`/api/admin/users/${id}`),
 
   suspendUser: (id: string) =>
-    request<{ user: AdminUser; message: string }>(`/admin/users/${id}/suspend`, {
+    request<{ user: AdminUser; message: string }>(`/api/admin/users/${id}/suspend`, {
       method: "POST",
     }),
 
   reinstateUser: (id: string) =>
-    request<{ user: AdminUser; message: string }>(`/admin/users/${id}/reinstate`, {
+    request<{ user: AdminUser; message: string }>(`/api/admin/users/${id}/reinstate`, {
       method: "POST",
     }),
 
   // Content moderation
   removeProject: (id: string) =>
-    request<{ message: string }>(`/admin/projects/${id}`, {
+    request<{ message: string }>(`/api/admin/projects/${id}`, {
       method: "DELETE",
     }),
 
   removeJob: (id: string) =>
-    request<{ message: string }>(`/admin/jobs/${id}`, {
+    request<{ message: string }>(`/api/admin/jobs/${id}`, {
       method: "DELETE",
     }),
 
   // Job review queue
   pendingJobs: () =>
-    request<{ jobs: AdminJob[] }>("/admin/jobs/pending"),
+    request<{ jobs: AdminJob[] }>("/api/admin/jobs/pending"),
 
   approveJob: (id: string) =>
-    request<{ job: AdminJob; message: string }>(`/admin/jobs/${id}/approve`, {
+    request<{ job: AdminJob; message: string }>(`/api/admin/jobs/${id}/approve`, {
       method: "POST",
     }),
 
   rejectJob: (id: string) =>
-    request<{ job: AdminJob; message: string }>(`/admin/jobs/${id}/reject`, {
+    request<{ job: AdminJob; message: string }>(`/api/admin/jobs/${id}/reject`, {
       method: "POST",
     }),
 
   // Dashboard stats (tab badge counts)
-  stats: () => request<AdminStats>("/admin/stats"),
+  stats: () => request<AdminStats>("/api/admin/stats"),
 };
 
 // =============================================================================

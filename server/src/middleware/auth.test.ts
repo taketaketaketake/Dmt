@@ -173,7 +173,7 @@ describe("Auth Middleware", () => {
 
       const response = await app.inject({
         method: "GET",
-        url: "/admin/profiles/pending",
+        url: "/api/admin/profiles/pending",
         headers: { cookie: authCookie() },
       });
       expect(response.statusCode).toBe(403);
@@ -187,7 +187,7 @@ describe("Auth Middleware", () => {
 
       const response = await app.inject({
         method: "GET",
-        url: "/admin/profiles/pending",
+        url: "/api/admin/profiles/pending",
         headers: { cookie: authCookie() },
       });
       expect(response.statusCode).toBe(200);

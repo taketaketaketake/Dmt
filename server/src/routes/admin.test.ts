@@ -50,15 +50,15 @@ describe("Admin Routes", () => {
   // =========================================================================
   describe("auth guards", () => {
     const adminRoutes = [
-      { method: "GET" as const, url: "/admin/profiles/pending" },
-      { method: "POST" as const, url: "/admin/profiles/some-id/approve" },
-      { method: "POST" as const, url: "/admin/profiles/some-id/reject" },
-      { method: "POST" as const, url: "/admin/users/some-id/suspend" },
-      { method: "POST" as const, url: "/admin/users/some-id/reinstate" },
-      { method: "GET" as const, url: "/admin/jobs/pending" },
-      { method: "POST" as const, url: "/admin/jobs/some-id/approve" },
-      { method: "POST" as const, url: "/admin/jobs/some-id/reject" },
-      { method: "GET" as const, url: "/admin/stats" },
+      { method: "GET" as const, url: "/api/admin/profiles/pending" },
+      { method: "POST" as const, url: "/api/admin/profiles/some-id/approve" },
+      { method: "POST" as const, url: "/api/admin/profiles/some-id/reject" },
+      { method: "POST" as const, url: "/api/admin/users/some-id/suspend" },
+      { method: "POST" as const, url: "/api/admin/users/some-id/reinstate" },
+      { method: "GET" as const, url: "/api/admin/jobs/pending" },
+      { method: "POST" as const, url: "/api/admin/jobs/some-id/approve" },
+      { method: "POST" as const, url: "/api/admin/jobs/some-id/reject" },
+      { method: "GET" as const, url: "/api/admin/stats" },
     ];
 
     for (const route of adminRoutes) {
@@ -84,16 +84,16 @@ describe("Admin Routes", () => {
   });
 
   // =========================================================================
-  // POST /admin/profiles/:id/approve
+  // POST /api/admin/profiles/:id/approve
   // =========================================================================
-  describe("POST /admin/profiles/:id/approve", () => {
+  describe("POST /api/admin/profiles/:id/approve", () => {
     it("returns 404 when profile not found", async () => {
       stubAdminSession();
       prismaMock.profile.findUnique.mockResolvedValue(null as never);
 
       const response = await app.inject({
         method: "POST",
-        url: "/admin/profiles/nonexistent/approve",
+        url: "/api/admin/profiles/nonexistent/approve",
         headers: { cookie: authCookie() },
       });
       expect(response.statusCode).toBe(404);
@@ -110,7 +110,7 @@ describe("Admin Routes", () => {
 
       const response = await app.inject({
         method: "POST",
-        url: "/admin/profiles/profile-1/approve",
+        url: "/api/admin/profiles/profile-1/approve",
         headers: { cookie: authCookie() },
       });
       expect(response.statusCode).toBe(400);
@@ -134,7 +134,7 @@ describe("Admin Routes", () => {
 
       const response = await app.inject({
         method: "POST",
-        url: "/admin/profiles/profile-1/approve",
+        url: "/api/admin/profiles/profile-1/approve",
         headers: { cookie: authCookie() },
       });
 
@@ -150,16 +150,16 @@ describe("Admin Routes", () => {
   });
 
   // =========================================================================
-  // POST /admin/profiles/:id/reject
+  // POST /api/admin/profiles/:id/reject
   // =========================================================================
-  describe("POST /admin/profiles/:id/reject", () => {
+  describe("POST /api/admin/profiles/:id/reject", () => {
     it("returns 404 when profile not found", async () => {
       stubAdminSession();
       prismaMock.profile.findUnique.mockResolvedValue(null as never);
 
       const response = await app.inject({
         method: "POST",
-        url: "/admin/profiles/nonexistent/reject",
+        url: "/api/admin/profiles/nonexistent/reject",
         headers: { cookie: authCookie() },
       });
       expect(response.statusCode).toBe(404);
@@ -173,7 +173,7 @@ describe("Admin Routes", () => {
 
       const response = await app.inject({
         method: "POST",
-        url: "/admin/profiles/profile-1/reject",
+        url: "/api/admin/profiles/profile-1/reject",
         headers: { cookie: authCookie() },
       });
       expect(response.statusCode).toBe(400);
@@ -197,7 +197,7 @@ describe("Admin Routes", () => {
 
       const response = await app.inject({
         method: "POST",
-        url: "/admin/profiles/profile-1/reject",
+        url: "/api/admin/profiles/profile-1/reject",
         headers: { cookie: authCookie() },
         payload: { note: "Please add a photo" },
       });
@@ -214,9 +214,9 @@ describe("Admin Routes", () => {
   });
 
   // =========================================================================
-  // POST /admin/users/:id/suspend
+  // POST /api/admin/users/:id/suspend
   // =========================================================================
-  describe("POST /admin/users/:id/suspend", () => {
+  describe("POST /api/admin/users/:id/suspend", () => {
     it("returns 400 when user is already suspended", async () => {
       stubAdminSession();
       prismaMock.user.findUnique.mockResolvedValue(
@@ -225,7 +225,7 @@ describe("Admin Routes", () => {
 
       const response = await app.inject({
         method: "POST",
-        url: "/admin/users/user-2/suspend",
+        url: "/api/admin/users/user-2/suspend",
         headers: { cookie: authCookie() },
       });
       expect(response.statusCode).toBe(400);
@@ -240,7 +240,7 @@ describe("Admin Routes", () => {
 
       const response = await app.inject({
         method: "POST",
-        url: "/admin/users/user-2/suspend",
+        url: "/api/admin/users/user-2/suspend",
         headers: { cookie: authCookie() },
       });
       expect(response.statusCode).toBe(400);
@@ -255,7 +255,7 @@ describe("Admin Routes", () => {
 
       const response = await app.inject({
         method: "POST",
-        url: "/admin/users/user-2/suspend",
+        url: "/api/admin/users/user-2/suspend",
         headers: { cookie: authCookie() },
       });
       expect(response.statusCode).toBe(200);
@@ -268,9 +268,9 @@ describe("Admin Routes", () => {
   });
 
   // =========================================================================
-  // POST /admin/users/:id/reinstate
+  // POST /api/admin/users/:id/reinstate
   // =========================================================================
-  describe("POST /admin/users/:id/reinstate", () => {
+  describe("POST /api/admin/users/:id/reinstate", () => {
     it("returns 400 when user is not suspended", async () => {
       stubAdminSession();
       prismaMock.user.findUnique.mockResolvedValue(
@@ -279,7 +279,7 @@ describe("Admin Routes", () => {
 
       const response = await app.inject({
         method: "POST",
-        url: "/admin/users/user-2/reinstate",
+        url: "/api/admin/users/user-2/reinstate",
         headers: { cookie: authCookie() },
       });
       expect(response.statusCode).toBe(400);
@@ -294,7 +294,7 @@ describe("Admin Routes", () => {
 
       const response = await app.inject({
         method: "POST",
-        url: "/admin/users/user-2/reinstate",
+        url: "/api/admin/users/user-2/reinstate",
         headers: { cookie: authCookie() },
       });
       expect(response.statusCode).toBe(200);
@@ -307,9 +307,9 @@ describe("Admin Routes", () => {
   });
 
   // =========================================================================
-  // GET /admin/jobs/pending
+  // GET /api/admin/jobs/pending
   // =========================================================================
-  describe("GET /admin/jobs/pending", () => {
+  describe("GET /api/admin/jobs/pending", () => {
     it("returns live jobs awaiting review with pagination", async () => {
       stubAdminSession();
       const job = mockJob({ moderationStatus: "pending" });
@@ -318,7 +318,7 @@ describe("Admin Routes", () => {
 
       const response = await app.inject({
         method: "GET",
-        url: "/admin/jobs/pending",
+        url: "/api/admin/jobs/pending",
         headers: { cookie: authCookie() },
       });
 
@@ -336,16 +336,16 @@ describe("Admin Routes", () => {
   });
 
   // =========================================================================
-  // POST /admin/jobs/:id/approve
+  // POST /api/admin/jobs/:id/approve
   // =========================================================================
-  describe("POST /admin/jobs/:id/approve", () => {
+  describe("POST /api/admin/jobs/:id/approve", () => {
     it("returns 404 when job not found", async () => {
       stubAdminSession();
       prismaMock.job.findUnique.mockResolvedValue(null as never);
 
       const response = await app.inject({
         method: "POST",
-        url: "/admin/jobs/nonexistent/approve",
+        url: "/api/admin/jobs/nonexistent/approve",
         headers: { cookie: authCookie() },
       });
       expect(response.statusCode).toBe(404);
@@ -359,7 +359,7 @@ describe("Admin Routes", () => {
 
       const response = await app.inject({
         method: "POST",
-        url: "/admin/jobs/job-1/approve",
+        url: "/api/admin/jobs/job-1/approve",
         headers: { cookie: authCookie() },
       });
       expect(response.statusCode).toBe(400);
@@ -376,7 +376,7 @@ describe("Admin Routes", () => {
 
       const response = await app.inject({
         method: "POST",
-        url: "/admin/jobs/job-1/approve",
+        url: "/api/admin/jobs/job-1/approve",
         headers: { cookie: authCookie() },
       });
 
@@ -392,9 +392,9 @@ describe("Admin Routes", () => {
   });
 
   // =========================================================================
-  // POST /admin/jobs/:id/reject
+  // POST /api/admin/jobs/:id/reject
   // =========================================================================
-  describe("POST /admin/jobs/:id/reject", () => {
+  describe("POST /api/admin/jobs/:id/reject", () => {
     it("returns 400 when job is not pending", async () => {
       stubAdminSession();
       prismaMock.job.findUnique.mockResolvedValue(
@@ -403,7 +403,7 @@ describe("Admin Routes", () => {
 
       const response = await app.inject({
         method: "POST",
-        url: "/admin/jobs/job-1/reject",
+        url: "/api/admin/jobs/job-1/reject",
         headers: { cookie: authCookie() },
       });
       expect(response.statusCode).toBe(400);
@@ -419,7 +419,7 @@ describe("Admin Routes", () => {
 
       const response = await app.inject({
         method: "POST",
-        url: "/admin/jobs/job-1/reject",
+        url: "/api/admin/jobs/job-1/reject",
         headers: { cookie: authCookie() },
       });
 
@@ -438,9 +438,9 @@ describe("Admin Routes", () => {
   });
 
   // =========================================================================
-  // GET /admin/stats
+  // GET /api/admin/stats
   // =========================================================================
-  describe("GET /admin/stats", () => {
+  describe("GET /api/admin/stats", () => {
     it("returns pending profile and job counts", async () => {
       stubAdminSession();
       prismaMock.profile.count.mockResolvedValue(3 as never);
@@ -448,7 +448,7 @@ describe("Admin Routes", () => {
 
       const response = await app.inject({
         method: "GET",
-        url: "/admin/stats",
+        url: "/api/admin/stats",
         headers: { cookie: authCookie() },
       });
 
