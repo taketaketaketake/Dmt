@@ -4,6 +4,7 @@ import {
   buildTestApp,
   prismaMock,
   resetPrismaMock,
+  sendProfileSubmittedEmail,
   mockUser,
   mockProfile,
   mockSession,
@@ -24,6 +25,7 @@ describe("Profile Routes", () => {
 
   beforeEach(() => {
     resetPrismaMock();
+    sendProfileSubmittedEmail.mockClear();
   });
 
   function stubApprovedSession() {
@@ -201,14 +203,17 @@ describe("Profile Routes", () => {
   // POST /api/profiles/me/submit
   // =========================================================================
   describe("POST /api/profiles/me/submit", () => {
-    it("transitions draft to pending_review", async () => {
+    it("transitions draft to pending_review and notifies admins", async () => {
       stubApprovedSession();
-      const profile = mockProfile({ approvalStatus: "draft" });
+      const profile = mockProfile({ approvalStatus: "draft", name: "Ada Lovelace" });
       prismaMock.profile.findUnique.mockResolvedValue(profile as never);
       prismaMock.profile.update.mockResolvedValue({
         ...profile,
         approvalStatus: "pending_review",
       } as never);
+      prismaMock.user.findMany.mockResolvedValue([
+        { email: "admin@example.com" },
+      ] as never);
 
       const response = await app.inject({
         method: "POST",
@@ -218,6 +223,32 @@ describe("Profile Routes", () => {
 
       expect(response.statusCode).toBe(200);
       expect(response.json().message).toBe("Profile submitted for review");
+      expect(prismaMock.user.findMany).toHaveBeenCalledWith({
+        where: { isAdmin: true },
+        select: { email: true },
+      });
+      expect(sendProfileSubmittedEmail).toHaveBeenCalledWith(
+        expect.objectContaining({ to: "admin@example.com", profileName: "Ada Lovelace" })
+      );
+    });
+
+    it("still submits even if the admin notification fails", async () => {
+      stubApprovedSession();
+      const profile = mockProfile({ approvalStatus: "draft" });
+      prismaMock.profile.findUnique.mockResolvedValue(profile as never);
+      prismaMock.profile.update.mockResolvedValue({
+        ...profile,
+        approvalStatus: "pending_review",
+      } as never);
+      prismaMock.user.findMany.mockRejectedValue(new Error("db down") as never);
+
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/profiles/me/submit",
+        headers: { cookie: authCookie() },
+      });
+
+      expect(response.statusCode).toBe(200);
     });
 
     it("returns 400 when already pending review", async () => {

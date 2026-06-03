@@ -12,6 +12,10 @@ export function Header() {
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
     isActive ? `${styles.navLink} ${styles.active}` : styles.navLink;
 
+  // The directory is members-only until a profile is approved. Hide its links
+  // for users still in the onboarding/pending flow to match the route guard.
+  const canBrowse = user?.isAdmin || user?.status === "approved";
+
   return (
     <header className={styles.header}>
       <div className={styles.container}>
@@ -36,16 +40,20 @@ export function Header() {
           id="primary-nav"
           className={`${styles.nav} ${menuOpen ? styles.navOpen : ""}`}
         >
-          <NavLink to="/people" className={navLinkClass} onClick={closeMenu}>
-            People
-          </NavLink>
-          <NavLink to="/projects" className={navLinkClass} onClick={closeMenu}>
-            Projects
-          </NavLink>
-          <NavLink to="/jobs" className={navLinkClass} onClick={closeMenu}>
-            Jobs
-          </NavLink>
-          <span className={styles.divider} />
+          {canBrowse && (
+            <>
+              <NavLink to="/people" className={navLinkClass} onClick={closeMenu}>
+                People
+              </NavLink>
+              <NavLink to="/projects" className={navLinkClass} onClick={closeMenu}>
+                Projects
+              </NavLink>
+              <NavLink to="/jobs" className={navLinkClass} onClick={closeMenu}>
+                Jobs
+              </NavLink>
+              <span className={styles.divider} />
+            </>
+          )}
           <NavLink to="/account" className={navLinkClass} onClick={closeMenu}>
             Account
           </NavLink>

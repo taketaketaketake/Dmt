@@ -5,7 +5,6 @@ import {
   prismaMock,
   resetPrismaMock,
   sendMagicLinkEmail,
-  sendNewMemberNotificationEmail,
   mockUser,
   mockSession,
   authCookie,
@@ -26,7 +25,6 @@ describe("Auth Routes", () => {
   beforeEach(() => {
     resetPrismaMock();
     sendMagicLinkEmail.mockClear();
-    sendNewMemberNotificationEmail.mockClear();
   });
 
   // =========================================================================
@@ -109,14 +107,12 @@ describe("Auth Routes", () => {
       expect(sendMagicLinkEmail).toHaveBeenCalled();
     });
 
-    it("notifies all admins when a new user signs up", async () => {
+    it("creates a new pending user without notifying admins at signup", async () => {
+      // Admins are notified when a profile is submitted for review, not at
+      // signup — so /auth/login must not look up or email admins.
       const user = mockUser({ id: "new-user", email: "new@example.com" });
       prismaMock.user.findUnique.mockResolvedValue(null as never);
       prismaMock.user.create.mockResolvedValue(user as never);
-      prismaMock.user.findMany.mockResolvedValue([
-        { email: "admin1@example.com" },
-        { email: "admin2@example.com" },
-      ] as never);
       prismaMock.magicLinkToken.create.mockResolvedValue({
         id: "token-1",
         token: "mock-token",
@@ -132,63 +128,10 @@ describe("Auth Routes", () => {
       });
 
       expect(response.statusCode).toBe(200);
-      expect(prismaMock.user.findMany).toHaveBeenCalledWith({
-        where: { isAdmin: true },
-        select: { email: true },
+      expect(prismaMock.user.create).toHaveBeenCalledWith({
+        data: { email: "new@example.com", status: "pending" },
       });
-      expect(sendNewMemberNotificationEmail).toHaveBeenCalledTimes(2);
-      expect(sendNewMemberNotificationEmail).toHaveBeenCalledWith({
-        to: "admin1@example.com",
-        memberEmail: "new@example.com",
-      });
-      expect(sendNewMemberNotificationEmail).toHaveBeenCalledWith({
-        to: "admin2@example.com",
-        memberEmail: "new@example.com",
-      });
-    });
-
-    it("does not notify admins when an existing user logs in", async () => {
-      const user = mockUser();
-      prismaMock.user.findUnique.mockResolvedValue(user as never);
-      prismaMock.magicLinkToken.create.mockResolvedValue({
-        id: "token-1",
-        token: "mock-token",
-        userId: user.id,
-        expiresAt: new Date(),
-        used: false,
-      } as never);
-
-      const response = await app.inject({
-        method: "POST",
-        url: "/auth/login",
-        payload: { email: "test@example.com" },
-      });
-
-      expect(response.statusCode).toBe(200);
       expect(prismaMock.user.findMany).not.toHaveBeenCalled();
-      expect(sendNewMemberNotificationEmail).not.toHaveBeenCalled();
-    });
-
-    it("still sends the magic link if admin notification fails", async () => {
-      const user = mockUser({ id: "new-user", email: "new@example.com" });
-      prismaMock.user.findUnique.mockResolvedValue(null as never);
-      prismaMock.user.create.mockResolvedValue(user as never);
-      prismaMock.user.findMany.mockRejectedValue(new Error("db down") as never);
-      prismaMock.magicLinkToken.create.mockResolvedValue({
-        id: "token-1",
-        token: "mock-token",
-        userId: user.id,
-        expiresAt: new Date(),
-        used: false,
-      } as never);
-
-      const response = await app.inject({
-        method: "POST",
-        url: "/auth/login",
-        payload: { email: "new@example.com" },
-      });
-
-      expect(response.statusCode).toBe(200);
       expect(sendMagicLinkEmail).toHaveBeenCalledWith(
         expect.objectContaining({ to: "new@example.com" })
       );

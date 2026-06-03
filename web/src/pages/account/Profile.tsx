@@ -54,10 +54,10 @@ function StatusBadge({ status }: { status: Profile["approvalStatus"] }) {
 
 function StatusMessage({ status }: { status: Profile["approvalStatus"] }) {
   const messages: Record<Profile["approvalStatus"], string> = {
-    draft: "Your profile is a draft. Submit it for review to appear in the directory.",
-    pending_review: "Your profile is under review. You'll be notified once it's approved.",
+    draft: "Your profile is a draft. Submit it for review — once an admin approves it, you'll appear in the directory and can browse the community.",
+    pending_review: "Your profile is under review. Once an admin approves it, you'll be able to browse the directory and others will be able to find you. We'll email you when it's approved.",
     approved: "Your profile is live in the directory. You can update your bio and links freely. Changing your name, handle, or photo will require re-approval.",
-    rejected: "Your profile was rejected. Please update it and resubmit.",
+    rejected: "Your profile needs changes before it can go live. Update it and resubmit for review.",
   };
   return <p className={styles.statusMessage}>{messages[status]}</p>;
 }
@@ -103,7 +103,9 @@ export function ProfilePage() {
   // Allow editing for draft, rejected, and approved profiles
   // Pending review cannot be edited
   const canEdit = profile && profile.approvalStatus !== "pending_review";
-  const canSubmit = profile && profile.approvalStatus === "draft";
+  const canSubmit =
+    profile &&
+    (profile.approvalStatus === "draft" || profile.approvalStatus === "rejected");
   const isApproved = profile?.approvalStatus === "approved";
 
   const handleChange = useCallback((field: keyof FormData, value: string) => {
@@ -235,6 +237,11 @@ export function ProfilePage() {
         <header className={styles.header}>
           <h1 className={styles.title}>Create Profile</h1>
         </header>
+
+        <p className={styles.statusMessage}>
+          Welcome! Fill out your profile and submit it for review. Once an admin
+          approves it, you'll join the directory and can browse the community.
+        </p>
 
         {error && <p className={styles.error}>{error}</p>}
 

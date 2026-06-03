@@ -3,7 +3,7 @@ import type { AuthUser } from "../types/index.js";
 
 // Re-export mocks so test files can import from one place
 export { prismaMock, resetPrismaMock } from "./mocks/prisma.js";
-export { sendMagicLinkEmail, sendProfileApprovedEmail, sendProfileRejectedEmail, sendNeedReminderEmail, sendNewMemberNotificationEmail } from "./mocks/email.js";
+export { sendMagicLinkEmail, sendProfileApprovedEmail, sendProfileRejectedEmail, sendNeedReminderEmail, sendProfileSubmittedEmail } from "./mocks/email.js";
 export { stripeMock } from "./mocks/stripe.js";
 
 /**

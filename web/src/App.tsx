@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./contexts";
-import { Shell } from "./components/layout";
+import { Shell, RequireApproved } from "./components/layout";
 import {
   LoginPage,
   PeoplePage,
@@ -56,15 +56,18 @@ function App() {
 
         {/* Authenticated routes */}
         <Route element={<Shell isAuthenticated={isAuthenticated} />}>
-          {/* Directory */}
-          <Route path="/people" element={<PeoplePage />} />
-          <Route path="/people/:handle" element={<PersonDetailPage />} />
-          <Route path="/projects" element={<ProjectsPage />} />
-          <Route path="/projects/:id" element={<ProjectDetailPage />} />
-          <Route path="/jobs" element={<JobsPage />} />
-          <Route path="/jobs/:id" element={<JobDetailPage />} />
+          {/* Directory — members only, gated until their profile is approved */}
+          <Route element={<RequireApproved />}>
+            <Route path="/people" element={<PeoplePage />} />
+            <Route path="/people/:handle" element={<PersonDetailPage />} />
+            <Route path="/projects" element={<ProjectsPage />} />
+            <Route path="/projects/:id" element={<ProjectDetailPage />} />
+            <Route path="/jobs" element={<JobsPage />} />
+            <Route path="/jobs/:id" element={<JobDetailPage />} />
+          </Route>
 
-          {/* Account */}
+          {/* Account — reachable by any authenticated user, including those
+              still building/awaiting approval on their profile */}
           <Route path="/account" element={<AccountPage />}>
             <Route index element={<ProfilePage />} />
             <Route path="projects" element={<MyProjectsPage />} />

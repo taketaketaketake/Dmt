@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { prisma } from "../lib/prisma.js";
 import { env } from "../lib/env.js";
-import { sendMagicLinkEmail, sendNewMemberNotificationEmail } from "../lib/email.js";
+import { sendMagicLinkEmail } from "../lib/email.js";
 import {
   createMagicLinkToken,
   verifyMagicLinkToken,
@@ -53,32 +53,15 @@ export async function authRoutes(app: FastifyInstance) {
     });
 
     if (!user) {
-      // New user - create with pending status
+      // New user - create with pending status. Admins are notified later, when
+      // the member submits a profile for review (the actionable moment), not at
+      // signup — see POST /api/profiles/me/submit.
       user = await prisma.user.create({
         data: {
           email: normalizedEmail,
           status: "pending",
         },
       });
-
-      // Notify all admins of the new signup. Best-effort: a notification
-      // failure must not block the new member's magic link.
-      try {
-        const admins = await prisma.user.findMany({
-          where: { isAdmin: true },
-          select: { email: true },
-        });
-        await Promise.all(
-          admins.map((admin) =>
-            sendNewMemberNotificationEmail({
-              to: admin.email,
-              memberEmail: normalizedEmail,
-            })
-          )
-        );
-      } catch (err) {
-        request.log.error({ err }, "Failed to send new member notification to admins");
-      }
     }
 
     // Create magic link token

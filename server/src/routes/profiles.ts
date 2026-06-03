@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { prisma } from "../lib/prisma.js";
 import { requireAuth, authAndApproved } from "../middleware/auth.js";
 import { sanitizeProfileInput } from "../lib/sanitize.js";
+import { sendProfileSubmittedEmail } from "../lib/email.js";
 import { parsePagination, paginationMeta } from "../lib/pagination.js";
 
 // =============================================================================
@@ -333,6 +334,26 @@ export async function profileRoutes(app: FastifyInstance) {
           rejectionNote: null, // Clear any previous rejection note
         },
       });
+
+      // Notify all admins that there's a profile awaiting review. Best-effort:
+      // a notification failure must not block the member's submission.
+      try {
+        const admins = await prisma.user.findMany({
+          where: { isAdmin: true },
+          select: { email: true },
+        });
+        await Promise.all(
+          admins.map((admin) =>
+            sendProfileSubmittedEmail({
+              to: admin.email,
+              memberEmail: user.email,
+              profileName: updatedProfile.name,
+            })
+          )
+        );
+      } catch (err) {
+        request.log.error({ err }, "Failed to send profile-submitted notification to admins");
+      }
 
       return reply.status(200).send({
         profile: updatedProfile,

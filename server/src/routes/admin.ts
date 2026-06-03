@@ -157,11 +157,16 @@ export async function adminRoutes(app: FastifyInstance) {
         }),
       ]);
 
-      // Send approval email
-      await sendProfileApprovedEmail({
-        to: profile.user.email,
-        profileName: profile.name,
-      });
+      // Send approval email. Best-effort: the approval has already committed,
+      // so an email failure must not fail the request.
+      try {
+        await sendProfileApprovedEmail({
+          to: profile.user.email,
+          profileName: profile.name,
+        });
+      } catch (err) {
+        request.log.error({ err }, "Failed to send profile-approved email");
+      }
 
       return reply.status(200).send({
         profile: updatedProfile,
@@ -210,12 +215,17 @@ export async function adminRoutes(app: FastifyInstance) {
         },
       });
 
-      // Send rejection email
-      await sendProfileRejectedEmail({
-        to: profile.user.email,
-        profileName: profile.name,
-        rejectionNote: note?.trim(),
-      });
+      // Send rejection email. Best-effort: the rejection has already committed,
+      // so an email failure must not fail the request.
+      try {
+        await sendProfileRejectedEmail({
+          to: profile.user.email,
+          profileName: profile.name,
+          rejectionNote: note?.trim(),
+        });
+      } catch (err) {
+        request.log.error({ err }, "Failed to send profile-rejected email");
+      }
 
       return reply.status(200).send({
         profile: updatedProfile,
