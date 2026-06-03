@@ -109,7 +109,14 @@ export function ProjectDetailPage() {
           {project.categories && project.categories.length > 0 && (
             <div className={styles.categories}>
               {project.categories.map((category) => (
-                <Badge key={category.id}>{category.name}</Badge>
+                <Link
+                  key={category.id}
+                  to={`/projects?category=${encodeURIComponent(category.slug)}`}
+                  className={styles.categoryLink}
+                  aria-label={`View projects in ${category.name}`}
+                >
+                  <Badge>{category.name}</Badge>
+                </Link>
               ))}
             </div>
           )}

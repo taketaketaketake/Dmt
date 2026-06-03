@@ -110,4 +110,23 @@ describe("ProjectsPage", () => {
     });
     expect(screen.getByRole("heading", { name: "Beta" })).toBeInTheDocument();
   });
+
+  it("pre-fills the category filter from the ?category=<slug> URL param", async () => {
+    // Arriving from a project's category badge: /projects?category=health-bio
+    renderWithRouter(<ProjectsPage />, {
+      initialEntries: ["/projects?category=health-bio"],
+    });
+
+    // Only Beta (Health & Bio) should show; Alpha (FinTech) is filtered out.
+    expect(await screen.findByRole("heading", { name: "Beta" })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByRole("heading", { name: "Alpha" })).not.toBeInTheDocument();
+    });
+
+    // The active-filter chip reflects the pre-applied category (the "×" lives
+    // in an aria-hidden span, so it is absent from the accessible name).
+    expect(
+      screen.getByRole("button", { name: "Health & Bio" })
+    ).toBeInTheDocument();
+  });
 });

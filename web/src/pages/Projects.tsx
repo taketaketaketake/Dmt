@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { Portrait, Badge } from "../components/ui";
 import { FilterSelect, type FilterGroup } from "../components/FilterSelect";
 import {
@@ -20,6 +20,7 @@ export function ProjectsPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Filter state
+  const [searchParams] = useSearchParams();
   const [query, setQuery] = useState("");
   const [selectedNeeds, setSelectedNeeds] = useState<Set<string>>(new Set());
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
@@ -41,6 +42,23 @@ export function ProjectsPage() {
         setIsLoading(false);
       });
   }, []);
+
+  // Seed the category filter from the URL once (e.g. arriving from a project's
+  // category badge: /projects?category=<slug>). The filter matches on category
+  // id, so we resolve the slug(s) after the industries taxonomy has loaded. The
+  // ref guard ensures we only apply the URL on entry, never clobbering the
+  // user's subsequent filter changes.
+  const seededFromUrl = useRef(false);
+  useEffect(() => {
+    if (seededFromUrl.current || industries.length === 0) return;
+    seededFromUrl.current = true;
+
+    const slugs = searchParams.getAll("category");
+    if (slugs.length === 0) return;
+
+    const ids = industries.filter((c) => slugs.includes(c.slug)).map((c) => c.id);
+    if (ids.length > 0) setSelectedCategories(new Set(ids));
+  }, [industries, searchParams]);
 
   const needGroups: FilterGroup[] = useMemo(
     () => needsTaxonomy.map((cat) => ({ name: cat.name, options: cat.options })),
