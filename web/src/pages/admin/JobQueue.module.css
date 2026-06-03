@@ -169,3 +169,23 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* -----------------------------------------------------------------------------
+   RESPONSIVE
+   ----------------------------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  .card {
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .actions {
+    align-self: stretch;
+  }
+
+  .approve,
+  .reject {
+    flex: 1;
+  }
+}

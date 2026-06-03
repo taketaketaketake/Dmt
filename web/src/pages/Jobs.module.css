@@ -81,3 +81,27 @@
   font-size: var(--text-sm);
   color: var(--color-text-on-paper-secondary);
 }
+
+/* -----------------------------------------------------------------------------
+   RESPONSIVE
+   ----------------------------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  .header {
+    margin-bottom: var(--space-6);
+  }
+
+  .title {
+    font-size: var(--text-2xl);
+  }
+
+  .card {
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-5);
+  }
+
+  .cardMeta {
+    align-self: flex-start;
+  }
+}

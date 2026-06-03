@@ -178,3 +178,27 @@
 .textAction:hover {
   color: var(--color-text-primary);
 }
+
+/* -----------------------------------------------------------------------------
+   RESPONSIVE
+   ----------------------------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  .page {
+    padding: var(--space-4);
+    align-items: flex-start;
+    padding-top: var(--space-12);
+  }
+
+  .header {
+    margin-bottom: var(--space-8);
+  }
+
+  .title {
+    font-size: var(--text-2xl);
+  }
+
+  .card {
+    padding: var(--space-5);
+  }
+}

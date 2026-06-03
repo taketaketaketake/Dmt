@@ -112,3 +112,18 @@
   font-size: var(--text-sm);
   color: var(--color-text-primary);
 }
+
+/* -----------------------------------------------------------------------------
+   RESPONSIVE
+   ----------------------------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  .card {
+    align-items: flex-start;
+  }
+
+  .removeButton {
+    padding: var(--space-2) 0;
+    flex-shrink: 0;
+  }
+}

@@ -16,7 +16,10 @@ mobile-friendly with a hamburger menu and is **not** listed here.
 
 ---
 
-## High-priority pages (no media queries today)
+> **Status:** All high-priority pages below were refactored with `640px` media
+> queries on 2026-06-02. The remaining medium/low sections are still open.
+
+## High-priority pages (✅ done — refactored 2026-06-02)
 
 ### `pages/Jobs.tsx` + `Jobs.module.css`
 - `.card` — `flex; justify-content: space-between` breaks when a job title is long. **Stack** at 640px.

@@ -102,3 +102,21 @@
   color: #c53030;
   margin-bottom: var(--space-4);
 }
+
+/* -----------------------------------------------------------------------------
+   RESPONSIVE
+   ----------------------------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  .status {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+
+  .portalButton,
+  .subscribeButton {
+    width: 100%;
+    text-align: center;
+  }
+}
