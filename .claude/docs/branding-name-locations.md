@@ -7,6 +7,11 @@ in every spot below.
 > The literal brand string lives in only a handful of files. Everything else (sample data,
 > domains, repo name) is NOT branding and should be left alone — see "Do NOT change" below.
 
+> **Planned obsolescence:** before standing up client deployments, these hardcoded strings
+> should move to an env-driven config module (`BRAND_NAME`, `BRAND_TAGLINE`, `LOGO_URL`,
+> `EMAIL_FROM`) per the [multi-tenant plan §11](plans/multi-tenant-implementation.md).
+> Once that lands, this checklist becomes "set env vars" and the file list below is historical.
+
 ## Where the name appears
 
 ### Frontend (user-facing UI)

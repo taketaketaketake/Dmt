@@ -1,7 +1,7 @@
 # ADR-009: Multi-Tenant White-Label Architecture
 
-**Status:** Proposed
-**Date:** 2026-06-02
+**Status:** Accepted — Option 1 interim bridge in use (first client deployment prepared July 2026); Option 2 remains the gated target
+**Date:** 2026-06-02 (revised 2026-07-19)
 **Source:** Product direction — sell packaged instances to third parties (e.g. a motivational speaker who gates access and sources her own employers)
 
 ---
@@ -18,7 +18,7 @@ The reason the current system can look multi-tenant is that there is exactly one
 
 Three structural options were considered:
 
-1. **Deployment per client** — a separate database, process, subdomain, and Stripe account per client. No schema changes; branding moves to config. Cheapest to first revenue, but operationally linear (N clients = N databases to patch and migrate) and does not scale past a handful of clients.
+1. **Deployment per client** — a separate database, process, subdomain, and Stripe account per client. No schema changes; branding moves to config. Cheapest to first revenue, but operationally linear (N clients = N databases to patch and migrate) and does not scale past a handful of clients. Run as **one repo with N deploys — never a code fork**, so all clients stay on a single migration path (see the implementation plan's §11 playbook).
 2. **Shared-instance, true multi-tenancy** — one deployment serving all clients, with a `Tenant` that owns data and a `tenantId` scoping every row. Subdomain resolves the tenant; each client gets a tenant-scoped admin.
 3. **Branding-only skin** — shared data, per-domain theming only. Rejected: it cannot satisfy the core requirement (clients gating their own access and owning their own employers requires data ownership, not just a skin).
 
@@ -41,6 +41,7 @@ Adopt **Option 2: shared-instance, row-level multi-tenancy** as the target archi
 **Data isolation enforcement:**
 
 - A Prisma client extension (or middleware) injects `tenantId` into every `where` and `create` automatically, so isolation does not depend on each route remembering to filter. Routes that must cross tenants (none expected for client traffic) use an explicit escape hatch.
+- Query-layer enforcement is backed by **database-level composite foreign keys**: FKs between tenant-owned models reference `(tenantId, id)`, so a row can never reference another tenant's row even if a query slips past the extension (nested writes, raw SQL, relation `connect`). Isolation holds at two independent layers.
 - Tenant-scoped queries are the default; the global platform-admin path is the only exception.
 
 **Roles:**
@@ -51,6 +52,7 @@ Adopt **Option 2: shared-instance, row-level multi-tenancy** as the target archi
 **Branding:**
 
 - Per-tenant branding (name, logo, color tokens, fonts) stored on `Tenant` and served by a public `GET /api/tenant` endpoint resolved by host. The SPA fetches it on boot and injects CSS custom properties at runtime, replacing the hardcoded values in `web/src/styles/variables.css` and the hardcoded name in `Header.tsx`.
+- Branding includes **transactional email**: the sender name (`EMAIL_FROM`) and the subjects/headings in `server/src/lib/email.ts` are currently hardcoded to the platform name. The magic-link email is the auth front door, so it must carry the tenant's name — a client's members must never receive platform-branded mail. Per-tenant sending domains are a follow-on Resend/DNS work item.
 
 **Billing:**
 
