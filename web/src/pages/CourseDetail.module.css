@@ -1,0 +1,153 @@
+/* =============================================================================
+   COURSE DETAIL / OUTLINE
+   ============================================================================= */
+
+.message {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+}
+
+.header {
+  margin-bottom: var(--space-8);
+}
+
+.backLink {
+  display: inline-block;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  margin-bottom: var(--space-4);
+}
+
+.title {
+  font-size: var(--text-3xl);
+  font-weight: var(--font-bold);
+  letter-spacing: var(--tracking-tight);
+  margin-bottom: var(--space-2);
+}
+
+.description {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  max-width: 65ch;
+  margin-bottom: var(--space-6);
+}
+
+.progressRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+  max-width: 480px;
+}
+
+.progressTrack {
+  flex: 1;
+  height: 6px;
+  background-color: var(--color-ink-lighter);
+}
+
+.progressFill {
+  height: 100%;
+  background-color: var(--color-accent);
+  transition: width var(--transition-fast);
+}
+
+.progressLabel {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.resumeButton {
+  display: inline-block;
+  background-color: var(--color-accent);
+  color: var(--color-ink);
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+  padding: var(--space-3) var(--space-6);
+  text-decoration: none;
+}
+
+.resumeButton:hover {
+  opacity: 0.85;
+}
+
+/* -----------------------------------------------------------------------------
+   MODULES
+   ----------------------------------------------------------------------------- */
+
+.modules {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.moduleTitle {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  letter-spacing: var(--tracking-tight);
+  margin-bottom: var(--space-3);
+}
+
+.lessonList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.lessonRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  background-color: var(--color-paper);
+  padding: var(--space-4) var(--space-5);
+  text-decoration: none;
+  transition: transform var(--transition-fast);
+}
+
+.lessonRow:hover {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+.lessonCheck,
+.lessonCheckDone {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-sm);
+}
+
+.lessonCheck {
+  border: 1px solid var(--color-border-on-paper);
+}
+
+.lessonCheckDone {
+  background-color: var(--color-ink);
+  color: var(--color-paper);
+}
+
+.lessonTitle {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-base);
+  color: var(--color-ink);
+}
+
+.lessonMeta {
+  font-size: var(--text-sm);
+  color: var(--color-ink-lighter);
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .lessonMeta {
+    display: none;
+  }
+}

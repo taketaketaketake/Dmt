@@ -17,6 +17,10 @@ import type {
   NeedInput,
   SkillTag,
   CategoryTag,
+  CourseListItem,
+  CourseOutline,
+  LessonContent,
+  LessonProgressResult,
 } from "../data/types";
 
 // Base URL - in dev, proxy handles this; in prod, same origin
@@ -606,4 +610,27 @@ export const uploads = {
 
     return response.json() as Promise<{ url: string; filename: string }>;
   },
+};
+
+// =============================================================================
+// COURSES API (ADR-010)
+// =============================================================================
+
+export const courses = {
+  list: () => request<{ courses: CourseListItem[] }>("/api/courses"),
+
+  get: (slug: string) =>
+    request<{ course: CourseOutline }>(`/api/courses/${slug}`),
+
+  lesson: (slug: string, lessonId: string) =>
+    request<{ lesson: LessonContent }>(`/api/courses/${slug}/lessons/${lessonId}`),
+
+  updateProgress: (
+    lessonId: string,
+    data: { lastSlide?: number; completed?: boolean }
+  ) =>
+    request<{ progress: LessonProgressResult }>(
+      `/api/courses/lessons/${lessonId}/progress`,
+      { method: "PUT", body: JSON.stringify(data) }
+    ),
 };

@@ -1,0 +1,56 @@
+{
+  "slug": "corporate-financial-education",
+  "title": "Corporate Financial Education for Founders",
+  "description": "Remove the mystery of corporate finance: learn the language, read and interpret your company's financial reports, and use that information to run — and fund — your business with confidence.",
+  "isPublished": true,
+  "slideUrlPattern": "courses/corporate-financial-education/slide-{n}.png",
+  "modules": [
+    {
+      "title": "Introduction",
+      "lessons": [
+        { "title": "Welcome, Your Instructors & Course Purpose", "slides": [1, 8] }
+      ]
+    },
+    {
+      "title": "Module 1 — Corporate Finance Fundamentals",
+      "lessons": [
+        { "title": "What is Corporate Finance", "slides": [9, 17] },
+        { "title": "Why You Need to Understand Your Company's Financial Information", "slides": [18, 25] },
+        { "title": "How to Read Your Company's Financial Reports", "slides": [26, 37] }
+      ]
+    },
+    {
+      "title": "Module 2 — The Three Reports",
+      "lessons": [
+        { "title": "What Your Balance Sheet Tells You About Your Business", "slides": [38, 47] },
+        { "title": "What Your Profit & Loss Statement Tells You About Your Operations", "slides": [48, 60] },
+        { "title": "What Your Statement of Cash Flows Tells You About Your Liquidity", "slides": [61, 73] }
+      ]
+    },
+    {
+      "title": "Module 3 — Planning",
+      "lessons": [
+        { "title": "Projections: Managing Operations and Raising Funds", "slides": [74, 82] },
+        { "title": "What a Budget Is and How It Works", "slides": [83, 93] }
+      ]
+    },
+    {
+      "title": "Module 4 — Structuring Your Company's Equity Offering",
+      "lessons": [
+        { "title": "Equity Classes, Allocation, and Distributions", "slides": [94, 100] }
+      ]
+    },
+    {
+      "title": "Module 5 — Interpreting Your Company's Performance Analytics",
+      "lessons": [
+        { "title": "Ratios and Analytics from the \"Magic Three\" Reports", "slides": [101, 109] }
+      ]
+    },
+    {
+      "title": "Module 6 — Talking About Your Company's Financials",
+      "lessons": [
+        { "title": "Financial Storytelling and Presenting to Banks and Investors", "slides": [110, 118] }
+      ]
+    }
+  ]
+}

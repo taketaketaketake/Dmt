@@ -60,6 +60,9 @@ export function Header() {
               <NavLink to="/jobs" className={navLinkClass} onClick={closeMenu}>
                 Jobs
               </NavLink>
+              <NavLink to="/courses" className={navLinkClass} onClick={closeMenu}>
+                Courses
+              </NavLink>
               <span className={styles.divider} />
             </>
           )}

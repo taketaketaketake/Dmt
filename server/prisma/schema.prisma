@@ -69,6 +69,7 @@ model User {
   magicLinkTokens MagicLinkToken[]
   favorites       UserFavorite[]
   projectFollows  ProjectFollow[]
+  lessonProgress  LessonProgress[]
 
   @@index([email])
   @@index([status])
@@ -381,4 +382,93 @@ model ProjectNeedOption {
 
   @@id([projectNeedId, optionId])
   @@index([projectNeedId])
+}
+
+// =============================================================================
+// COURSES (LMS-lite, ADR-010)
+// Course -> CourseModule -> Lesson; per-user LessonProgress. KnowledgeCheck
+// ships empty in v1 (phase 2 content). Authoring is seed-script only — see
+// prisma/seed-course.ts. All four tables are tenant-owned when Option 2
+// tenancy lands (implementation plan §1 root-entity tier).
+// =============================================================================
+
+model Course {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  description String?
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  modules CourseModule[]
+
+  @@index([isPublished])
+}
+
+model CourseModule {
+  id       String @id @default(cuid())
+  courseId String
+  title    String
+  position Int
+
+  // Relations
+  course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons Lesson[]
+
+  @@unique([courseId, position])
+  @@index([courseId])
+}
+
+model Lesson {
+  id       String  @id @default(cuid())
+  moduleId String
+  title    String
+  position Int
+  body     String? // Optional markdown shown above the slides
+  // Ordered slide image URLs (R2). The lesson player pages through these.
+  slideUrls String[]
+  // Phase 2+ (ADR-010): Cloudflare Stream video UID; player renders the
+  // Stream embed instead of/alongside slides when set.
+  videoId  String?
+
+  // Relations
+  module   CourseModule     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  progress LessonProgress[]
+  checks   KnowledgeCheck[]
+
+  @@unique([moduleId, position])
+  @@index([moduleId])
+}
+
+model LessonProgress {
+  userId      String
+  lessonId    String
+  lastSlide   Int       @default(0) // Resume position within slideUrls
+  completedAt DateTime?
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@id([userId, lessonId])
+  @@index([lessonId])
+}
+
+model KnowledgeCheck {
+  id           String  @id @default(cuid())
+  lessonId     String
+  position     Int
+  question     String
+  options      Json    // string[] of answer choices
+  correctIndex Int
+  explanation  String? // Shown after answering
+
+  // Relations
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([lessonId, position])
+  @@index([lessonId])
 }

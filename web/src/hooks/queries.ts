@@ -20,6 +20,7 @@ import {
   follows as followsApi,
   billing as billingApi,
   admin as adminApi,
+  courses as coursesApi,
 } from "../lib/api";
 
 // Taxonomy and category lists are effectively static reference data; keep them
@@ -68,6 +69,12 @@ export const queryKeys = {
   },
   billing: {
     status: ["billing", "status"] as const,
+  },
+  courses: {
+    list: ["courses", "list"] as const,
+    detail: (slug: string) => ["courses", "detail", slug] as const,
+    lesson: (slug: string, lessonId: string) =>
+      ["courses", "lesson", slug, lessonId] as const,
   },
   admin: {
     pendingProfiles: ["admin", "profiles", "pending"] as const,
@@ -387,5 +394,53 @@ export function useAdminStats(options?: Partial<UseQueryOptions<Awaited<ReturnTy
     queryKey: queryKeys.admin.stats,
     queryFn: () => adminApi.stats(),
     ...options,
+  });
+}
+
+// -----------------------------------------------------------------------------
+// COURSES (ADR-010)
+// -----------------------------------------------------------------------------
+
+export function useCoursesList() {
+  return useQuery({
+    queryKey: queryKeys.courses.list,
+    queryFn: () => coursesApi.list().then((d) => d.courses),
+  });
+}
+
+export function useCourse(slug: string) {
+  return useQuery({
+    queryKey: queryKeys.courses.detail(slug),
+    queryFn: () => coursesApi.get(slug).then((d) => d.course),
+    enabled: !!slug,
+  });
+}
+
+export function useLesson(slug: string, lessonId: string) {
+  return useQuery({
+    queryKey: queryKeys.courses.lesson(slug, lessonId),
+    queryFn: () => coursesApi.lesson(slug, lessonId).then((d) => d.lesson),
+    enabled: !!slug && !!lessonId,
+  });
+}
+
+// Saves resume position / completion. Invalidates the course outline and list
+// (progress counts) but NOT the lesson query — the player owns its local slide
+// state while mounted, and refetching mid-lesson would fight the user.
+export function useUpdateLessonProgress(slug: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      lessonId,
+      ...data
+    }: {
+      lessonId: string;
+      lastSlide?: number;
+      completed?: boolean;
+    }) => coursesApi.updateProgress(lessonId, data),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.courses.detail(slug) });
+      qc.invalidateQueries({ queryKey: queryKeys.courses.list });
+    },
   });
 }

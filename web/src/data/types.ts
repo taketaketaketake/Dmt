@@ -134,3 +134,65 @@ export interface NeedInput {
   optionIds: string[];
   contextText?: string;
 }
+
+// =============================================================================
+// COURSES (ADR-010)
+// =============================================================================
+
+export interface CourseListItem {
+  id: string;
+  slug: string;
+  title: string;
+  description?: string | null;
+  lessonCount: number;
+  completedCount: number;
+}
+
+export interface CourseLessonSummary {
+  id: string;
+  title: string;
+  position: number;
+  slideCount: number;
+  completed: boolean;
+  lastSlide: number;
+}
+
+export interface CourseModuleOutline {
+  id: string;
+  title: string;
+  position: number;
+  lessons: CourseLessonSummary[];
+}
+
+export interface CourseOutline {
+  id: string;
+  slug: string;
+  title: string;
+  description?: string | null;
+  resumeLessonId: string | null;
+  modules: CourseModuleOutline[];
+}
+
+export interface LessonNeighbor {
+  id: string;
+  title: string;
+}
+
+export interface LessonContent {
+  id: string;
+  title: string;
+  body?: string | null;
+  slideUrls: string[];
+  videoId?: string | null;
+  moduleTitle: string;
+  prev: LessonNeighbor | null;
+  next: LessonNeighbor | null;
+  lastSlide: number;
+  completed: boolean;
+}
+
+export interface LessonProgressResult {
+  lessonId: string;
+  lastSlide: number;
+  completedAt: string | null;
+}

@@ -13,6 +13,7 @@
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "bootstrap:admin": "tsx prisma/bootstrap-admin.ts",
+    "seed:course": "tsx prisma/seed-course.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"

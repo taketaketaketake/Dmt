@@ -14,6 +14,9 @@ const ProjectsPage = lazy(() => import("./pages/Projects").then((m) => ({ defaul
 const ProjectDetailPage = lazy(() => import("./pages/ProjectDetail").then((m) => ({ default: m.ProjectDetailPage })));
 const JobsPage = lazy(() => import("./pages/Jobs").then((m) => ({ default: m.JobsPage })));
 const JobDetailPage = lazy(() => import("./pages/JobDetail").then((m) => ({ default: m.JobDetailPage })));
+const CoursesPage = lazy(() => import("./pages/Courses").then((m) => ({ default: m.CoursesPage })));
+const CourseDetailPage = lazy(() => import("./pages/CourseDetail").then((m) => ({ default: m.CourseDetailPage })));
+const LessonPage = lazy(() => import("./pages/Lesson").then((m) => ({ default: m.LessonPage })));
 const AccountPage = lazy(() => import("./pages/Account").then((m) => ({ default: m.AccountPage })));
 const NotFoundPage = lazy(() => import("./pages/NotFound").then((m) => ({ default: m.NotFoundPage })));
 
@@ -69,6 +72,9 @@ function App() {
               <Route path="/projects/:id" element={<ProjectDetailPage />} />
               <Route path="/jobs" element={<JobsPage />} />
               <Route path="/jobs/:id" element={<JobDetailPage />} />
+              <Route path="/courses" element={<CoursesPage />} />
+              <Route path="/courses/:slug" element={<CourseDetailPage />} />
+              <Route path="/courses/:slug/lessons/:lessonId" element={<LessonPage />} />
             </Route>
 
             {/* Account — reachable by any authenticated user, including those

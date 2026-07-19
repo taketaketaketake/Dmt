@@ -1,0 +1,85 @@
+/* =============================================================================
+   COURSES LIST
+   ============================================================================= */
+
+.header {
+  margin-bottom: var(--space-8);
+}
+
+.title {
+  font-size: var(--text-3xl);
+  font-weight: var(--font-bold);
+  letter-spacing: var(--tracking-tight);
+  margin-bottom: var(--space-2);
+}
+
+.subtitle {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+}
+
+.message {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.card {
+  display: block;
+  background-color: var(--color-paper);
+  padding: var(--space-6);
+  text-decoration: none;
+  transition: transform var(--transition-fast);
+}
+
+.card:hover {
+  opacity: 1;
+  transform: translateY(-2px);
+}
+
+.cardMain {
+  min-width: 0;
+}
+
+.cardTitle {
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-ink);
+  margin-bottom: var(--space-2);
+}
+
+.cardDescription {
+  font-size: var(--text-base);
+  color: var(--color-ink-lighter);
+  margin-bottom: var(--space-4);
+}
+
+.progressRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.progressTrack {
+  flex: 1;
+  height: 6px;
+  background-color: var(--color-paper-dark);
+}
+
+.progressFill {
+  height: 100%;
+  background-color: var(--color-ink);
+  transition: width var(--transition-fast);
+}
+
+.progressLabel {
+  font-size: var(--text-sm);
+  color: var(--color-ink-lighter);
+  white-space: nowrap;
+}
