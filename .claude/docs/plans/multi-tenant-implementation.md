@@ -490,10 +490,10 @@ This is what actually ships for the first clients — including the client deplo
 
 1. **Railway:** new service from the same repo (nixpacks build) + new Postgres. Apply the known gotchas: `HOST=0.0.0.0`, `--include=dev` install, health check configured before cutover.
 2. **Database:** run migrations against the fresh DB; run `seed-needs.ts` (shared taxonomy). Do **not** run demo-content seeds (example jobs) unless the client wants sample data.
-3. **First admin:** bootstrap the client owner's user with `isAdmin = true`, `status = approved` (one-off script or SQL) so the approval queue has an operator.
+3. **First admin:** `npm run bootstrap:admin -- <owner-email>` (in `server/`) — creates or promotes the user with `isAdmin = true`, `status = approved` so the approval queue has an operator.
 4. **Env:** brand config vars (above); freshly generated cookie/session secrets — never shared across clients; the client's own Stripe keys + webhook secret; R2 bucket (or key prefix) for uploads; Resend key with the client's verified sending domain; production `EMAIL_FROM`.
 5. **DNS:** client subdomain or custom domain → the Railway service; verify magic-link email delivery end-to-end before handing over.
-6. **Registry:** record the deployment in a per-client registry doc — domain, Railway service, database, Stripe account, R2 bucket, admin contact. This list is the seed data for the eventual `Tenant` table backfill (§3).
+6. **Registry:** record the deployment in [clients.md](../clients.md) — domain, compute, database, Stripe account, storage, admin contact. This list is the seed data for the eventual `Tenant` table backfill (§3).
 
 ### What Option 1 deliberately does not solve
 

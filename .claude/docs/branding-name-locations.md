@@ -10,7 +10,7 @@ for a rename or a per-client deployment — is now an env-var exercise; no sourc
 | Surface | File | Env vars |
 |---------|------|----------|
 | SPA (build-time) | `web/src/config/branding.ts` | `VITE_BRAND_NAME`, `VITE_BRAND_TAGLINE`, `VITE_LOGO_URL` |
-| Browser tab `<title>` | `web/vite.config.ts` (`html-brand` plugin → `%BRAND_NAME%` in `index.html`) | `VITE_BRAND_NAME` |
+| Browser tab `<title>` + favicon | `web/vite.config.ts` (`html-brand` plugin → `%BRAND_NAME%` / `%FAVICON_URL%` in `index.html`) | `VITE_BRAND_NAME`, `VITE_FAVICON_URL` |
 | Server emails | `server/src/lib/env.ts` → used by `email.ts` | `BRAND_NAME`, `EMAIL_FROM` |
 
 Consumers: `Header.tsx` (brand text, or `<img>` when `VITE_LOGO_URL` is set), `Login.tsx`
@@ -36,8 +36,9 @@ a client deployment just sets the env vars and touches no code.
 - **Tagline** — the default *"A curated archive of builders in Detroit"* references the
   **city**, not the brand. Override per client via `VITE_BRAND_TAGLINE`; reword the default
   when a real platform name lands.
-- **Favicon** — still the Vite default (`web/public/vite.svg` via `index.html`); per-client
-  favicons are not yet configurable.
+- **Favicon** — configurable via `VITE_FAVICON_URL` (build-time, same `html-brand` plugin
+  as the title). Default is still the stock Vite icon (`/vite.svg`) — worth replacing with
+  a real default whenever the platform gets its real name.
 
 ## Outside the codebase
 
