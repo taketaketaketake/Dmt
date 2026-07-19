@@ -484,6 +484,8 @@ This is what actually ships for the first clients — including the client deplo
 - **One repo, N deploys — never fork.** Each client is a separate Railway service + separate Postgres running the same codebase, differing only in environment variables. A code fork starts diverging the day it is created and makes the §10 migration to shared-instance tenancy harder; N deploys of one repo are operationally identical for the client and preserve a single migration path.
 - **Branding moves to config first.** The hardcoded brand strings catalogued in [branding-name-locations.md](../branding-name-locations.md) — `Header.tsx` logo text, `Login.tsx` heading/tagline, `index.html` title, the email subjects/headings in `email.ts`, the `EMAIL_FROM` default in `env.ts` — become a small config module read from env: `BRAND_NAME`, `BRAND_TAGLINE`, `LOGO_URL`, `EMAIL_FROM`. This is §10 step 1 in its Option 1 form: the same values later move onto the `Tenant` row, so nothing is throwaway, and each new client becomes a pure env-var exercise instead of a find-and-replace.
 
+> Client requires AWS instead of Railway? See [aws-deployment-portability.md](../aws-deployment-portability.md) — the checklist below maps to App Runner/ECS + RDS + S3 with two code changes (storage endpoint config, Dockerfile).
+
 ### Per-client provisioning checklist
 
 1. **Railway:** new service from the same repo (nixpacks build) + new Postgres. Apply the known gotchas: `HOST=0.0.0.0`, `--include=dev` install, health check configured before cutover.
