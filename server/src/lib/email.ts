@@ -42,11 +42,11 @@ export async function sendMagicLinkEmail({ to, magicLinkUrl }: SendMagicLinkPara
 
   await sendEmail(
     to,
-    "Sign in to Social Network",
+    `Sign in to ${env.BRAND_NAME}`,
     `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
         <h1 style="font-size: 24px; font-weight: 600; margin-bottom: 24px; color: #1a1a1a;">
-          Sign in to Social Network
+          Sign in to ${env.BRAND_NAME}
         </h1>
         <p style="font-size: 16px; line-height: 1.5; color: #4a4a4a; margin-bottom: 24px;">
           Click the link below to sign in. This link expires in ${env.MAGIC_LINK_EXPIRY_MINUTES} minutes.
@@ -86,7 +86,7 @@ export async function sendProfileSubmittedEmail({ to, memberEmail, profileName }
 
   await sendEmail(
     to,
-    "New profile awaiting review on Social Network",
+    `New profile awaiting review on ${env.BRAND_NAME}`,
     `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
         <h1 style="font-size: 24px; font-weight: 600; margin-bottom: 24px; color: #1a1a1a;">
@@ -128,7 +128,7 @@ export async function sendProfileApprovedEmail({ to, profileName }: ProfileAppro
     `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
         <h1 style="font-size: 24px; font-weight: 600; margin-bottom: 24px; color: #1a1a1a;">
-          Welcome to Social Network
+          Welcome to ${env.BRAND_NAME}
         </h1>
         <p style="font-size: 16px; line-height: 1.5; color: #4a4a4a; margin-bottom: 24px;">
           Your profile <strong>${profileName}</strong> has been approved. You now have full access to the directory.

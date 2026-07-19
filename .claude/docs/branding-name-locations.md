@@ -1,61 +1,51 @@
-# Platform Name / Branding Locations
+# Platform Branding Configuration
 
-The platform name is currently the **placeholder "Social Network"** (was "Detroit Directory").
-This is temporary until a real business name is chosen. When the real name lands, change it
-in every spot below.
+Branding is **env-driven** (extracted 2026-07-19 per the
+[multi-tenant plan §11](plans/multi-tenant-implementation.md)). The default brand is the
+**placeholder "Social Network"** until a real business name is chosen. Changing the brand —
+for a rename or a per-client deployment — is now an env-var exercise; no source edits needed.
 
-> The literal brand string lives in only a handful of files. Everything else (sample data,
-> domains, repo name) is NOT branding and should be left alone — see "Do NOT change" below.
+## The config surfaces
 
-> **Planned obsolescence:** before standing up client deployments, these hardcoded strings
-> should move to an env-driven config module (`BRAND_NAME`, `BRAND_TAGLINE`, `LOGO_URL`,
-> `EMAIL_FROM`) per the [multi-tenant plan §11](plans/multi-tenant-implementation.md).
-> Once that lands, this checklist becomes "set env vars" and the file list below is historical.
+| Surface | File | Env vars |
+|---------|------|----------|
+| SPA (build-time) | `web/src/config/branding.ts` | `VITE_BRAND_NAME`, `VITE_BRAND_TAGLINE`, `VITE_LOGO_URL` |
+| Browser tab `<title>` | `web/vite.config.ts` (`html-brand` plugin → `%BRAND_NAME%` in `index.html`) | `VITE_BRAND_NAME` |
+| Server emails | `server/src/lib/env.ts` → used by `email.ts` | `BRAND_NAME`, `EMAIL_FROM` |
 
-## Where the name appears
+Consumers: `Header.tsx` (brand text, or `<img>` when `VITE_LOGO_URL` is set), `Login.tsx`
+(heading + tagline), `usePageTitle.ts` (per-page document titles), and the email subjects /
+headings + default sender name on the server.
 
-### Frontend (user-facing UI)
-| File | What | Notes |
-|------|------|-------|
-| `web/src/components/layout/Header.tsx` | Nav logo / brand text | The `<Link to="/">` label |
-| `web/src/pages/Login.tsx` | Login page `<h1>` heading | See tagline note below |
-| `web/index.html` | Browser tab `<title>` | Was the generic "web" before the rename |
-| `web/src/styles/variables.css` | Design-system header comment | Cosmetic only |
+The **default values** ("Social Network" / the Detroit tagline) live as fallbacks in
+`web/src/config/branding.ts`, `web/vite.config.ts` (must match — see comment there), and
+`server/src/lib/env.ts`. A permanent platform rename means updating those three fallbacks;
+a client deployment just sets the env vars and touches no code.
 
-### Backend (transactional emails)
-| File | What | Notes |
-|------|------|-------|
-| `server/src/lib/email.ts` | Email subjects + headings | Magic-link sign-in subject + `<h1>`, profile-review subject, approval "Welcome to …" heading |
-| `server/src/lib/env.ts` | Default `EMAIL_FROM` sender name | Fallback used when env var is unset |
-| `server/.env` | `EMAIL_FROM` value | Local/dev sender name |
+## How to brand a deployment (or rename)
 
-## How to update (next time)
-
-1. Search for the current name across source:
-   ```bash
-   grep -rniI "social network" web/src web/index.html server/src server/.env | grep -v node_modules
-   ```
-   (Swap `"social network"` for whatever the current placeholder is.)
-2. Replace each occurrence with the new name in the files listed above.
-3. Update the **Login tagline** if desired — see below.
-4. Update **production `EMAIL_FROM`** in the Railway dashboard (see "Outside the codebase").
-5. Update this doc's placeholder name reference.
+1. **Server env:** set `BRAND_NAME` and `EMAIL_FROM` (Resend-verified domain).
+2. **Web build env:** set `VITE_BRAND_NAME`, optionally `VITE_BRAND_TAGLINE` and
+   `VITE_LOGO_URL`. These are **build-time** — on Railway they must be present in the
+   service's build environment, and a redeploy is required to take effect.
+3. For a permanent rename (not a client deploy): also update the three fallback defaults
+   listed above and this doc.
 
 ## Special cases / judgement calls
 
-- **Login tagline** — `web/src/pages/Login.tsx` (around line 67-68) reads
-  *"A curated archive of builders in Detroit."* This references the **city**, not the brand
-  name, so it was intentionally left unchanged during the rename. Decide per new brand whether
-  to reword it (e.g. drop "in Detroit").
+- **Tagline** — the default *"A curated archive of builders in Detroit"* references the
+  **city**, not the brand. Override per client via `VITE_BRAND_TAGLINE`; reword the default
+  when a real platform name lands.
+- **Favicon** — still the Vite default (`web/public/vite.svg` via `index.html`); per-client
+  favicons are not yet configurable.
 
-## Outside the codebase (can't be changed by editing files)
+## Outside the codebase
 
-- **Production `EMAIL_FROM`** — live emails use the `EMAIL_FROM` set in **Railway's environment
-  variables**, not `server/.env`. Update it in the Railway dashboard for real outgoing emails
-  to show the new name.
+- Production env lives in the **Railway dashboard** — `BRAND_NAME`, `EMAIL_FROM`, and the
+  `VITE_*` vars per service. `server/.env` only affects local dev.
 - Domains (`dmtisreal.com`, `takedetroit.com`), the Railway service name, and the git repo
-  name are infrastructure, not display branding — change only if you actually want to migrate
-  them.
+  name are infrastructure, not display branding — change only if you actually want to
+  migrate them.
 
 ## Do NOT change (not branding)
 

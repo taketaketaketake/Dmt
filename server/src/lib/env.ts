@@ -13,9 +13,17 @@ function optionalEnv(name: string, defaultValue: string): string {
   return process.env[name] || defaultValue;
 }
 
+// White-label branding (multi-tenant plan §11). Per-client deployments
+// override via env; used in transactional email subjects/headings and as
+// the default EMAIL_FROM sender name.
+const BRAND_NAME = optionalEnv("BRAND_NAME", "Social Network");
+
 export const env = {
   // Database
   DATABASE_URL: requireEnv("DATABASE_URL"),
+
+  // Branding
+  BRAND_NAME,
 
   // Server
   PORT: parseInt(optionalEnv("PORT", "3000"), 10),
@@ -32,7 +40,7 @@ export const env = {
 
   // Email (Resend). RESEND_API_KEY is optional in dev/test, required in prod.
   RESEND_API_KEY: optionalEnv("RESEND_API_KEY", ""),
-  EMAIL_FROM: optionalEnv("EMAIL_FROM", "Social Network <noreply@example.com>"),
+  EMAIL_FROM: optionalEnv("EMAIL_FROM", `${BRAND_NAME} <noreply@example.com>`),
 
   // Stripe (billing). Optional so the app can run with billing disabled;
   // billing endpoints return an error until these are configured.

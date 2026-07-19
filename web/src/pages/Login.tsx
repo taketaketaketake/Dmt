@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../contexts";
+import { branding } from "../config/branding";
 import { usePageTitle } from "../hooks/usePageTitle";
 import styles from "./Login.module.css";
 
@@ -63,10 +64,8 @@ export function LoginPage() {
     <div className={styles.page}>
       <div className={styles.container}>
         <header className={styles.header}>
-          <h1 className={styles.title}>Social Network</h1>
-          <p className={styles.tagline}>
-            A curated archive of builders in Detroit
-          </p>
+          <h1 className={styles.title}>{branding.name}</h1>
+          <p className={styles.tagline}>{branding.tagline}</p>
         </header>
 
         <div className={styles.card}>

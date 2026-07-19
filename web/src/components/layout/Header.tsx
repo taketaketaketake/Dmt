@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../../contexts";
+import { branding } from "../../config/branding";
 import styles from "./Header.module.css";
 
 export function Header() {
@@ -20,7 +21,15 @@ export function Header() {
     <header className={styles.header}>
       <div className={styles.container}>
         <Link to="/" className={styles.logo} onClick={closeMenu}>
-          Social Network
+          {branding.logoUrl ? (
+            <img
+              src={branding.logoUrl}
+              alt={branding.name}
+              className={styles.logoImage}
+            />
+          ) : (
+            branding.name
+          )}
         </Link>
 
         <button

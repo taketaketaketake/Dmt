@@ -1,9 +1,8 @@
 import { useEffect } from "react";
-
-const APP_NAME = "DMT";
+import { branding } from "../config/branding";
 
 export function usePageTitle(title?: string) {
   useEffect(() => {
-    document.title = title ? `${title} — ${APP_NAME}` : APP_NAME;
+    document.title = title ? `${title} — ${branding.name}` : branding.name;
   }, [title]);
 }
