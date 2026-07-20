@@ -3,7 +3,7 @@
   "title": "Corporate Financial Education for Founders",
   "description": "Remove the mystery of corporate finance: learn the language, read and interpret your company's financial reports, and use that information to run — and fund — your business with confidence.",
   "isPublished": true,
-  "slideUrlPattern": "courses/corporate-financial-education/slide-{n}.png",
+  "slideUrlPattern": "courses/corporate-financial-education/slide-{n}.jpg",
   "modules": [
     {
       "title": "Introduction",

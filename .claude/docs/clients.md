@@ -7,6 +7,7 @@ begins, and the checklist of what to patch when rolling out fixes across deploym
 | Client | Domain | Compute | Database | Stripe account | Storage | Email domain | Admin contact | Live since |
 |--------|--------|---------|----------|----------------|---------|--------------|---------------|------------|
 | _(default / Detroit)_ | dmt-app-production.up.railway.app | Railway `dmt-app-production` | Railway Postgres | Own (operator) | R2 `dmt-uploads` | dmtisreal.com (Resend) | zach@takedetroit.com | 2025 |
+| Dwimbs | dwimbs-app-production.up.railway.app | Railway project `dwimbs-founder-education`, service `dwimbs-app` | Railway Postgres (same project) | None (billing disabled) | R2 `dmt-uploads` (shared, `courses/` prefix) | dmtisreal.com (Resend, shared) | zach@takedetroit.com (interim) | 2026-07 |
 
 ## Per-client notes
 
@@ -14,6 +15,21 @@ begins, and the checklist of what to patch when rolling out fixes across deploym
 
 The original community. Brand: placeholder "Social Network". Runs on the operator's own
 Stripe/R2/Resend accounts.
+
+### Dwimbs (Founder Education Series)
+
+- **Status:** live (launched 2026-07-19)
+- **Brand:** "Dwimbs Founder Education Series" via env; no logo/favicon yet
+- **Content:** "Corporate Financial Education for Founders" course — 7 modules, 12 lessons,
+  118 slides (JPEG, 1600px) at `courses/corporate-financial-education/` in the shared R2
+  bucket. Source deck: S.I. Williams Wealth Management (client IP — do not reuse).
+- **Provisioned:** Railway CLI; admin bootstrapped for zach@takedetroit.com (interim —
+  re-run `bootstrap:admin` for the client owner's email when confirmed)
+- **Launch shortcuts in effect (all reversible):** Railway subdomain (no custom domain yet),
+  shared Resend/dmtisreal.com sender, shared R2 bucket, Stripe skipped
+- **Phase 2 backlog:** knowledge checks (questions requested from client), per-slide audio
+  narration (the source deck embeds ~100 .m4a files — extractable), custom domain, client's
+  own email domain, possible AWS migration (client runs AWS infra)
 
 <!-- Template for a new client:
 
