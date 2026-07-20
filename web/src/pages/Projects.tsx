@@ -35,14 +35,24 @@ export function ProjectsPage() {
     if (ids.length > 0) setSelectedCategories(new Set(ids));
   }, [industries, searchParams]);
 
-  const needGroups: FilterGroup[] = useMemo(
-    () => needsTaxonomy.map((cat) => ({ name: cat.name, options: cat.options })),
-    [needsTaxonomy]
-  );
-  const categoryGroups: FilterGroup[] = useMemo(
-    () => (industries.length ? [{ options: industries }] : []),
-    [industries]
-  );
+  // Only offer filter options that at least one project actually uses — the
+  // full taxonomy is large and mostly-empty dropdowns read as clutter.
+  const needGroups: FilterGroup[] = useMemo(() => {
+    const used = new Set<string>();
+    for (const p of projects) for (const n of p.needs ?? []) used.add(n.id);
+    return needsTaxonomy
+      .map((cat) => ({
+        name: cat.name,
+        options: cat.options.filter((o) => used.has(o.id)),
+      }))
+      .filter((g) => g.options.length > 0);
+  }, [needsTaxonomy, projects]);
+  const categoryGroups: FilterGroup[] = useMemo(() => {
+    const used = new Set<string>();
+    for (const p of projects) for (const c of p.categories ?? []) used.add(c.id);
+    const options = industries.filter((c) => used.has(c.id));
+    return options.length ? [{ options }] : [];
+  }, [industries, projects]);
 
   // id -> display name for active-filter chips
   const labelById = useMemo(() => {

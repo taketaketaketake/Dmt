@@ -94,13 +94,26 @@ export function PeoplePage() {
     return counts;
   }, [profiles, query]);
 
+  // Options someone actually has. Never-used options are hidden entirely
+  // (usage ignores the search box, so options don't flicker while typing —
+  // the search-respecting count still shows 0 when a query excludes them).
+  const usedOptionIds = useMemo(() => {
+    const used = new Set<string>();
+    for (const p of profiles) for (const s of p.skills ?? []) used.add(s.id);
+    return used;
+  }, [profiles]);
+
   const partnerGroupsWithCounts = useMemo<FilterGroup[]>(
     () =>
-      partnerGroups.map((g) => ({
-        ...g,
-        options: g.options.map((o) => ({ ...o, count: optionCounts.get(o.id) ?? 0 })),
-      })),
-    [partnerGroups, optionCounts]
+      partnerGroups
+        .map((g) => ({
+          ...g,
+          options: g.options
+            .filter((o) => usedOptionIds.has(o.id))
+            .map((o) => ({ ...o, count: optionCounts.get(o.id) ?? 0 })),
+        }))
+        .filter((g) => g.options.length > 0),
+    [partnerGroups, optionCounts, usedOptionIds]
   );
 
   const hasActiveFilters = query.trim() !== "" || selected.size > 0;
