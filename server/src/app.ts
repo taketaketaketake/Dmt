@@ -96,6 +96,13 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
             fontSrc: ["'self'"],
             objectSrc: ["'none'"],
             frameAncestors: ["'none'"],
+            // Lesson narration audio streams from the R2 public bucket
+            mediaSrc: [
+              "'self'",
+              ...(env.R2_PUBLIC_URL ? [new URL(env.R2_PUBLIC_URL).origin] : []),
+            ],
+            // Cloudflare Stream embeds (course video, ADR-010 phase 2+)
+            frameSrc: ["https://iframe.videodelivery.net"],
           },
         }
       : false,

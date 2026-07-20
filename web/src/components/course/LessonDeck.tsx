@@ -128,7 +128,13 @@ export function LessonDeck({
     return [...imgs, { kind: "finish" as const }];
   }, [mode, lesson.body, lesson.slideUrls]);
 
-  const [step, setStep] = useState(() => Math.min(initialStep, steps.length - 1));
+  // Resume at the saved position — but saved indices can be stale (recorded
+  // in slides mode or an older step layout). If the position lands on or past
+  // the finish step, restart from the overview instead of opening at the end.
+  const [step, setStep] = useState(() => {
+    const last = steps.length - 1;
+    return initialStep > 0 && initialStep < last ? initialStep : 0;
+  });
 
   const checksPlacedInline = useMemo(
     () => (lesson.body ?? "").split("\n").some((l) => l.match(WIDGET_LINE)?.[1] === "checks"),
