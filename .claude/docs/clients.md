@@ -23,8 +23,8 @@ Stripe/R2/Resend accounts.
 - **Content:** "Corporate Financial Education for Founders" course — 7 modules, 12 lessons,
   118 slides (JPEG, 1600px) at `courses/corporate-financial-education/` in the shared R2
   bucket. Source deck: S.I. Williams Wealth Management (client IP — do not reuse).
-- **Provisioned:** Railway CLI; admin bootstrapped for zach@takedetroit.com (interim —
-  re-run `bootstrap:admin` for the client owner's email when confirmed)
+- **Provisioned:** Railway CLI. Admins: zach@takedetroit.com (operator), plus client team
+  lauryn@, jorge@, sherilyn@ @dynamichqi.com (added 2026-07-19)
 - **Launch shortcuts in effect (all reversible):** Railway subdomain (no custom domain yet),
   shared Resend/dmtisreal.com sender, shared R2 bucket, Stripe skipped
 - **Native content (shipped 2026-07-19):** all 12 lessons render native markdown (converted
