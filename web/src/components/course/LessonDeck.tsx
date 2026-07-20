@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -95,6 +95,27 @@ export function LessonDeck({
   const [checksAnswered, setChecksAnswered] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showOutline, setShowOutline] = useState(false);
+  const outlineRef = useRef<HTMLElement | null>(null);
+  const outlineToggleRef = useRef<HTMLButtonElement | null>(null);
+
+  // Close the outline on Escape or on any click outside the panel/toggle.
+  useEffect(() => {
+    if (!showOutline) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowOutline(false);
+    };
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (outlineRef.current?.contains(t) || outlineToggleRef.current?.contains(t)) return;
+      setShowOutline(false);
+    };
+    window.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onDown);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onDown);
+    };
+  }, [showOutline]);
 
   const steps = useMemo<DeckStep[]>(() => {
     if (mode === "native" && lesson.body) return parseNativeSteps(lesson.body);
@@ -177,14 +198,9 @@ export function LessonDeck({
           <div className={styles.titleStep}>
             <p className={styles.kicker}>{moduleTitle}</p>
             <h1 className={styles.titleHeading}>{lesson.title}</h1>
-            {lesson.audioUrl && (
-              <div className={styles.titleAudio}>
-                <p className={styles.audioLabel}>Listen to this lesson</p>
-                <audio controls preload="none" src={lesson.audioUrl} />
-              </div>
-            )}
             <p className={styles.titleHint}>
               Use → or the dots below to move through the lesson.
+              {lesson.audioUrl ? " Narration is in the player below." : ""}
             </p>
           </div>
         );
@@ -281,6 +297,7 @@ export function LessonDeck({
         </Link>
         <button
           type="button"
+          ref={outlineToggleRef}
           className={styles.outlineToggle}
           onClick={() => setShowOutline((v) => !v)}
           aria-expanded={showOutline}
@@ -304,7 +321,7 @@ export function LessonDeck({
 
       {/* Step outline (minimal v1: current lesson's steps, click to jump) */}
       {showOutline && (
-        <nav className={styles.outlinePanel} aria-label="Lesson steps">
+        <nav className={styles.outlinePanel} aria-label="Lesson steps" ref={outlineRef}>
           {steps.map((s, i) => (
             <button
               key={i}
@@ -313,7 +330,7 @@ export function LessonDeck({
               onClick={() => goTo(i)}
             >
               <span className={styles.outlineNum}>{i + 1}</span>
-              {stepLabel(s, i)}
+              <span className={styles.outlineLabel}>{stepLabel(s, i)}</span>
             </button>
           ))}
         </nav>
@@ -321,6 +338,20 @@ export function LessonDeck({
 
       {/* Step */}
       <div className={styles.stage}>{renderStep(current)}</div>
+
+      {/* Persistent narration player — lives in the chrome (not inside a
+          step) so playback continues while paging through the lesson. */}
+      {lesson.audioUrl && (
+        <div className={styles.audioBar}>
+          <span className={styles.audioBarLabel}>♪ Narration</span>
+          <audio
+            className={styles.audioBarPlayer}
+            controls
+            preload="none"
+            src={lesson.audioUrl}
+          />
+        </div>
+      )}
 
       {/* Bottom chrome */}
       <div className={styles.bottomBar}>

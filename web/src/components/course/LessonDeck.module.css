@@ -106,6 +106,13 @@
   min-width: 16px;
 }
 
+.outlineLabel {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .modeToggle {
   background: none;
   border: 1px solid var(--color-border-light);
@@ -162,21 +169,29 @@
   margin-bottom: var(--space-6);
 }
 
-.titleAudio {
-  margin: var(--space-8) auto 0;
-  max-width: 480px;
+/* Persistent narration bar (chrome-level, survives step changes) */
+.audioBar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-2) var(--space-5);
+  background-color: var(--color-ink-light);
+  border-top: 1px solid var(--color-border);
 }
 
-.titleAudio audio {
-  width: 100%;
-}
-
-.audioLabel {
-  font-size: var(--text-sm);
+.audioBarLabel {
+  font-size: var(--text-xs, 12px);
+  font-family: var(--font-mono, monospace);
   text-transform: uppercase;
   letter-spacing: var(--tracking-wide);
   color: var(--color-text-secondary);
-  margin-bottom: var(--space-2);
+  white-space: nowrap;
+}
+
+.audioBarPlayer {
+  flex: 1;
+  height: 36px;
+  max-width: 640px;
 }
 
 .titleHint {
