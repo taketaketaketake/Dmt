@@ -279,6 +279,7 @@ export async function coursesRoutes(app: FastifyInstance) {
         where: { id: lessonId },
         select: {
           slideUrls: true,
+          body: true,
           module: { select: { course: { select: { isPublished: true } } } },
         },
       });
@@ -287,7 +288,12 @@ export async function coursesRoutes(app: FastifyInstance) {
         return reply.status(404).send({ error: "Lesson not found" });
       }
 
-      const maxSlide = Math.max(0, lesson.slideUrls.length - 1);
+      // Native-deck lessons (body set) have step counts derived client-side
+      // from the markdown sections, so clamp to a sanity cap rather than the
+      // image count; image-only lessons clamp to their slide count.
+      const maxSlide = lesson.body
+        ? 499
+        : Math.max(0, lesson.slideUrls.length - 1);
       const clampedSlide =
         lastSlide === undefined ? undefined : Math.min(lastSlide, maxSlide);
       const completedAt =
