@@ -27,9 +27,20 @@ Stripe/R2/Resend accounts.
   re-run `bootstrap:admin` for the client owner's email when confirmed)
 - **Launch shortcuts in effect (all reversible):** Railway subdomain (no custom domain yet),
   shared Resend/dmtisreal.com sender, shared R2 bucket, Stripe skipped
-- **Phase 2 backlog:** knowledge checks (questions requested from client), per-slide audio
-  narration (the source deck embeds ~100 .m4a files — extractable), custom domain, client's
-  own email domain, possible AWS migration (client runs AWS infra)
+- **Native content (shipped 2026-07-19):** all 12 lessons render native markdown (converted
+  from the deck, sources in `server/prisma/courses/lessons/*.md`), with original slides as
+  a collapsible fallback. The P&L lesson embeds the interactive breakeven calculator
+  (`:::calculator breakeven` marker). Knowledge-check UI ships with instant feedback and
+  soft-gated completion — renders as soon as `checks` land in the manifest.
+- **Audio narration (READY — client recording scheduled):** `Lesson.audioUrl` + player are
+  live. When recordings arrive: one file per lesson (m4a/mp3), upload to R2 under
+  `courses/corporate-financial-education/audio/<lesson>.m4a`, set `audioUrl` on each
+  manifest lesson (key relative to R2 public URL), re-run `seed:course`. Ask the client to
+  record **per lesson** (12 files), not per slide — the native pages are one continuous
+  read. The old deck embeds ~100 per-slide .m4a files; superseded by the new recordings.
+- **Phase 2 backlog:** knowledge-check questions (email sent), custom domain, client's own
+  email domain, possible AWS migration (client runs AWS infra), Cloudflare Stream if video
+  lectures happen
 
 <!-- Template for a new client:
 
