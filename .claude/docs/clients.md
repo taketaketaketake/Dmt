@@ -27,6 +27,10 @@ Stripe/R2/Resend accounts.
   lauryn@, jorge@, sherilyn@ @dynamichqi.com (added 2026-07-19)
 - **Launch shortcuts in effect (all reversible):** Railway subdomain (no custom domain yet),
   shared Resend/dmtisreal.com sender, shared R2 bucket, Stripe skipped
+- **Demo content seeded (2026-07-19):** 6 people / 4 projects / 4 jobs, founder-themed, via
+  `npm run seed:demo`. All demo users are on `@demo.example.com` — purge with
+  `DELETE FROM "User" WHERE email LIKE '%@demo.example.com'` (cascades) before real members
+  arrive, or leave until the client asks.
 - **Native content (shipped 2026-07-19):** all 12 lessons render native markdown (converted
   from the deck, sources in `server/prisma/courses/lessons/*.md`), with original slides as
   a collapsible fallback. The P&L lesson embeds the interactive breakeven calculator

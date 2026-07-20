@@ -14,6 +14,7 @@
     "db:studio": "prisma studio",
     "bootstrap:admin": "tsx prisma/bootstrap-admin.ts",
     "seed:course": "tsx prisma/seed-course.ts",
+    "seed:demo": "tsx prisma/seed-demo.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
