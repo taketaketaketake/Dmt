@@ -125,7 +125,7 @@ export function ProjectsPage() {
         <p className={styles.subtitle}>
           {hasActiveFilters
             ? `${filtered.length} of ${projects.length} project${projects.length !== 1 ? "s" : ""}`
-            : `${projects.length} project${projects.length !== 1 ? "s" : ""} from Detroit builders`}
+            : `${projects.length} project${projects.length !== 1 ? "s" : ""} from the community`}
         </p>
       </header>
 
