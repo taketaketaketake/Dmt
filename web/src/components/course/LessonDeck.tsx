@@ -94,6 +94,7 @@ export function LessonDeck({
   const [mode, setMode] = useState<"native" | "slides">(lesson.body ? "native" : "slides");
   const [checksAnswered, setChecksAnswered] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showOutline, setShowOutline] = useState(false);
 
   const steps = useMemo<DeckStep[]>(() => {
     if (mode === "native" && lesson.body) return parseNativeSteps(lesson.body);
@@ -151,6 +152,23 @@ export function LessonDeck({
   }, [step, goTo]);
 
   const current = steps[Math.min(step, steps.length - 1)];
+
+  const stepLabel = (s: DeckStep, i: number): string => {
+    switch (s.kind) {
+      case "title":
+        return "Overview";
+      case "section":
+        return s.heading ?? `Section ${i}`;
+      case "widget":
+        if (s.name === "calculator") return "Breakeven calculator";
+        if (s.name === "checks") return "Knowledge checks";
+        return "Interactive";
+      case "image":
+        return `Slide ${s.index + 1}`;
+      case "finish":
+        return "Wrap up";
+    }
+  };
 
   const renderStep = (s: DeckStep) => {
     switch (s.kind) {
@@ -259,8 +277,16 @@ export function LessonDeck({
       {/* Top chrome */}
       <div className={styles.topBar}>
         <Link to={`/courses/${slug}`} className={styles.exitLink}>
-          ← Outline
+          ← Course
         </Link>
+        <button
+          type="button"
+          className={styles.outlineToggle}
+          onClick={() => setShowOutline((v) => !v)}
+          aria-expanded={showOutline}
+        >
+          ☰ Steps
+        </button>
         <span className={styles.topTitle}>{lesson.title}</span>
         {lesson.body && lesson.slideUrls.length > 0 && (
           <button
@@ -275,6 +301,23 @@ export function LessonDeck({
           </button>
         )}
       </div>
+
+      {/* Step outline (minimal v1: current lesson's steps, click to jump) */}
+      {showOutline && (
+        <nav className={styles.outlinePanel} aria-label="Lesson steps">
+          {steps.map((s, i) => (
+            <button
+              key={i}
+              type="button"
+              className={i === step ? styles.outlineItemActive : styles.outlineItem}
+              onClick={() => goTo(i)}
+            >
+              <span className={styles.outlineNum}>{i + 1}</span>
+              {stepLabel(s, i)}
+            </button>
+          ))}
+        </nav>
+      )}
 
       {/* Step */}
       <div className={styles.stage}>{renderStep(current)}</div>
