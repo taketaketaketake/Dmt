@@ -183,7 +183,9 @@ export interface LessonContent {
   title: string;
   body?: string | null;
   slideUrls: string[];
+  audioUrl?: string | null;
   videoId?: string | null;
+  checks: KnowledgeCheckItem[];
   moduleTitle: string;
   prev: LessonNeighbor | null;
   next: LessonNeighbor | null;
@@ -195,4 +197,12 @@ export interface LessonProgressResult {
   lessonId: string;
   lastSlide: number;
   completedAt: string | null;
+}
+
+export interface KnowledgeCheckItem {
+  id: string;
+  question: string;
+  options: string[];
+  correctIndex: number;
+  explanation?: string | null;
 }

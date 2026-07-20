@@ -426,9 +426,12 @@ model Lesson {
   moduleId String
   title    String
   position Int
-  body     String? // Optional markdown shown above the slides
-  // Ordered slide image URLs (R2). The lesson player pages through these.
+  body     String? // Native lesson content (markdown + :::widget markers)
+  // Ordered slide image URLs (R2). When body is set these become the
+  // "original slides" fallback; otherwise the player pages through them.
   slideUrls String[]
+  // Narration audio URL (R2). Rendered as an audio player above the content.
+  audioUrl String?
   // Phase 2+ (ADR-010): Cloudflare Stream video UID; player renders the
   // Stream embed instead of/alongside slides when set.
   videoId  String?

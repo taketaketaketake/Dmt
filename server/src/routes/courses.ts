@@ -177,7 +177,20 @@ export async function coursesRoutes(app: FastifyInstance) {
           title: true,
           body: true,
           slideUrls: true,
+          audioUrl: true,
           videoId: true,
+          // Checks are ungraded learning aids (ADR-010), so shipping
+          // correctIndex to the client for instant feedback is deliberate.
+          checks: {
+            orderBy: { position: "asc" },
+            select: {
+              id: true,
+              question: true,
+              options: true,
+              correctIndex: true,
+              explanation: true,
+            },
+          },
           module: {
             select: {
               id: true,
@@ -227,7 +240,9 @@ export async function coursesRoutes(app: FastifyInstance) {
           title: lesson.title,
           body: lesson.body,
           slideUrls: lesson.slideUrls,
+          audioUrl: lesson.audioUrl,
           videoId: lesson.videoId,
+          checks: lesson.checks,
           moduleTitle: lesson.module.title,
           prev,
           next,

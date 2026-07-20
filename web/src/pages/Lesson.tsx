@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useLesson, useUpdateLessonProgress } from "../hooks/queries";
 import { usePageTitle } from "../hooks/usePageTitle";
+import { LessonBody } from "../components/course/LessonBody";
 import styles from "./Lesson.module.css";
 
 export function LessonPage() {
@@ -13,6 +14,7 @@ export function LessonPage() {
 
   const [slide, setSlide] = useState(0);
   const [completed, setCompleted] = useState(false);
+  const [checksAnswered, setChecksAnswered] = useState(0);
   // Server state is applied once per lesson load; after that the player owns
   // slide/completed locally and pushes changes up.
   const initializedFor = useRef<string | null>(null);
@@ -22,9 +24,11 @@ export function LessonPage() {
       initializedFor.current = lesson.id;
       setSlide(Math.min(lesson.lastSlide, Math.max(0, lesson.slideUrls.length - 1)));
       setCompleted(lesson.completed);
+      setChecksAnswered(0);
     }
   }, [lesson]);
 
+  const hasBody = Boolean(lesson?.body);
   const slideCount = lesson?.slideUrls.length ?? 0;
 
   const goTo = useCallback(
@@ -36,15 +40,17 @@ export function LessonPage() {
     [lesson, slideCount, updateProgress]
   );
 
-  // Arrow-key navigation between slides.
+  // Arrow-key navigation between slides (slide-player mode only — in native
+  // mode the arrows would fight normal page scrolling/reading).
   useEffect(() => {
+    if (hasBody) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "ArrowRight") goTo(slide + 1);
       if (e.key === "ArrowLeft") goTo(slide - 1);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [slide, goTo]);
+  }, [slide, goTo, hasBody]);
 
   if (isPending) {
     return (
@@ -62,12 +68,17 @@ export function LessonPage() {
     );
   }
 
+  // Answering every check (right or wrong) soft-gates completion (ADR-010).
+  const checksRemaining = lesson.checks.length > 0 && checksAnswered < lesson.checks.length;
+
   const markComplete = () => {
+    if (checksRemaining) return;
     setCompleted(true);
     updateProgress.mutate({ lessonId: lesson.id, completed: true });
   };
 
   const completeAndContinue = () => {
+    if (checksRemaining) return;
     markComplete();
     if (lesson.next) {
       navigate(`/courses/${slug}/lessons/${lesson.next.id}`);
@@ -75,6 +86,42 @@ export function LessonPage() {
   };
 
   const onLastSlide = slide >= slideCount - 1;
+
+  const slidePlayer = slideCount > 0 && (
+    <div className={styles.player}>
+      <img
+        className={styles.slide}
+        src={lesson.slideUrls[slide]}
+        alt={`${lesson.title} — slide ${slide + 1} of ${slideCount}`}
+      />
+      {/* Preload the next slide so advancing feels instant */}
+      {slide + 1 < slideCount && (
+        <link rel="preload" as="image" href={lesson.slideUrls[slide + 1]} />
+      )}
+
+      <div className={styles.playerControls}>
+        <button
+          type="button"
+          className={styles.slideButton}
+          onClick={() => goTo(slide - 1)}
+          disabled={slide === 0}
+        >
+          ← Back
+        </button>
+        <span className={styles.slideCounter}>
+          {slide + 1} / {slideCount}
+        </span>
+        <button
+          type="button"
+          className={styles.slideButton}
+          onClick={() => goTo(slide + 1)}
+          disabled={onLastSlide}
+        >
+          Next →
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="container">
@@ -86,7 +133,12 @@ export function LessonPage() {
         <h1 className={styles.title}>{lesson.title}</h1>
       </header>
 
-      {lesson.body && <p className={styles.body}>{lesson.body}</p>}
+      {lesson.audioUrl && (
+        <div className={styles.audioWrap}>
+          <p className={styles.audioLabel}>Listen to this lesson</p>
+          <audio className={styles.audio} controls preload="none" src={lesson.audioUrl} />
+        </div>
+      )}
 
       {lesson.videoId && (
         <div className={styles.videoWrap}>
@@ -100,40 +152,22 @@ export function LessonPage() {
         </div>
       )}
 
-      {slideCount > 0 && (
-        <div className={styles.player}>
-          <img
-            className={styles.slide}
-            src={lesson.slideUrls[slide]}
-            alt={`${lesson.title} — slide ${slide + 1} of ${slideCount}`}
+      {hasBody ? (
+        <>
+          <LessonBody
+            body={lesson.body!}
+            checks={lesson.checks}
+            onChecksAnsweredChange={setChecksAnswered}
           />
-          {/* Preload the next slide so advancing feels instant */}
-          {slide + 1 < slideCount && (
-            <link rel="preload" as="image" href={lesson.slideUrls[slide + 1]} />
+          {slideCount > 0 && (
+            <details className={styles.slidesDetails}>
+              <summary className={styles.slidesSummary}>View original slides</summary>
+              {slidePlayer}
+            </details>
           )}
-
-          <div className={styles.playerControls}>
-            <button
-              type="button"
-              className={styles.slideButton}
-              onClick={() => goTo(slide - 1)}
-              disabled={slide === 0}
-            >
-              ← Back
-            </button>
-            <span className={styles.slideCounter}>
-              {slide + 1} / {slideCount}
-            </span>
-            <button
-              type="button"
-              className={styles.slideButton}
-              onClick={() => goTo(slide + 1)}
-              disabled={onLastSlide}
-            >
-              Next →
-            </button>
-          </div>
-        </div>
+        </>
+      ) : (
+        slidePlayer
       )}
 
       <footer className={styles.footer}>
@@ -147,14 +181,22 @@ export function LessonPage() {
 
         {completed ? (
           <span className={styles.completedBadge}>✓ Completed</span>
-        ) : lesson.next ? (
-          <button type="button" className={styles.completeButton} onClick={completeAndContinue}>
-            Mark complete &amp; continue
-          </button>
         ) : (
-          <button type="button" className={styles.completeButton} onClick={markComplete}>
-            Mark complete
-          </button>
+          <span className={styles.completeGroup}>
+            <button
+              type="button"
+              className={styles.completeButton}
+              onClick={lesson.next ? completeAndContinue : markComplete}
+              disabled={checksRemaining}
+            >
+              {lesson.next ? "Mark complete & continue" : "Mark complete"}
+            </button>
+            {checksRemaining && (
+              <span className={styles.completeHint}>
+                Answer the knowledge checks first
+              </span>
+            )}
+          </span>
         )}
 
         {lesson.next ? (

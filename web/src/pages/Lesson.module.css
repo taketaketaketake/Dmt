@@ -43,6 +43,45 @@
 }
 
 /* -----------------------------------------------------------------------------
+   AUDIO NARRATION
+   ----------------------------------------------------------------------------- */
+
+.audioWrap {
+  background-color: var(--color-ink-light);
+  padding: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-6);
+}
+
+.audioLabel {
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-2);
+}
+
+.audio {
+  width: 100%;
+}
+
+/* -----------------------------------------------------------------------------
+   ORIGINAL SLIDES (collapsed fallback under native content)
+   ----------------------------------------------------------------------------- */
+
+.slidesDetails {
+  border-top: 1px solid var(--color-border);
+  margin-top: var(--space-8);
+  padding-top: var(--space-4);
+}
+
+.slidesSummary {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  margin-bottom: var(--space-4);
+}
+
+/* -----------------------------------------------------------------------------
    VIDEO (Cloudflare Stream embed — phase 2+)
    ----------------------------------------------------------------------------- */
 
@@ -139,6 +178,13 @@
   text-align: right;
 }
 
+.completeGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
 .completeButton {
   background-color: var(--color-accent);
   color: var(--color-ink);
@@ -149,8 +195,18 @@
   cursor: pointer;
 }
 
-.completeButton:hover {
+.completeButton:hover:not(:disabled) {
   opacity: 0.85;
+}
+
+.completeButton:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.completeHint {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
 }
 
 .completedBadge {

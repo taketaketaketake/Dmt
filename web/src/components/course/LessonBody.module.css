@@ -1,0 +1,84 @@
+/* =============================================================================
+   NATIVE LESSON CONTENT
+   Markdown typography in the editorial design language
+   ============================================================================= */
+
+.body {
+  max-width: 72ch;
+}
+
+.markdown {
+  font-size: var(--text-base);
+  line-height: 1.65;
+  color: var(--color-text-primary);
+}
+
+.markdown h2 {
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  letter-spacing: var(--tracking-tight);
+  margin: var(--space-8) 0 var(--space-3);
+}
+
+.markdown h3 {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  margin: var(--space-6) 0 var(--space-2);
+}
+
+.markdown p {
+  margin: var(--space-3) 0;
+}
+
+.markdown ul,
+.markdown ol {
+  margin: var(--space-3) 0;
+  padding-left: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.markdown ul ul,
+.markdown ol ol,
+.markdown ul ol,
+.markdown ol ul {
+  margin: var(--space-2) 0 0;
+}
+
+.markdown li {
+  line-height: 1.55;
+}
+
+.markdown blockquote {
+  border-left: 3px solid var(--color-accent);
+  background-color: var(--color-ink-light);
+  margin: var(--space-6) 0;
+  padding: var(--space-4) var(--space-5);
+}
+
+.markdown blockquote p {
+  margin: 0;
+}
+
+.markdown table {
+  border-collapse: collapse;
+  margin: var(--space-4) 0;
+  width: 100%;
+  font-size: var(--text-sm);
+}
+
+.markdown th,
+.markdown td {
+  border: 1px solid var(--color-border-light);
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+}
+
+.markdown strong {
+  font-weight: var(--font-semibold);
+}
+
+.markdown a {
+  color: var(--color-accent);
+}

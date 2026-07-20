@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -29,7 +30,11 @@ interface ManifestLesson {
   title: string;
   /** Inclusive slide range [first, last] in the source deck, 1-based. */
   slides: [number, number];
+  /** Inline markdown body, or a markdown file path relative to the manifest. */
   body?: string;
+  bodyFile?: string;
+  /** Narration audio: object key relative to R2_PUBLIC_URL, or a full URL. */
+  audioUrl?: string;
   videoId?: string;
   checks?: ManifestCheck[];
 }
@@ -92,10 +97,20 @@ async function main() {
 
     for (const [li, lesson] of mod.lessons.entries()) {
       const urls = slideUrls(manifest, lesson.slides);
+      const body = lesson.bodyFile
+        ? readFileSync(resolve(dirname(manifestPath), lesson.bodyFile), "utf-8")
+        : lesson.body ?? null;
+      const base = (process.env.R2_PUBLIC_URL ?? "").replace(/\/+$/, "");
+      const audioUrl = lesson.audioUrl
+        ? lesson.audioUrl.startsWith("http")
+          ? lesson.audioUrl
+          : `${base}/${lesson.audioUrl}`
+        : null;
       const data = {
         title: lesson.title,
-        body: lesson.body ?? null,
+        body,
         slideUrls: urls,
+        audioUrl,
         videoId: lesson.videoId ?? null,
       };
       const row = await prisma.lesson.upsert({

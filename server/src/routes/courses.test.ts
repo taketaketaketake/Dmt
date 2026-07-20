@@ -152,9 +152,19 @@ describe("Courses Routes", () => {
       return {
         id: "les-1",
         title: "Lesson One",
-        body: null,
+        body: "## Section\n\n- point",
         slideUrls: slides(3),
+        audioUrl: "https://cdn.example.com/narration.m4a",
         videoId: null,
+        checks: [
+          {
+            id: "chk-1",
+            question: "Q?",
+            options: ["a", "b"],
+            correctIndex: 1,
+            explanation: null,
+          },
+        ],
         module: {
           id: "mod-1",
           title: "Module 1",
@@ -206,12 +216,16 @@ describe("Courses Routes", () => {
       expect(lesson).toMatchObject({
         id: "les-1",
         moduleTitle: "Module 1",
+        body: "## Section\n\n- point",
+        audioUrl: "https://cdn.example.com/narration.m4a",
         prev: null,
         next: { id: "les-2", title: "Lesson Two" },
         lastSlide: 1,
         completed: false,
       });
       expect(lesson.slideUrls).toHaveLength(3);
+      expect(lesson.checks).toHaveLength(1);
+      expect(lesson.checks[0]).toMatchObject({ question: "Q?", correctIndex: 1 });
     });
   });
 
