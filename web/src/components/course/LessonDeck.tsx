@@ -419,6 +419,22 @@ export function LessonDeck({
                   )}
                 </>
               )}
+              {lesson.moduleQuiz && (
+                <Link
+                  to={`/courses/${slug}/modules/${lesson.moduleQuiz.moduleId}/quiz`}
+                  className={
+                    lesson.moduleQuiz.status === "pending"
+                      ? styles.quizCta
+                      : styles.quizCtaDone
+                  }
+                >
+                  {lesson.moduleQuiz.status === "pending"
+                    ? `Take the module quiz (${lesson.moduleQuiz.questionCount} questions) →`
+                    : lesson.moduleQuiz.status === "passed"
+                      ? "Module quiz passed ✓ — review answers"
+                      : "Module quiz — review answers →"}
+                </Link>
+              )}
               <div className={styles.finishNav}>
                 {lesson.prev && (
                   <Link to={`/courses/${slug}/lessons/${lesson.prev.id}`}>

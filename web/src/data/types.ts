@@ -203,6 +203,12 @@ export interface LessonContent {
   videoId?: string | null;
   checks: KnowledgeCheckItem[];
   moduleTitle: string;
+  /** Present only on the last lesson of a module that has a quiz */
+  moduleQuiz: {
+    moduleId: string;
+    questionCount: number;
+    status: "passed" | "failed" | "pending";
+  } | null;
   prev: LessonNeighbor | null;
   next: LessonNeighbor | null;
   lastSlide: number;

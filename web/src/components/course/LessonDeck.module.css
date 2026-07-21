@@ -464,3 +464,28 @@
     display: none;
   }
 }
+
+/* Module quiz CTA on the finish screen */
+.quizCta,
+.quizCtaDone {
+  align-self: flex-start;
+  display: inline-block;
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+  padding: var(--space-3) var(--space-6);
+  text-decoration: none;
+}
+
+.quizCta {
+  border: 1px solid var(--color-accent);
+  color: var(--color-text-primary);
+}
+
+.quizCta:hover {
+  background-color: var(--color-ink-light);
+}
+
+.quizCtaDone {
+  color: var(--color-text-secondary);
+  padding-left: 0;
+}

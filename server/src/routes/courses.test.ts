@@ -225,11 +225,13 @@ describe("Courses Routes", () => {
         module: {
           id: "mod-1",
           title: "Module 1",
+          _count: { quizQuestions: 2 },
           course: {
             slug: "test-course",
             isPublished: true,
             modules: [
               {
+                id: "mod-1",
                 lessons: [
                   { id: "les-1", title: "Lesson One" },
                   { id: "les-2", title: "Lesson Two" },

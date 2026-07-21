@@ -290,6 +290,7 @@ export async function coursesRoutes(app: FastifyInstance) {
             select: {
               id: true,
               title: true,
+              _count: { select: { quizQuestions: true } },
               course: {
                 select: {
                   slug: true,
@@ -297,6 +298,7 @@ export async function coursesRoutes(app: FastifyInstance) {
                   modules: {
                     orderBy: { position: "asc" },
                     select: {
+                      id: true,
                       lessons: {
                         orderBy: { position: "asc" },
                         select: { id: true, title: true },
@@ -329,6 +331,34 @@ export async function coursesRoutes(app: FastifyInstance) {
         select: { lastSlide: true, completedAt: true },
       });
 
+      // If this is the last lesson of a module with a quiz, surface the quiz
+      // so the finish screen routes members into it instead of past it.
+      const ownModule = lesson.module.course.modules.find(
+        (m) => m.id === lesson.module.id
+      );
+      const isLastInModule =
+        ownModule?.lessons[ownModule.lessons.length - 1]?.id === lesson.id;
+      let moduleQuiz: {
+        moduleId: string;
+        questionCount: number;
+        status: "passed" | "failed" | "pending";
+      } | null = null;
+      if (isLastInModule && lesson.module._count.quizQuestions > 0) {
+        const attempts = await prisma.quizAttempt.findMany({
+          where: { userId: user.id, moduleId: lesson.module.id },
+          select: { passed: true },
+        });
+        moduleQuiz = {
+          moduleId: lesson.module.id,
+          questionCount: lesson.module._count.quizQuestions,
+          status: attempts.some((a) => a.passed)
+            ? "passed"
+            : attempts.length >= QUIZ_MAX_ATTEMPTS
+              ? "failed"
+              : "pending",
+        };
+      }
+
       return reply.status(200).send({
         lesson: {
           id: lesson.id,
@@ -339,6 +369,7 @@ export async function coursesRoutes(app: FastifyInstance) {
           videoId: lesson.videoId,
           checks: lesson.checks,
           moduleTitle: lesson.module.title,
+          moduleQuiz,
           prev,
           next,
           lastSlide: progress?.lastSlide ?? 0,
