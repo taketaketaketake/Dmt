@@ -62,7 +62,6 @@ function App() {
         <Routes>
           {/* Public routes */}
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/founder-series" element={<FounderSeriesPage />} />
 
           {/* Authenticated routes */}
           <Route element={<Shell isAuthenticated={isAuthenticated} />}>
@@ -102,7 +101,8 @@ function App() {
           </Route>
 
           {/* Homepage: members land on the directory; visitors get the
-              public Founder Education Series landing page */}
+              public Founder Education Series landing page (the only public
+              marketing route — there is no separate /founder-series URL) */}
           <Route
             path="/"
             element={
