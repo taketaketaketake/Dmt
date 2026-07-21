@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { KnowledgeCheckItem, LessonContent } from "../../data/types";
@@ -188,6 +188,7 @@ export function LessonDeck({
   onComplete,
   initialStep,
 }: Props) {
+  const navigate = useNavigate();
   const [mode, setMode] = useState<"native" | "slides">(lesson.body ? "native" : "slides");
   const [checksAnswered, setChecksAnswered] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -318,6 +319,12 @@ export function LessonDeck({
     }
   };
 
+  const completeAndTakeQuiz = () => {
+    if (!lesson.moduleQuiz) return;
+    onComplete();
+    navigate(`/courses/${slug}/modules/${lesson.moduleQuiz.moduleId}/quiz`);
+  };
+
   const renderStep = (s: DeckStep) => {
     switch (s.kind) {
       case "title":
@@ -406,35 +413,45 @@ export function LessonDeck({
                 <span className={styles.completedBadge}>✓ Completed</span>
               ) : (
                 <>
+                  {/* On a module's last lesson, completing and starting the
+                      quiz are one action — two competing buttons was
+                      ambiguous about which came first. */}
                   <button
                     type="button"
                     className={styles.completeButton}
-                    onClick={onComplete}
+                    onClick={
+                      lesson.moduleQuiz?.status === "pending"
+                        ? completeAndTakeQuiz
+                        : onComplete
+                    }
                     disabled={checksRemaining}
                   >
-                    Mark complete
+                    {lesson.moduleQuiz?.status === "pending"
+                      ? `Mark complete & take the module quiz (${lesson.moduleQuiz.questionCount} questions) →`
+                      : "Mark complete"}
                   </button>
                   {checksRemaining && (
                     <p className={styles.completeHint}>Answer the knowledge checks first</p>
                   )}
                 </>
               )}
-              {lesson.moduleQuiz && (
-                <Link
-                  to={`/courses/${slug}/modules/${lesson.moduleQuiz.moduleId}/quiz`}
-                  className={
-                    lesson.moduleQuiz.status === "pending"
-                      ? styles.quizCta
-                      : styles.quizCtaDone
-                  }
-                >
-                  {lesson.moduleQuiz.status === "pending"
-                    ? `Take the module quiz (${lesson.moduleQuiz.questionCount} questions) →`
-                    : lesson.moduleQuiz.status === "passed"
-                      ? "Module quiz passed ✓ — review answers"
-                      : "Module quiz — review answers →"}
-                </Link>
-              )}
+              {lesson.moduleQuiz &&
+                (completed || lesson.moduleQuiz.status !== "pending") && (
+                  <Link
+                    to={`/courses/${slug}/modules/${lesson.moduleQuiz.moduleId}/quiz`}
+                    className={
+                      lesson.moduleQuiz.status === "pending"
+                        ? styles.quizCta
+                        : styles.quizCtaDone
+                    }
+                  >
+                    {lesson.moduleQuiz.status === "pending"
+                      ? `Take the module quiz (${lesson.moduleQuiz.questionCount} questions) →`
+                      : lesson.moduleQuiz.status === "passed"
+                        ? "Module quiz passed ✓ — review answers"
+                        : "Module quiz — review answers →"}
+                  </Link>
+                )}
               <div className={styles.finishNav}>
                 {lesson.prev && (
                   <Link to={`/courses/${slug}/lessons/${lesson.prev.id}`}>
