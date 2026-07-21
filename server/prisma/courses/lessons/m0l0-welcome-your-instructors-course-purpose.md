@@ -45,11 +45,13 @@ So, shall we…?
 
 The purpose of this course is to remove the mystery, annoyance, and threat of Corporate Finance and to replace it with illumination, welcome appreciation, and powerful action. As the old saying goes, “knowledge is power.” And without the necessary power your company’s growth may stagnate or become impeded by improper management of resources, funds, information or equity. We hope to mitigate that risk for Founders and Entrepreneurs and in doing so give smaller businesses a head start on the road to sustained success.
 
-> **At the end of this course, you will:**
+At the end of this course, you will:
 
-- Be conversant with the language of Corporate Finance
-- Know how to read and interpret financial reports
-- Know how to use the information contained in financial reports to sustain and grow your business
-- Understand how to use the financial history of your company to support its story and draw in potential investors
+:::cards
+- Be conversant with the **language** of Corporate Finance
+- Know how to **read and interpret** financial reports
+- Know how to **use the information** contained in financial reports to sustain and grow your business
+- Understand how to use the financial history of your company to **support its story** and draw in potential investors
+:::
 
 Take the course one topic at a time — there’s no rush. Your progress is saved as you go, and each module builds on the last.
