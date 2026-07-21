@@ -48,7 +48,7 @@
       ],
       "quiz": [
         {
-          "question": "Which three reports make up the \"Magic Three\"?",
+          "question": "Which three reports make up the “Magic Three”?",
           "options": [
             "Balance Sheet, Profit & Loss Statement, and Statement of Cash Flows",
             "Budget, Sales Forecast, and Tax Return",
@@ -79,6 +79,28 @@
           ],
           "correctIndex": 0,
           "explanation": "Financial reports provide the evidence that supports your decisions — knowing for certain versus having an idea of the current state of your company."
+        },
+        {
+          "question": "The Balance Sheet formula is: Assets − Liabilities = ___",
+          "options": [
+            "Net Profit",
+            "Working Capital",
+            "Equities",
+            "Gross Revenue"
+          ],
+          "correctIndex": 2,
+          "explanation": "Assets − Liabilities = Equities: what the owners get after all liabilities have been satisfied."
+        },
+        {
+          "question": "Which section of the Statement of Cash Flows shows how much cash came from founders, investors, and loans?",
+          "options": [
+            "Operating Activities",
+            "Investing Activities",
+            "Financing Activities",
+            "Revenue Activities"
+          ],
+          "correctIndex": 2,
+          "explanation": "Financing Activities covers cash from founders and investors, loans and lines of credit, principal paydowns, and distributions."
         }
       ]
     },
@@ -109,6 +131,63 @@
           ],
           "bodyFile": "lessons/m2l2-what-your-statement-of-cash-flows-tells-you-abou.md"
         }
+      ],
+      "quiz": [
+        {
+          "question": "Working Capital equals:",
+          "options": [
+            "Total Assets − Total Liabilities",
+            "Current Assets − Current Liabilities",
+            "Total Revenue − Total Expenses",
+            "Cash + Inventory"
+          ],
+          "correctIndex": 1,
+          "explanation": "Working Capital = Current Assets − Current Liabilities — the money available to pay for the operations of the company."
+        },
+        {
+          "question": "Under the cash basis of accounting, revenue is counted when:",
+          "options": [
+            "It is earned, even if no cash has been received yet",
+            "It is earned and the cash is received",
+            "The invoice is sent to the customer",
+            "The fiscal year closes"
+          ],
+          "correctIndex": 1,
+          "explanation": "Cash basis considers revenue when it is earned and cash is received; accrual basis counts it when earned, whether or not cash has arrived."
+        },
+        {
+          "question": "Your company reaches breakeven when:",
+          "options": [
+            "Total Revenue = Total Expenses",
+            "Cash in the bank equals monthly payroll",
+            "Gross Revenue = Cost of Goods Sold",
+            "Accounts Receivable = Accounts Payable"
+          ],
+          "correctIndex": 0,
+          "explanation": "Breakeven is achieved when Total Revenue = Total Expenses, where Total Expenses = Fixed Cost + Variable Cost."
+        },
+        {
+          "question": "Advertising, delivery, and general & administrative costs belong to which component of the Cost of Operations?",
+          "options": [
+            "Cost of Goods Sold",
+            "Operating Expenses",
+            "Capital Expenditures",
+            "Financing Activities"
+          ],
+          "correctIndex": 1,
+          "explanation": "Operating Expenses are the indirect costs — selling expenses, advertising, delivery, G&A, indirect labor. Cost of Goods Sold covers the direct costs of producing the product."
+        },
+        {
+          "question": "One customer generates the lion's share of your revenue. What does the course say you should do?",
+          "options": [
+            "Celebrate — a big anchor customer means the business is safe",
+            "Know what it costs to serve them, because they may be less profitable than they appear — and losing them puts the business at risk",
+            "Immediately drop smaller customers to focus on the big one",
+            "Raise prices only for the small customers"
+          ],
+          "correctIndex": 1,
+          "explanation": "Major customers can cost more than they're worth — and if you lose that customer, your business is at risk. Knowing the cost to service them versus small customers tells you which is truly more profitable."
+        }
       ]
     },
     {
@@ -130,6 +209,63 @@
           ],
           "bodyFile": "lessons/m3l1-what-a-budget-is-and-how-it-works.md"
         }
+      ],
+      "quiz": [
+        {
+          "question": "Which of these is NOT one of the four key projections the course recommends?",
+          "options": [
+            "Sales Projection",
+            "12-Month Balance Sheet Projection",
+            "Competitor Revenue Projection",
+            "Cash Flows Projection"
+          ],
+          "correctIndex": 2,
+          "explanation": "The four key projections are the sales projection, 12-month balance sheet projection, expense budget, and cash flows projection."
+        },
+        {
+          "question": "The best starting point for a realistic, reliable projection is:",
+          "options": [
+            "Your gut feel for where the market is going",
+            "Historical data from your own reports, combined with current external information",
+            "Copying a template from a similar company",
+            "Last year's numbers increased by 10%"
+          ],
+          "correctIndex": 1,
+          "explanation": "Start with historical data from your balance sheet, P&L, and cash flows statement, then predict future outcomes using current external information about customers, vendors, and industry trends."
+        },
+        {
+          "question": "What distinguishes a flexible budget from a static one?",
+          "options": [
+            "It can be altered and adapted throughout the duration of the budget",
+            "It only covers variable costs",
+            "It is created by outside accountants",
+            "It does not require assumptions"
+          ],
+          "correctIndex": 0,
+          "explanation": "A static budget does not change for its entire duration; a flexible budget can be altered and adapted along the way."
+        },
+        {
+          "question": "How often should projections be reviewed against actual performance at a minimum?",
+          "options": [
+            "Once every five years",
+            "Only when investors ask",
+            "At least once or twice per year — and sooner after a major disruption",
+            "Every day"
+          ],
+          "correctIndex": 2,
+          "explanation": "Review and update projections at least once or twice per year, and more frequently when something major disrupts operations, sales, resources, or management."
+        },
+        {
+          "question": "Which of the following is a possible fraud red flag when comparing budget to actual?",
+          "options": [
+            "Payroll increasing without any new staff being hired",
+            "Revenue growing faster than expenses",
+            "A vendor offering a volume discount",
+            "Cash reserves growing alongside profits"
+          ],
+          "correctIndex": 0,
+          "explanation": "Increasing payroll without hiring new staff is one of the classic red flags — along with unidentified vendors, duplicate payments, inventory shortfalls, and shrinking cash despite profitable reports."
+        }
       ]
     },
     {
@@ -142,6 +278,52 @@
             100
           ],
           "bodyFile": "lessons/m4l0-equity-classes-allocation-and-distributions.md"
+        }
+      ],
+      "quiz": [
+        {
+          "question": "Who is first in line to receive dividends and other payments?",
+          "options": [
+            "Common stock shareholders",
+            "Preferred stock shareholders",
+            "General partners",
+            "Employees with stock options"
+          ],
+          "correctIndex": 1,
+          "explanation": "Preferred stock shares are first to receive dividends and other payments; common stock shares are last."
+        },
+        {
+          "question": "A limited partnership unit means:",
+          "options": [
+            "Full responsibility for managing the company",
+            "No management responsibility, with risk limited to the capital invested",
+            "A guaranteed annual dividend",
+            "The right to veto company decisions"
+          ],
+          "correctIndex": 1,
+          "explanation": "Limited partners have no management responsibility and their risk is limited to the capital they invested. General partners manage the company and bear the most risk."
+        },
+        {
+          "question": "A SAFE (Simple Agreement for Future Equity) gives the holder:",
+          "options": [
+            "An immediate ownership stake with voting rights",
+            "A fixed interest payment like a loan",
+            "The right to purchase equity at a discount or a cap on valuation",
+            "A seat on the board of directors"
+          ],
+          "correctIndex": 2,
+          "explanation": "Pre- and post-SAFE agreements grant the right to purchase equity at a discount or with a cap on valuation — not immediate ownership."
+        },
+        {
+          "question": "Which of these is a genuine advantage of financing through equity rather than debt?",
+          "options": [
+            "You keep full control of the company",
+            "There's no need to pay the money back right away",
+            "It guarantees a higher valuation",
+            "It has no effect on future returns"
+          ],
+          "correctIndex": 1,
+          "explanation": "The biggest benefit of equity financing is that you don't have to pay it back right away — the trade-off is giving up some control and a share of future returns."
         }
       ]
     },
@@ -156,6 +338,52 @@
           ],
           "bodyFile": "lessons/m5l0-ratios-and-analytics-from-the-magic-three-report.md"
         }
+      ],
+      "quiz": [
+        {
+          "question": "Operating Margin is calculated as:",
+          "options": [
+            "Net Sales ÷ Operating Income",
+            "Operating Income ÷ Net Sales",
+            "Total Revenue ÷ Total Assets",
+            "Gross Profit ÷ Total Liabilities"
+          ],
+          "correctIndex": 1,
+          "explanation": "Operating Margin = Operating Income ÷ Net Sales. Higher is generally better — the company is efficient at turning sales into profits."
+        },
+        {
+          "question": "A high accounts receivable turnover ratio suggests:",
+          "options": [
+            "The company is slow to collect what customers owe",
+            "Collections are efficient and customers pay their debts quickly",
+            "The company has too much inventory",
+            "Credit sales should be eliminated"
+          ],
+          "correctIndex": 1,
+          "explanation": "A high receivables turnover may indicate efficient collection and a high proportion of quality customers who pay quickly."
+        },
+        {
+          "question": "The Debt to Equity ratio tells you:",
+          "options": [
+            "How profitable each product line is",
+            "The degree to which the company finances its operations through debt versus wholly owned funds",
+            "How quickly inventory sells",
+            "The company's tax obligation"
+          ],
+          "correctIndex": 1,
+          "explanation": "Debt to Equity = Total Liabilities ÷ Total Shareholders' Equity — it reflects whether shareholder equity could cover outstanding debts in a downturn."
+        },
+        {
+          "question": "A Total Debt to Total Assets ratio greater than 1 means:",
+          "options": [
+            "The company has more assets than liabilities",
+            "A considerable portion of assets are funded by debt — the company has more liabilities than assets",
+            "The company cannot legally borrow more",
+            "Shareholders are guaranteed a dividend"
+          ],
+          "correctIndex": 1,
+          "explanation": "A ratio above 1 shows more liabilities than assets — and heightened risk of default if interest rates rise suddenly."
+        }
       ]
     },
     {
@@ -168,6 +396,52 @@
             118
           ],
           "bodyFile": "lessons/m6l0-financial-storytelling-and-presenting-to-banks-a.md"
+        }
+      ],
+      "quiz": [
+        {
+          "question": "What are banks fundamentally looking for when they fund a company?",
+          "options": [
+            "A chance at a huge return if the company takes off",
+            "A safe return on the money loaned — stability and steady financials",
+            "An equity stake in the business",
+            "A seat on the board"
+          ],
+          "correctIndex": 1,
+          "explanation": "For banks, funding is not an investment — they want a safe return, stability, at least ~3 years of steady financials, and confidence the loan can be serviced."
+        },
+        {
+          "question": "“THE ASK” in your financial story should cover:",
+          "options": [
+            "How much you need, the structure of the offer (equity or debt), and the next step",
+            "Your life story and hobbies",
+            "A list of competitors and their weaknesses",
+            "Only the size of the market"
+          ],
+          "correctIndex": 0,
+          "explanation": "The ask is specific: how much you need, whether the offer is equity or debt, and what the next step is."
+        },
+        {
+          "question": "Before pitching an investor, the course says you should first:",
+          "options": [
+            "Send the same deck to as many investors as possible",
+            "Do your homework on who they are, how they like to be approached, and their funding criteria — then confirm you're a fit",
+            "Ask them for a valuation up front",
+            "Wait for them to contact you"
+          ],
+          "correctIndex": 1,
+          "explanation": "Research who they are, how they prefer to be solicited, and their funding criteria — then customize your pitch to show you're a match."
+        },
+        {
+          "question": "In “Getting to Yes,” the opportunity is:",
+          "options": [
+            "The big picture of what's possible",
+            "What's in it for them — the investors and bankers",
+            "The invitation to a follow-up meeting",
+            "Your company's origin story"
+          ],
+          "correctIndex": 1,
+          "explanation": "Possibility is the big picture; opportunity is what's in it for them; then comes the invitation to take the next step toward “Yes.”"
         }
       ]
     }
