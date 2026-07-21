@@ -27,6 +27,7 @@ function mockCourseOutline() {
         id: "mod-1",
         title: "Module 1",
         position: 0,
+        _count: { quizQuestions: 0 },
         lessons: [
           { id: "les-1", title: "Lesson One", position: 0, slideUrls: slides(3) },
           { id: "les-2", title: "Lesson Two", position: 1, slideUrls: slides(2) },
@@ -380,6 +381,188 @@ describe("Courses Routes", () => {
           update: expect.objectContaining({ completedAt: expect.any(Date) }),
         })
       );
+    });
+  });
+
+  describe("module quizzes", () => {
+    function mockQuizModule() {
+      return {
+        id: "mod-1",
+        title: "Module 1",
+        course: { slug: "test-course", isPublished: true },
+        quizQuestions: [
+          { id: "q1", question: "Q1?", options: ["a", "b"], correctIndex: 0, explanation: "e1" },
+          { id: "q2", question: "Q2?", options: ["c", "d"], correctIndex: 1, explanation: null },
+          { id: "q3", question: "Q3?", options: ["e", "f"], correctIndex: 1, explanation: null },
+        ],
+      };
+    }
+
+    describe("GET /:slug/modules/:moduleId/quiz", () => {
+      it("hides correct answers while attempts remain", async () => {
+        authAs();
+        prismaMock.courseModule.findUnique.mockResolvedValue(mockQuizModule() as never);
+        prismaMock.quizAttempt.findMany.mockResolvedValue([] as never);
+
+        const response = await app.inject({
+          method: "GET",
+          url: "/api/courses/test-course/modules/mod-1/quiz",
+          headers: { cookie: authCookie() },
+        });
+
+        expect(response.statusCode).toBe(200);
+        const { quiz } = response.json();
+        expect(quiz.status).toBe("pending");
+        expect(quiz.questions).toHaveLength(3);
+        expect(quiz.questions[0]).not.toHaveProperty("correctIndex");
+        expect(quiz.questions[0]).not.toHaveProperty("explanation");
+      });
+
+      it("reveals answers once failed out", async () => {
+        authAs();
+        prismaMock.courseModule.findUnique.mockResolvedValue(mockQuizModule() as never);
+        prismaMock.quizAttempt.findMany.mockResolvedValue([
+          { score: 1, total: 3, passed: false, createdAt: new Date() },
+          { score: 1, total: 3, passed: false, createdAt: new Date() },
+        ] as never);
+
+        const response = await app.inject({
+          method: "GET",
+          url: "/api/courses/test-course/modules/mod-1/quiz",
+          headers: { cookie: authCookie() },
+        });
+
+        const { quiz } = response.json();
+        expect(quiz.status).toBe("failed");
+        expect(quiz.questions[0].correctIndex).toBe(0);
+      });
+
+      it("404s when the module has no quiz", async () => {
+        authAs();
+        prismaMock.courseModule.findUnique.mockResolvedValue({
+          ...mockQuizModule(),
+          quizQuestions: [],
+        } as never);
+
+        const response = await app.inject({
+          method: "GET",
+          url: "/api/courses/test-course/modules/mod-1/quiz",
+          headers: { cookie: authCookie() },
+        });
+
+        expect(response.statusCode).toBe(404);
+      });
+    });
+
+    describe("POST /:slug/modules/:moduleId/quiz/attempts", () => {
+      it("grades a passing first attempt (2 of 3 correct = 67% fails, 3 of 3 passes)", async () => {
+        authAs();
+        prismaMock.courseModule.findUnique.mockResolvedValue(mockQuizModule() as never);
+        prismaMock.quizAttempt.findMany.mockResolvedValue([] as never);
+        prismaMock.quizAttempt.create.mockResolvedValue({} as never);
+
+        const response = await app.inject({
+          method: "POST",
+          url: "/api/courses/test-course/modules/mod-1/quiz/attempts",
+          headers: { cookie: authCookie() },
+          payload: { answers: [0, 1, 1] },
+        });
+
+        expect(response.statusCode).toBe(201);
+        const body = response.json();
+        expect(body.attempt).toMatchObject({ attemptNumber: 1, score: 3, total: 3, passed: true });
+        expect(body.status).toBe("passed");
+        expect(body.finished).toBe(true);
+        expect(body.answerKey).toHaveLength(3);
+      });
+
+      it("first failed attempt stays pending and withholds the answer key", async () => {
+        authAs();
+        prismaMock.courseModule.findUnique.mockResolvedValue(mockQuizModule() as never);
+        prismaMock.quizAttempt.findMany.mockResolvedValue([] as never);
+        prismaMock.quizAttempt.create.mockResolvedValue({} as never);
+
+        const response = await app.inject({
+          method: "POST",
+          url: "/api/courses/test-course/modules/mod-1/quiz/attempts",
+          headers: { cookie: authCookie() },
+          payload: { answers: [1, 0, 0] },
+        });
+
+        const body = response.json();
+        expect(body.attempt.passed).toBe(false);
+        expect(body.status).toBe("pending");
+        expect(body.finished).toBe(false);
+        expect(body).not.toHaveProperty("answerKey");
+        expect(body.results).toEqual([{ correct: false }, { correct: false }, { correct: false }]);
+      });
+
+      it("second failed attempt finishes the quiz as failed", async () => {
+        authAs();
+        prismaMock.courseModule.findUnique.mockResolvedValue(mockQuizModule() as never);
+        prismaMock.quizAttempt.findMany.mockResolvedValue([{ passed: false }] as never);
+        prismaMock.quizAttempt.create.mockResolvedValue({} as never);
+
+        const response = await app.inject({
+          method: "POST",
+          url: "/api/courses/test-course/modules/mod-1/quiz/attempts",
+          headers: { cookie: authCookie() },
+          payload: { answers: [1, 0, 0] },
+        });
+
+        const body = response.json();
+        expect(body.attempt.attemptNumber).toBe(2);
+        expect(body.status).toBe("failed");
+        expect(body.finished).toBe(true);
+        expect(body.answerKey).toHaveLength(3);
+      });
+
+      it("rejects a third attempt", async () => {
+        authAs();
+        prismaMock.courseModule.findUnique.mockResolvedValue(mockQuizModule() as never);
+        prismaMock.quizAttempt.findMany.mockResolvedValue([
+          { passed: false },
+          { passed: false },
+        ] as never);
+
+        const response = await app.inject({
+          method: "POST",
+          url: "/api/courses/test-course/modules/mod-1/quiz/attempts",
+          headers: { cookie: authCookie() },
+          payload: { answers: [0, 1, 1] },
+        });
+
+        expect(response.statusCode).toBe(409);
+      });
+
+      it("rejects retaking a passed quiz", async () => {
+        authAs();
+        prismaMock.courseModule.findUnique.mockResolvedValue(mockQuizModule() as never);
+        prismaMock.quizAttempt.findMany.mockResolvedValue([{ passed: true }] as never);
+
+        const response = await app.inject({
+          method: "POST",
+          url: "/api/courses/test-course/modules/mod-1/quiz/attempts",
+          headers: { cookie: authCookie() },
+          payload: { answers: [0, 1, 1] },
+        });
+
+        expect(response.statusCode).toBe(409);
+      });
+
+      it("rejects a malformed answer set", async () => {
+        authAs();
+        prismaMock.courseModule.findUnique.mockResolvedValue(mockQuizModule() as never);
+
+        const response = await app.inject({
+          method: "POST",
+          url: "/api/courses/test-course/modules/mod-1/quiz/attempts",
+          headers: { cookie: authCookie() },
+          payload: { answers: [0] },
+        });
+
+        expect(response.statusCode).toBe(400);
+      });
     });
   });
 });

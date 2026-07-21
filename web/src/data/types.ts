@@ -176,6 +176,7 @@ export interface CourseModuleOutline {
   id: string;
   title: string;
   position: number;
+  quiz: ModuleQuizSummary | null;
   lessons: CourseLessonSummary[];
 }
 
@@ -220,4 +221,38 @@ export interface KnowledgeCheckItem {
   options: string[];
   correctIndex: number;
   explanation?: string | null;
+}
+
+export interface ModuleQuizSummary {
+  questionCount: number;
+  attemptsUsed: number;
+  maxAttempts: number;
+  status: "passed" | "failed" | "pending";
+}
+
+export interface QuizQuestionPublic {
+  id: string;
+  question: string;
+  options: string[];
+  /** Present only once the quiz is finished */
+  correctIndex?: number;
+  explanation?: string | null;
+}
+
+export interface ModuleQuiz {
+  moduleId: string;
+  moduleTitle: string;
+  status: "passed" | "failed" | "pending";
+  attemptsUsed: number;
+  maxAttempts: number;
+  attempts: { score: number; total: number; passed: boolean; createdAt: string }[];
+  questions: QuizQuestionPublic[];
+}
+
+export interface QuizSubmitResult {
+  attempt: { attemptNumber: number; score: number; total: number; passed: boolean };
+  results: { correct: boolean }[];
+  status: "passed" | "failed" | "pending";
+  finished: boolean;
+  answerKey?: { correctIndex: number; explanation: string | null }[];
 }

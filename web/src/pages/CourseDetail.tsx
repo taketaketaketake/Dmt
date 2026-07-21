@@ -85,6 +85,33 @@ export function CourseDetailPage() {
                 </li>
               ))}
             </ol>
+            {mod.quiz && (
+              <Link
+                to={`/courses/${course.slug}/modules/${mod.id}/quiz`}
+                className={styles.quizRow}
+              >
+                <span
+                  className={
+                    mod.quiz.status === "passed"
+                      ? styles.quizBadgePassed
+                      : mod.quiz.status === "failed"
+                        ? styles.quizBadgeFailed
+                        : styles.quizBadge
+                  }
+                  aria-hidden="true"
+                >
+                  {mod.quiz.status === "passed" ? "✓" : mod.quiz.status === "failed" ? "✗" : "?"}
+                </span>
+                <span className={styles.quizTitle}>Module quiz</span>
+                <span className={styles.quizMeta}>
+                  {mod.quiz.status === "passed"
+                    ? "Passed"
+                    : mod.quiz.status === "failed"
+                      ? "Not passed"
+                      : `${mod.quiz.questionCount} questions · ${mod.quiz.maxAttempts - mod.quiz.attemptsUsed} attempts left`}
+                </span>
+              </Link>
+            )}
           </section>
         ))}
       </div>

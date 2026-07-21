@@ -70,6 +70,7 @@ model User {
   favorites       UserFavorite[]
   projectFollows  ProjectFollow[]
   lessonProgress  LessonProgress[]
+  quizAttempts    QuizAttempt[]
 
   @@index([email])
   @@index([status])
@@ -414,8 +415,10 @@ model CourseModule {
   position Int
 
   // Relations
-  course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  lessons Lesson[]
+  course        Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons       Lesson[]
+  quizQuestions QuizQuestion[]
+  quizAttempts  QuizAttempt[]
 
   @@unique([courseId, position])
   @@index([courseId])
@@ -474,4 +477,45 @@ model KnowledgeCheck {
 
   @@unique([lessonId, position])
   @@index([lessonId])
+}
+
+// =============================================================================
+// MODULE QUIZZES (graded, ADR-010 phase 2)
+// Unlike KnowledgeCheck (ungraded per-lesson learning aids), quiz questions
+// attach to a module and are graded server-side: members get two attempts,
+// pass at >=70%, and are marked failed (but move on) after a second miss.
+// =============================================================================
+
+model QuizQuestion {
+  id           String  @id @default(cuid())
+  moduleId     String
+  position     Int
+  question     String
+  options      Json    // string[] of answer choices
+  correctIndex Int     // never sent to clients until the quiz is finished
+  explanation  String?
+
+  // Relations
+  module CourseModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@unique([moduleId, position])
+  @@index([moduleId])
+}
+
+model QuizAttempt {
+  id        String   @id @default(cuid())
+  userId    String
+  moduleId  String
+  answers   Json     // number[] aligned to question positions
+  score     Int
+  total     Int
+  passed    Boolean
+  createdAt DateTime @default(now())
+
+  // Relations
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  module CourseModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@index([userId, moduleId])
+  @@index([moduleId])
 }

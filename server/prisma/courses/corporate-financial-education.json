@@ -45,6 +45,41 @@
           ],
           "bodyFile": "lessons/m1l2-how-to-read-your-company-s-financial-reports.md"
         }
+      ],
+      "quiz": [
+        {
+          "question": "Which three reports make up the \"Magic Three\"?",
+          "options": [
+            "Balance Sheet, Profit & Loss Statement, and Statement of Cash Flows",
+            "Budget, Sales Forecast, and Tax Return",
+            "Invoice Ledger, Payroll Report, and Bank Statement",
+            "Income Projection, Expense Log, and Receipt Book"
+          ],
+          "correctIndex": 0,
+          "explanation": "The Balance Sheet, Profit & Loss Statement, and Statement of Cash Flows work together to illuminate the true health of your company."
+        },
+        {
+          "question": "At its core, corporate finance is about:",
+          "options": [
+            "Filing your company's taxes correctly",
+            "Getting the money your company needs and managing it effectively",
+            "Choosing the right bank",
+            "Setting the prices of your products"
+          ],
+          "correctIndex": 1,
+          "explanation": "Every company needs money to operate and generate revenue — corporate finance is the key to getting that money and managing it effectively."
+        },
+        {
+          "question": "Why do your company's financial reports matter for decision-making?",
+          "options": [
+            "They provide evidence, so you know for certain how your business operates rather than having an idea",
+            "They are only needed when applying for loans",
+            "They replace the need for a business plan",
+            "They are mainly for impressing customers"
+          ],
+          "correctIndex": 0,
+          "explanation": "Financial reports provide the evidence that supports your decisions — knowing for certain versus having an idea of the current state of your company."
+        }
       ]
     },
     {

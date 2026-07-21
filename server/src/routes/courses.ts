@@ -14,10 +14,23 @@ interface LessonParams {
   lessonId: string;
 }
 
+interface ModuleParams {
+  moduleId: string;
+}
+
 interface ProgressBody {
   lastSlide?: number;
   completed?: boolean;
 }
+
+interface QuizAttemptBody {
+  answers?: number[];
+}
+
+// Module quizzes: two attempts, pass at >=70%. A second miss marks the module
+// "failed" and the member simply moves on — outcomes are recorded, not gates.
+const QUIZ_MAX_ATTEMPTS = 2;
+const QUIZ_PASS_RATIO = 0.7;
 
 // =============================================================================
 // COURSES ROUTES (LMS-lite, ADR-010)
@@ -142,6 +155,7 @@ export async function coursesRoutes(app: FastifyInstance) {
               id: true,
               title: true,
               position: true,
+              _count: { select: { quizQuestions: true } },
               lessons: {
                 orderBy: { position: "asc" },
                 select: {
@@ -167,6 +181,30 @@ export async function coursesRoutes(app: FastifyInstance) {
       });
       const progressByLesson = new Map(progress.map((p) => [p.lessonId, p]));
 
+      // Per-module quiz state for the outline badges
+      const quizModuleIds = course.modules
+        .filter((m) => m._count.quizQuestions > 0)
+        .map((m) => m.id);
+      const quizAttempts = quizModuleIds.length
+        ? await prisma.quizAttempt.findMany({
+            where: { userId: user.id, moduleId: { in: quizModuleIds } },
+            select: { moduleId: true, passed: true },
+          })
+        : [];
+      const quizStateByModule = new Map<
+        string,
+        { attemptsUsed: number; passed: boolean }
+      >();
+      for (const a of quizAttempts) {
+        const s = quizStateByModule.get(a.moduleId) ?? {
+          attemptsUsed: 0,
+          passed: false,
+        };
+        s.attemptsUsed += 1;
+        s.passed = s.passed || a.passed;
+        quizStateByModule.set(a.moduleId, s);
+      }
+
       // Resume target: first lesson that isn't completed, in course order.
       const firstIncomplete = course.modules
         .flatMap((m) => m.lessons)
@@ -183,6 +221,22 @@ export async function coursesRoutes(app: FastifyInstance) {
             id: m.id,
             title: m.title,
             position: m.position,
+            quiz:
+              m._count.quizQuestions > 0
+                ? (() => {
+                    const s = quizStateByModule.get(m.id);
+                    return {
+                      questionCount: m._count.quizQuestions,
+                      attemptsUsed: s?.attemptsUsed ?? 0,
+                      maxAttempts: QUIZ_MAX_ATTEMPTS,
+                      status: s?.passed
+                        ? "passed"
+                        : (s?.attemptsUsed ?? 0) >= QUIZ_MAX_ATTEMPTS
+                          ? "failed"
+                          : "pending",
+                    };
+                  })()
+                : null,
             lessons: m.lessons.map((l) => {
               const p = progressByLesson.get(l.id);
               return {
@@ -356,6 +410,166 @@ export async function coursesRoutes(app: FastifyInstance) {
       });
 
       return reply.status(200).send({ progress });
+    }
+  );
+
+  // ---------------------------------------------------------------------------
+  // GET /api/courses/:slug/modules/:moduleId/quiz
+  // The module quiz + the member's attempt state. Correct answers and
+  // explanations are only included once the quiz is finished (passed, or out
+  // of attempts) — otherwise attempt two would be an answer key.
+  // ---------------------------------------------------------------------------
+  app.get<{ Params: SlugParams & ModuleParams }>(
+    "/:slug/modules/:moduleId/quiz",
+    { preHandler: authAndApproved() },
+    async (request, reply) => {
+      const user = request.user!;
+      const { slug, moduleId } = request.params;
+
+      const courseModule = await prisma.courseModule.findUnique({
+        where: { id: moduleId },
+        select: {
+          id: true,
+          title: true,
+          course: { select: { slug: true, isPublished: true } },
+          quizQuestions: {
+            orderBy: { position: "asc" },
+            select: {
+              id: true,
+              question: true,
+              options: true,
+              correctIndex: true,
+              explanation: true,
+            },
+          },
+        },
+      });
+
+      if (
+        !courseModule ||
+        courseModule.course.slug !== slug ||
+        !courseModule.course.isPublished ||
+        courseModule.quizQuestions.length === 0
+      ) {
+        return reply.status(404).send({ error: "Quiz not found" });
+      }
+
+      const attempts = await prisma.quizAttempt.findMany({
+        where: { userId: user.id, moduleId },
+        orderBy: { createdAt: "asc" },
+        select: { score: true, total: true, passed: true, createdAt: true },
+      });
+
+      const passed = attempts.some((a) => a.passed);
+      const finished = passed || attempts.length >= QUIZ_MAX_ATTEMPTS;
+      const status = passed
+        ? "passed"
+        : attempts.length >= QUIZ_MAX_ATTEMPTS
+          ? "failed"
+          : "pending";
+
+      return reply.status(200).send({
+        quiz: {
+          moduleId: courseModule.id,
+          moduleTitle: courseModule.title,
+          status,
+          attemptsUsed: attempts.length,
+          maxAttempts: QUIZ_MAX_ATTEMPTS,
+          attempts,
+          questions: courseModule.quizQuestions.map((q) => ({
+            id: q.id,
+            question: q.question,
+            options: q.options,
+            ...(finished
+              ? { correctIndex: q.correctIndex, explanation: q.explanation }
+              : {}),
+          })),
+        },
+      });
+    }
+  );
+
+  // ---------------------------------------------------------------------------
+  // POST /api/courses/:slug/modules/:moduleId/quiz/attempts
+  // Grade a submission server-side and record the attempt.
+  // ---------------------------------------------------------------------------
+  app.post<{ Params: SlugParams & ModuleParams; Body: QuizAttemptBody }>(
+    "/:slug/modules/:moduleId/quiz/attempts",
+    { preHandler: authAndApproved() },
+    async (request, reply) => {
+      const user = request.user!;
+      const { slug, moduleId } = request.params;
+      const { answers } = request.body ?? {};
+
+      const courseModule = await prisma.courseModule.findUnique({
+        where: { id: moduleId },
+        select: {
+          course: { select: { slug: true, isPublished: true } },
+          quizQuestions: {
+            orderBy: { position: "asc" },
+            select: { correctIndex: true, explanation: true },
+          },
+        },
+      });
+
+      if (
+        !courseModule ||
+        courseModule.course.slug !== slug ||
+        !courseModule.course.isPublished ||
+        courseModule.quizQuestions.length === 0
+      ) {
+        return reply.status(404).send({ error: "Quiz not found" });
+      }
+
+      const questions = courseModule.quizQuestions;
+      if (
+        !Array.isArray(answers) ||
+        answers.length !== questions.length ||
+        answers.some((a) => !Number.isInteger(a) || a < 0)
+      ) {
+        return reply
+          .status(400)
+          .send({ error: `Expected ${questions.length} answers` });
+      }
+
+      const prior = await prisma.quizAttempt.findMany({
+        where: { userId: user.id, moduleId },
+        select: { passed: true },
+      });
+      if (prior.some((a) => a.passed)) {
+        return reply.status(409).send({ error: "Quiz already passed" });
+      }
+      if (prior.length >= QUIZ_MAX_ATTEMPTS) {
+        return reply.status(409).send({ error: "No attempts remaining" });
+      }
+
+      const results = questions.map((q, i) => ({
+        correct: answers[i] === q.correctIndex,
+      }));
+      const score = results.filter((r) => r.correct).length;
+      const total = questions.length;
+      const passed = score >= Math.ceil(total * QUIZ_PASS_RATIO);
+      const finished = passed || prior.length + 1 >= QUIZ_MAX_ATTEMPTS;
+
+      await prisma.quizAttempt.create({
+        data: { userId: user.id, moduleId, answers, score, total, passed },
+      });
+
+      return reply.status(201).send({
+        attempt: { attemptNumber: prior.length + 1, score, total, passed },
+        results,
+        status: passed ? "passed" : finished ? "failed" : "pending",
+        finished,
+        // Reveal the answer key only when the quiz is over
+        ...(finished
+          ? {
+              answerKey: questions.map((q) => ({
+                correctIndex: q.correctIndex,
+                explanation: q.explanation,
+              })),
+            }
+          : {}),
+      });
     }
   );
 }

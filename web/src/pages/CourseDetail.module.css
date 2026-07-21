@@ -151,3 +151,62 @@
     display: none;
   }
 }
+
+/* Module quiz row */
+.quizRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  background-color: var(--color-ink-light);
+  border: 1px solid var(--color-border);
+  padding: var(--space-4) var(--space-5);
+  margin-top: var(--space-2);
+  text-decoration: none;
+  transition: transform var(--transition-fast);
+}
+
+.quizRow:hover {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+.quizBadge,
+.quizBadgePassed,
+.quizBadgeFailed {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-sm);
+}
+
+.quizBadge {
+  border: 1px solid var(--color-border-light);
+  color: var(--color-text-secondary);
+}
+
+.quizBadgePassed {
+  background-color: #2c5541;
+  color: #7fd8ab;
+}
+
+.quizBadgeFailed {
+  background-color: #55302c;
+  color: #e08a84;
+}
+
+.quizTitle {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-base);
+  color: var(--color-text-primary);
+}
+
+.quizMeta {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}

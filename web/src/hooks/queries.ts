@@ -21,6 +21,7 @@ import {
   billing as billingApi,
   admin as adminApi,
   courses as coursesApi,
+  quizzes as quizzesApi,
 } from "../lib/api";
 
 // Taxonomy and category lists are effectively static reference data; keep them
@@ -76,6 +77,8 @@ export const queryKeys = {
     detail: (slug: string) => ["courses", "detail", slug] as const,
     lesson: (slug: string, lessonId: string) =>
       ["courses", "lesson", slug, lessonId] as const,
+    quiz: (slug: string, moduleId: string) =>
+      ["courses", "quiz", slug, moduleId] as const,
   },
   admin: {
     pendingProfiles: ["admin", "profiles", "pending"] as const,
@@ -450,6 +453,27 @@ export function useUpdateLessonProgress(slug: string) {
     onSettled: () => {
       qc.invalidateQueries({ queryKey: queryKeys.courses.detail(slug) });
       qc.invalidateQueries({ queryKey: queryKeys.courses.list });
+    },
+  });
+}
+
+export function useModuleQuiz(slug: string, moduleId: string) {
+  return useQuery({
+    queryKey: queryKeys.courses.quiz(slug, moduleId),
+    queryFn: () => quizzesApi.get(slug, moduleId).then((d) => d.quiz),
+    enabled: !!slug && !!moduleId,
+  });
+}
+
+// Grading happens server-side; refetch the quiz (answer key may now be
+// revealed) and the outline (status badge) after every submission.
+export function useSubmitQuizAttempt(slug: string, moduleId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (answers: number[]) => quizzesApi.submit(slug, moduleId, answers),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.courses.quiz(slug, moduleId) });
+      qc.invalidateQueries({ queryKey: queryKeys.courses.detail(slug) });
     },
   });
 }

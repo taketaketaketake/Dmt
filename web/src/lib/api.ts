@@ -22,6 +22,8 @@ import type {
   CourseOutline,
   LessonContent,
   LessonProgressResult,
+  ModuleQuiz,
+  QuizSubmitResult,
 } from "../data/types";
 
 // Base URL - in dev, proxy handles this; in prod, same origin
@@ -636,5 +638,17 @@ export const courses = {
     request<{ progress: LessonProgressResult }>(
       `/api/courses/lessons/${lessonId}/progress`,
       { method: "PUT", body: JSON.stringify(data) }
+    ),
+};
+
+// Module quizzes (graded, two attempts)
+export const quizzes = {
+  get: (slug: string, moduleId: string) =>
+    request<{ quiz: ModuleQuiz }>(`/api/courses/${slug}/modules/${moduleId}/quiz`),
+
+  submit: (slug: string, moduleId: string, answers: number[]) =>
+    request<QuizSubmitResult>(
+      `/api/courses/${slug}/modules/${moduleId}/quiz/attempts`,
+      { method: "POST", body: JSON.stringify({ answers }) }
     ),
 };

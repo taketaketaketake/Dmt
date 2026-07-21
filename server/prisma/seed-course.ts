@@ -42,6 +42,8 @@ interface ManifestLesson {
 interface ManifestModule {
   title: string;
   lessons: ManifestLesson[];
+  /** Graded module quiz (2 attempts, pass >=70%). */
+  quiz?: ManifestCheck[];
 }
 
 interface CourseManifest {
@@ -140,6 +142,25 @@ async function main() {
 
     await prisma.lesson.deleteMany({
       where: { moduleId: courseModule.id, position: { gte: mod.lessons.length } },
+    });
+
+    // Module quiz (graded) — same upsert-by-position pattern
+    const quiz = mod.quiz ?? [];
+    for (const [qi, q] of quiz.entries()) {
+      const quizData = {
+        question: q.question,
+        options: q.options,
+        correctIndex: q.correctIndex,
+        explanation: q.explanation ?? null,
+      };
+      await prisma.quizQuestion.upsert({
+        where: { moduleId_position: { moduleId: courseModule.id, position: qi } },
+        update: quizData,
+        create: { ...quizData, moduleId: courseModule.id, position: qi },
+      });
+    }
+    await prisma.quizQuestion.deleteMany({
+      where: { moduleId: courseModule.id, position: { gte: quiz.length } },
     });
   }
 
