@@ -5,6 +5,7 @@ import remarkGfm from "remark-gfm";
 import type { KnowledgeCheckItem, LessonContent } from "../../data/types";
 import { BreakevenCalculator } from "./BreakevenCalculator";
 import { KnowledgeChecks } from "./KnowledgeChecks";
+import { Cards, Compare, Formula, Reveal } from "./DeckBlocks";
 import styles from "./LessonDeck.module.css";
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -14,28 +15,124 @@ import styles from "./LessonDeck.module.css";
    Arrow keys / dots / chevrons navigate; F toggles fullscreen.
    ──────────────────────────────────────────────────────────────────────────── */
 
+// A section screen is a sequence of blocks; blocks reveal one at a time as
+// the member presses → ("builds"), so dense content paces itself.
+export type DeckBlock =
+  | { type: "md"; md: string }
+  | { type: "cards"; items: string[] }
+  | { type: "compare"; columns: { title: string; md: string }[] }
+  | { type: "formula"; text: string }
+  | { type: "reveal"; question: string; md: string };
+
 export type DeckStep =
   | { kind: "title" }
-  | { kind: "section"; heading: string | null; md: string }
+  | { kind: "section"; heading: string | null; blocks: DeckBlock[] }
   | { kind: "widget"; name: string; arg?: string }
   | { kind: "image"; url: string; index: number; total: number }
   | { kind: "finish" };
 
-const WIDGET_LINE = /^:::([a-z]+)(?:[ \t]+(\S+))?[ \t]*$/;
+// Step-level widgets (a whole screen of their own)
+const WIDGET_LINE = /^:::(calculator|checks)(?:[ \t]+(\S+))?[ \t]*$/;
+// Fenced display blocks (rendered inside a section, closed by ":::")
+const FENCE_OPEN = /^:::(cards|compare|formula|reveal)(?:[ \t]+(.+))?$/;
+const FENCE_CLOSE = /^:::[ \t]*$/;
 
-function parseNativeSteps(body: string): DeckStep[] {
+function parseFence(name: string, arg: string | undefined, lines: string[]): DeckBlock {
+  const content = lines.join("\n").trim();
+  switch (name) {
+    case "cards": {
+      // Each top-level bullet is a card; nested lines stay with their card
+      const items: string[] = [];
+      for (const line of lines) {
+        if (/^- /.test(line)) items.push(line.slice(2));
+        else if (items.length && line.trim()) items[items.length - 1] += "\n" + line;
+      }
+      return { type: "cards", items };
+    }
+    case "compare": {
+      const columns: { title: string; md: string }[] = [];
+      for (const line of lines) {
+        const h = line.match(/^###[ \t]+(.+)$/);
+        if (h) columns.push({ title: h[1].trim(), md: "" });
+        else if (columns.length) columns[columns.length - 1].md += line + "\n";
+      }
+      return { type: "compare", columns };
+    }
+    case "reveal":
+      return { type: "reveal", question: arg ?? "Reveal", md: content };
+    default:
+      return { type: "formula", text: content };
+  }
+}
+
+/** Split section markdown into reveal units: each top-level bullet (with its
+ *  nested children) is one unit; contiguous non-list lines are one unit. */
+function toBlocks(lines: string[]): DeckBlock[] {
+  const blocks: DeckBlock[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    const fence = line.match(FENCE_OPEN);
+    if (fence) {
+      const inner: string[] = [];
+      i++;
+      while (i < lines.length && !FENCE_CLOSE.test(lines[i])) inner.push(lines[i++]);
+      i++; // closing :::
+      blocks.push(parseFence(fence[1], fence[2]?.trim(), inner));
+      continue;
+    }
+    if (!line.trim()) {
+      i++;
+      continue;
+    }
+    if (/^- /.test(line)) {
+      // Bullet + any indented continuation/children
+      const unit = [line];
+      i++;
+      while (i < lines.length && /^\s+\S/.test(lines[i])) unit.push(lines[i++]);
+      blocks.push({ type: "md", md: unit.join("\n") });
+      continue;
+    }
+    // Paragraph / blockquote run
+    const unit = [line];
+    i++;
+    while (
+      i < lines.length &&
+      lines[i].trim() &&
+      !/^- /.test(lines[i]) &&
+      !FENCE_OPEN.test(lines[i])
+    ) {
+      unit.push(lines[i++]);
+    }
+    blocks.push({ type: "md", md: unit.join("\n") });
+  }
+  return blocks;
+}
+
+export function parseNativeSteps(body: string): DeckStep[] {
   const steps: DeckStep[] = [{ kind: "title" }];
   let heading: string | null = null;
   let buffer: string[] = [];
+  let inFence = false;
 
   const flush = () => {
-    const md = buffer.join("\n").trim();
-    if (md || heading) steps.push({ kind: "section", heading, md });
+    const blocks = toBlocks(buffer);
+    if (blocks.length || heading) steps.push({ kind: "section", heading, blocks });
     buffer = [];
     heading = null;
   };
 
   for (const line of body.split("\n")) {
+    if (inFence) {
+      buffer.push(line);
+      if (FENCE_CLOSE.test(line)) inFence = false;
+      continue;
+    }
+    if (FENCE_OPEN.test(line)) {
+      inFence = true;
+      buffer.push(line);
+      continue;
+    }
     const widget = line.match(WIDGET_LINE);
     if (widget) {
       flush();
@@ -135,6 +232,9 @@ export function LessonDeck({
     const last = steps.length - 1;
     return initialStep > 0 && initialStep < last ? initialStep : 0;
   });
+  // How many blocks of the current section are visible ("builds"). Sequential
+  // → reveals one block at a time; jumps/back arrivals show everything.
+  const [revealed, setRevealed] = useState<number>(Infinity);
 
   const checksPlacedInline = useMemo(
     () => (lesson.body ?? "").split("\n").some((l) => l.match(WIDGET_LINE)?.[1] === "checks"),
@@ -147,10 +247,31 @@ export function LessonDeck({
     (next: number) => {
       if (next < 0 || next >= steps.length) return;
       setStep(next);
+      setRevealed(Infinity); // jumping straight to a screen shows all of it
       onStepChange(next);
     },
     [steps.length, onStepChange]
   );
+
+  const currentBlockCount =
+    steps[Math.min(step, steps.length - 1)]?.kind === "section"
+      ? (steps[Math.min(step, steps.length - 1)] as Extract<DeckStep, { kind: "section" }>)
+          .blocks.length
+      : 1;
+
+  // Forward navigation: reveal the next block if any remain, else next step
+  // (which starts built from its first block).
+  const advance = useCallback(() => {
+    if (revealed < currentBlockCount) {
+      setRevealed((r) => r + 1);
+      return;
+    }
+    const next = step + 1;
+    if (next >= steps.length) return;
+    setStep(next);
+    setRevealed(1);
+    onStepChange(next);
+  }, [revealed, currentBlockCount, step, steps.length, onStepChange]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -158,7 +279,7 @@ export function LessonDeck({
       if (["INPUT", "TEXTAREA", "BUTTON", "AUDIO"].includes(target.tagName)) return;
       if (e.key === "ArrowRight" || e.key === " ") {
         e.preventDefault();
-        goTo(step + 1);
+        advance();
       }
       if (e.key === "ArrowLeft") {
         e.preventDefault();
@@ -176,7 +297,7 @@ export function LessonDeck({
       window.removeEventListener("keydown", onKey);
       document.removeEventListener("fullscreenchange", onFs);
     };
-  }, [step, goTo]);
+  }, [step, goTo, advance]);
 
   const current = steps[Math.min(step, steps.length - 1)];
 
@@ -210,16 +331,38 @@ export function LessonDeck({
             </p>
           </div>
         );
-      case "section":
+      case "section": {
+        const visible = s.blocks.slice(0, Math.max(1, revealed));
+        const remaining = s.blocks.length - visible.length;
         return (
           <div className={styles.sectionStep}>
             <p className={styles.kicker}>{moduleTitle}</p>
             {s.heading && <h2 className={styles.sectionHeading}>{s.heading}</h2>}
-            <div className={styles.markdown}>
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{s.md}</ReactMarkdown>
-            </div>
+            {visible.map((b, i) => (
+              <div key={i} className={styles.unit}>
+                {b.type === "md" ? (
+                  <div className={styles.markdown}>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{b.md}</ReactMarkdown>
+                  </div>
+                ) : b.type === "cards" ? (
+                  <Cards items={b.items} />
+                ) : b.type === "compare" ? (
+                  <Compare columns={b.columns} />
+                ) : b.type === "formula" ? (
+                  <Formula text={b.text} />
+                ) : (
+                  <Reveal question={b.question} md={b.md} />
+                )}
+              </div>
+            ))}
+            {remaining > 0 && (
+              <button type="button" className={styles.moreHint} onClick={advance}>
+                → {remaining} more
+              </button>
+            )}
           </div>
         );
+      }
       case "widget":
         return (
           <div className={styles.sectionStep}>
@@ -389,8 +532,8 @@ export function LessonDeck({
           <button
             type="button"
             className={styles.chevron}
-            onClick={() => goTo(step + 1)}
-            disabled={step >= steps.length - 1}
+            onClick={advance}
+            disabled={step >= steps.length - 1 && revealed >= currentBlockCount}
           >
             →
           </button>
