@@ -139,6 +139,21 @@ export interface NeedInput {
 // COURSES (ADR-010)
 // =============================================================================
 
+// Public curriculum preview (marketing landing page) — titles only, no ids
+// or media so nothing gated leaks to unauthenticated visitors.
+export interface PublicCourseModule {
+  title: string;
+  lessons: { title: string }[];
+}
+
+export interface PublicCourse {
+  slug: string;
+  title: string;
+  description?: string | null;
+  lessonCount: number;
+  modules: PublicCourseModule[];
+}
+
 export interface CourseListItem {
   id: string;
   slug: string;

@@ -71,6 +71,7 @@ export const queryKeys = {
     status: ["billing", "status"] as const,
   },
   courses: {
+    publicList: ["courses", "public"] as const,
     list: ["courses", "list"] as const,
     detail: (slug: string) => ["courses", "detail", slug] as const,
     lesson: (slug: string, lessonId: string) =>
@@ -400,6 +401,14 @@ export function useAdminStats(options?: Partial<UseQueryOptions<Awaited<ReturnTy
 // -----------------------------------------------------------------------------
 // COURSES (ADR-010)
 // -----------------------------------------------------------------------------
+
+// Unauthenticated curriculum preview for the public landing page
+export function usePublicCourses() {
+  return useQuery({
+    queryKey: queryKeys.courses.publicList,
+    queryFn: () => coursesApi.publicList().then((d) => d.courses),
+  });
+}
 
 export function useCoursesList() {
   return useQuery({

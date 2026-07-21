@@ -8,6 +8,7 @@ import { Shell, RequireApproved } from "./components/layout";
 // regular members). The barrel files export named components, so map each to a
 // default export for React.lazy.
 const LoginPage = lazy(() => import("./pages/Login").then((m) => ({ default: m.LoginPage })));
+const FounderSeriesPage = lazy(() => import("./pages/FounderSeries").then((m) => ({ default: m.FounderSeriesPage })));
 const PeoplePage = lazy(() => import("./pages/People").then((m) => ({ default: m.PeoplePage })));
 const PersonDetailPage = lazy(() => import("./pages/PersonDetail").then((m) => ({ default: m.PersonDetailPage })));
 const ProjectsPage = lazy(() => import("./pages/Projects").then((m) => ({ default: m.ProjectsPage })));
@@ -61,6 +62,7 @@ function App() {
         <Routes>
           {/* Public routes */}
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/founder-series" element={<FounderSeriesPage />} />
 
           {/* Authenticated routes */}
           <Route element={<Shell isAuthenticated={isAuthenticated} />}>

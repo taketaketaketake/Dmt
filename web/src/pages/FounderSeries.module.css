@@ -1,0 +1,411 @@
+/* =============================================================================
+   FOUNDER EDUCATION SERIES LANDING PAGE
+   Public marketing page - editorial, single column, dark ink with paper cards
+   ============================================================================= */
+
+.page {
+  min-height: 100vh;
+  padding: var(--space-6);
+}
+
+.container {
+  width: 100%;
+  max-width: var(--max-width-narrow);
+  margin: 0 auto;
+}
+
+/* -----------------------------------------------------------------------------
+   HERO
+   ----------------------------------------------------------------------------- */
+
+.hero {
+  text-align: center;
+  padding: var(--space-20) 0 var(--space-16);
+}
+
+.eyebrow {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  letter-spacing: var(--tracking-widest);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-4);
+}
+
+.heroTitle {
+  font-size: var(--text-5xl);
+  font-weight: var(--font-bold);
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-tight);
+  margin-bottom: var(--space-6);
+}
+
+.heroLede {
+  font-size: var(--text-lg);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+  max-width: 540px;
+  margin: 0 auto var(--space-8);
+}
+
+.heroCta {
+  display: inline-block;
+  background-color: var(--color-paper);
+  color: var(--color-text-on-paper);
+  padding: var(--space-3) var(--space-8);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: opacity var(--transition-fast);
+}
+
+.heroCta:hover {
+  opacity: 0.85;
+}
+
+/* -----------------------------------------------------------------------------
+   SECTIONS
+   ----------------------------------------------------------------------------- */
+
+.section {
+  padding: var(--space-12) 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.sectionTitle {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-semibold);
+  letter-spacing: var(--tracking-tight);
+  margin-bottom: var(--space-8);
+}
+
+.sectionNote {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+/* -----------------------------------------------------------------------------
+   CURRICULUM
+   ----------------------------------------------------------------------------- */
+
+.courseList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.courseCard {
+  background-color: var(--color-paper);
+  color: var(--color-text-on-paper);
+  padding: var(--space-8);
+}
+
+.courseHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-2);
+}
+
+.courseTitle {
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+}
+
+.courseMeta {
+  font-size: var(--text-sm);
+  color: var(--color-text-on-paper-secondary);
+  white-space: nowrap;
+}
+
+.courseDescription {
+  font-size: var(--text-base);
+  color: var(--color-text-on-paper-secondary);
+  line-height: var(--leading-relaxed);
+  margin-bottom: var(--space-6);
+}
+
+.moduleList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  margin: 0;
+  padding: 0;
+}
+
+.module {
+  border-top: 1px solid var(--color-border-on-paper);
+  padding-top: var(--space-4);
+}
+
+.moduleTitle {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  margin-bottom: var(--space-3);
+}
+
+.lessonList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.lesson {
+  font-size: var(--text-base);
+  color: var(--color-text-on-paper-secondary);
+  line-height: var(--leading-snug);
+}
+
+/* -----------------------------------------------------------------------------
+   HOW IT WORKS
+   ----------------------------------------------------------------------------- */
+
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.step {
+  display: flex;
+  gap: var(--space-5);
+  align-items: flex-start;
+}
+
+.stepNumber {
+  flex-shrink: 0;
+  width: var(--space-10);
+  height: var(--space-10);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border-light);
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+}
+
+.stepTitle {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--space-2);
+}
+
+.stepBody {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+/* -----------------------------------------------------------------------------
+   REQUEST ACCESS
+   ----------------------------------------------------------------------------- */
+
+.requestSection {
+  padding: var(--space-12) 0;
+  border-top: 1px solid var(--color-border);
+  /* Anchor target: keep the card clear of the viewport edge after a jump */
+  scroll-margin-top: var(--space-8);
+}
+
+.card {
+  background-color: var(--color-paper);
+  color: var(--color-text-on-paper);
+  padding: var(--space-8);
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.cardTitle {
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--space-2);
+}
+
+.cardDescription {
+  font-size: var(--text-sm);
+  color: var(--color-text-on-paper-secondary);
+  margin-bottom: var(--space-6);
+  line-height: var(--leading-relaxed);
+}
+
+.cardCta {
+  display: inline-block;
+  background-color: var(--color-text-on-paper);
+  color: var(--color-paper);
+  padding: var(--space-3) var(--space-6);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: opacity var(--transition-fast);
+}
+
+.cardCta:hover {
+  opacity: 0.85;
+}
+
+/* -----------------------------------------------------------------------------
+   FORM
+   ----------------------------------------------------------------------------- */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.labelText {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-on-paper);
+}
+
+.input {
+  background-color: white;
+  border: 1px solid var(--color-border-on-paper);
+  color: var(--color-text-on-paper);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-base);
+}
+
+.input::placeholder {
+  color: var(--color-text-on-paper-secondary);
+  opacity: 0.6;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-text-on-paper);
+}
+
+.input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.submitButton {
+  background-color: var(--color-text-on-paper);
+  color: var(--color-paper);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  border: none;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.submitButton:hover {
+  opacity: 0.85;
+}
+
+.submitButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error {
+  font-size: var(--text-sm);
+  color: #c53030;
+  margin: 0;
+}
+
+.textAction {
+  font-size: var(--text-sm);
+  color: var(--color-text-on-paper-secondary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.textAction:hover {
+  color: var(--color-text-on-paper);
+}
+
+/* -----------------------------------------------------------------------------
+   FOOTER
+   ----------------------------------------------------------------------------- */
+
+.footer {
+  padding: var(--space-10) 0 var(--space-16);
+  border-top: 1px solid var(--color-border);
+  text-align: center;
+}
+
+.footerText {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.footerLink {
+  color: var(--color-text-secondary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.footerLink:hover {
+  color: var(--color-text-primary);
+}
+
+/* -----------------------------------------------------------------------------
+   RESPONSIVE
+   ----------------------------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  .page {
+    padding: var(--space-4);
+  }
+
+  .hero {
+    padding: var(--space-12) 0 var(--space-10);
+  }
+
+  .heroTitle {
+    font-size: var(--text-3xl);
+  }
+
+  .heroLede {
+    font-size: var(--text-base);
+  }
+
+  .section,
+  .requestSection {
+    padding: var(--space-8) 0;
+  }
+
+  .courseCard,
+  .card {
+    padding: var(--space-5);
+  }
+
+  .courseHeader {
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+}

@@ -17,6 +17,7 @@ import type {
   NeedInput,
   SkillTag,
   CategoryTag,
+  PublicCourse,
   CourseListItem,
   CourseOutline,
   LessonContent,
@@ -617,6 +618,9 @@ export const uploads = {
 // =============================================================================
 
 export const courses = {
+  // Unauthenticated curriculum preview for the landing page
+  publicList: () => request<{ courses: PublicCourse[] }>("/api/courses/public"),
+
   list: () => request<{ courses: CourseListItem[] }>("/api/courses"),
 
   get: (slug: string) =>

@@ -94,6 +94,62 @@ describe("Courses Routes", () => {
     });
   });
 
+  describe("GET /api/courses/public", () => {
+    it("returns published curriculum metadata without authentication", async () => {
+      prismaMock.course.findMany.mockResolvedValue([
+        {
+          slug: "founder-series",
+          title: "Founder Basics",
+          description: "Start here",
+          modules: [
+            {
+              title: "Module 1",
+              lessons: [{ title: "Lesson One" }, { title: "Lesson Two" }],
+            },
+          ],
+        },
+      ] as never);
+
+      const response = await app.inject({
+        method: "GET",
+        url: "/api/courses/public",
+      });
+
+      expect(response.statusCode).toBe(200);
+      const { courses } = response.json();
+      // Exact shape: titles and counts only — no ids, bodies, or media URLs
+      expect(courses).toEqual([
+        {
+          slug: "founder-series",
+          title: "Founder Basics",
+          description: "Start here",
+          lessonCount: 2,
+          modules: [
+            {
+              title: "Module 1",
+              lessons: [{ title: "Lesson One" }, { title: "Lesson Two" }],
+            },
+          ],
+        },
+      ]);
+      expect(prismaMock.course.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { isPublished: true } })
+      );
+    });
+
+    it("returns an empty list when nothing is published", async () => {
+      prismaMock.course.findMany.mockResolvedValue([] as never);
+
+      const response = await app.inject({
+        method: "GET",
+        url: "/api/courses/public",
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json().courses).toEqual([]);
+    });
+  });
+
   describe("GET /api/courses/:slug", () => {
     it("404s for an unknown course", async () => {
       authAs();

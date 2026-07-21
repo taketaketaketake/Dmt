@@ -27,6 +27,47 @@ interface ProgressBody {
 
 export async function coursesRoutes(app: FastifyInstance) {
   // ---------------------------------------------------------------------------
+  // GET /api/courses/public
+  // Unauthenticated curriculum preview for the marketing landing page.
+  // Metadata only — course/module/lesson titles and counts. Lesson bodies,
+  // media URLs, and ids stay behind authAndApproved().
+  // ---------------------------------------------------------------------------
+  app.get("/public", async (_request, reply) => {
+    const courses = await prisma.course.findMany({
+      where: { isPublished: true },
+      orderBy: { createdAt: "asc" },
+      select: {
+        slug: true,
+        title: true,
+        description: true,
+        modules: {
+          orderBy: { position: "asc" },
+          select: {
+            title: true,
+            lessons: {
+              orderBy: { position: "asc" },
+              select: { title: true },
+            },
+          },
+        },
+      },
+    });
+
+    return reply.status(200).send({
+      courses: courses.map((c) => ({
+        slug: c.slug,
+        title: c.title,
+        description: c.description,
+        lessonCount: c.modules.reduce((n, m) => n + m.lessons.length, 0),
+        modules: c.modules.map((m) => ({
+          title: m.title,
+          lessons: m.lessons.map((l) => ({ title: l.title })),
+        })),
+      })),
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // GET /api/courses
   // List published courses with the member's progress summary
   // ---------------------------------------------------------------------------
