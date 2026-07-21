@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../contexts";
 import { usePublicCourses } from "../hooks/queries";
-import { branding } from "../config/branding";
+import { useBranding } from "../hooks/useBranding";
 import { usePageTitle } from "../hooks/usePageTitle";
 import styles from "./FounderSeries.module.css";
 
@@ -12,6 +12,7 @@ import styles from "./FounderSeries.module.css";
 // (and, later, payment) — so the copy promises a review, not instant access.
 export function FounderSeriesPage() {
   usePageTitle("Founder Education Series");
+  const branding = useBranding();
   const { login, isAuthenticated } = useAuth();
   const { data: courses = [], isPending, error } = usePublicCourses();
 

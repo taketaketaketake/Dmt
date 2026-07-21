@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../../contexts";
-import { branding } from "../../config/branding";
+import { useBranding } from "../../hooks/useBranding";
 import styles from "./Header.module.css";
 
 export function Header() {
   const { user } = useAuth();
+  const branding = useBranding();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const closeMenu = () => setMenuOpen(false);

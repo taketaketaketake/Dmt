@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { useAuth } from "./contexts";
+import { useBranding } from "./hooks/useBranding";
 import { Shell, RequireApproved } from "./components/layout";
 
 // Route-level code splitting: each page is its own chunk, loaded on demand so
@@ -48,6 +49,18 @@ function FullPageLoader() {
   return <div style={centeredLoader}>Loading...</div>;
 }
 
+// Applies runtime branding that lives outside the React tree: the favicon.
+// (Titles are handled per-page by usePageTitle.)
+function BrandingEffects() {
+  const branding = useBranding();
+  useEffect(() => {
+    if (!branding.faviconUrl) return;
+    const link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+    if (link) link.href = branding.faviconUrl;
+  }, [branding.faviconUrl]);
+  return null;
+}
+
 function App() {
   const { isAuthenticated, isLoading } = useAuth();
 
@@ -58,6 +71,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <BrandingEffects />
       <Suspense fallback={<FullPageLoader />}>
         <Routes>
           {/* Public routes */}

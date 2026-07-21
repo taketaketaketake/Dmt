@@ -25,6 +25,7 @@ import { uploadRoutes } from "./routes/uploads.js";
 import { needsRoutes } from "./routes/needs.js";
 import { categoryRoutes } from "./routes/categories.js";
 import { coursesRoutes } from "./routes/courses.js";
+import { tenantRoutes } from "./routes/tenant.js";
 
 // =============================================================================
 // BUILD APP
@@ -238,6 +239,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await app.register(needsRoutes, { prefix: "/api/needs" });
   await app.register(categoryRoutes, { prefix: "/api/categories" });
   await app.register(coursesRoutes, { prefix: "/api/courses" });
+  await app.register(tenantRoutes, { prefix: "/api/tenant" });
 
   // Health check
   app.get("/health", async (_request, reply) => {

@@ -17,6 +17,16 @@ vi.mock("../hooks/usePageTitle", () => ({
   usePageTitle: () => {},
 }));
 
+// Mock runtime branding (react-query backed; no provider in these tests)
+vi.mock("../hooks/useBranding", () => ({
+  useBranding: () => ({
+    name: "Social Network",
+    tagline: "A curated archive of builders in Detroit",
+    logoUrl: null,
+    faviconUrl: null,
+  }),
+}));
+
 // Mock CSS modules
 vi.mock("./Login.module.css", () => ({
   default: new Proxy({}, { get: (_target, prop) => String(prop) }),

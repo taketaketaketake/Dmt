@@ -24,6 +24,9 @@ export const env = {
 
   // Branding
   BRAND_NAME,
+  BRAND_TAGLINE: optionalEnv("BRAND_TAGLINE", "A curated archive of builders in Detroit"),
+  BRAND_LOGO_URL: optionalEnv("BRAND_LOGO_URL", ""),
+  BRAND_FAVICON_URL: optionalEnv("BRAND_FAVICON_URL", ""),
 
   // Server
   PORT: parseInt(optionalEnv("PORT", "3000"), 10),
