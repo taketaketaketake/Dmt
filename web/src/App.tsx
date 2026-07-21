@@ -101,8 +101,14 @@ function App() {
             <Route path="users/:id" element={<UserDetailPage />} />
           </Route>
 
-          {/* Default redirect */}
-          <Route path="/" element={<Navigate to="/people" replace />} />
+          {/* Homepage: members land on the directory; visitors get the
+              public Founder Education Series landing page */}
+          <Route
+            path="/"
+            element={
+              isAuthenticated ? <Navigate to="/people" replace /> : <FounderSeriesPage />
+            }
+          />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>
