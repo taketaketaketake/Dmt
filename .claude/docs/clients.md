@@ -8,6 +8,7 @@ begins, and the checklist of what to patch when rolling out fixes across deploym
 |--------|--------|---------|----------|----------------|---------|--------------|---------------|------------|
 | _(default / Detroit)_ | dmt-app-production.up.railway.app | Railway `dmt-app-production` | Railway Postgres | Own (operator) | R2 `dmt-uploads` | dmtisreal.com (Resend) | zach@takedetroit.com | 2025 |
 | Dwimbs | dwimbs-app-production.up.railway.app | Railway project `dwimbs-founder-education`, service `dwimbs-app` | Railway Postgres (same project) | None (billing disabled) | R2 `dmt-uploads` (shared, `courses/` prefix) | dmtisreal.com (Resend, shared) | zach@takedetroit.com (interim) | 2026-07 |
+| Yard Line | courses.yardlinechat.com (pending DNS; yardline-app-production.up.railway.app live) | Railway project `yardline`, service `yardline-app` | Railway Postgres (same project) | None (off-platform SaaS fee) | R2 `dmt-uploads` (shared, `courses/yard-line/` prefix) | dmtisreal.com (Resend, shared) | zach@takedetroit.com (interim) | 2026-07 |
 
 ## Per-client notes
 
@@ -55,6 +56,33 @@ Stripe/R2/Resend accounts.
 - **Phase 2 backlog:** knowledge-check questions (email sent), custom domain, client's own
   email domain, possible AWS migration (client runs AWS infra), Cloudflare Stream if video
   lectures happen
+
+### Yard Line
+
+- **Status:** provisioning (deployed 2026-07-22; awaiting DNS cutover + course content)
+- **Domain:** courses.yardlinechat.com — CNAME `courses` → `1alu47lm.up.railway.app` to be
+  added in the client's Cloudflare DNS (yardlinechat.com zone; set DNS-only/grey cloud so
+  Railway can issue TLS). The apex serves the client's existing Netlify SPA
+  (`facility-family-frontend`) + nurse-app backend — untouched.
+- **Brand:** `BRAND_NAME="Yard Line"`, `BRAND_THEME=yardline` (+ `VITE_*` mirrors) — teal/
+  amber/stone skin from `web/src/styles/themes.css`, system sans. Logo + favicon uploaded
+  to R2 `courses/yard-line/branding/` (source: `facility-family-frontend/public/`);
+  `BRAND_LOGO_URL`/`BRAND_FAVICON_URL` + `VITE_LOGO_URL`/`VITE_FAVICON_URL` set. Tagline is
+  an operator placeholder — swap when the client provides copy.
+- **Content:** skeleton course `yard-line-foundations` seeded, `isPublished: false`
+  (manifest: `server/prisma/courses/yard-line/`). Slug/title TBD with client. Do NOT reuse
+  Dwimbs lesson content (S.I. Williams client IP).
+- **Provisioned:** 2026-07-22 via Railway CLI. `APP_URL=https://courses.yardlinechat.com`
+  (magic-link emails point at the custom domain — login completes only after DNS). Admin
+  bootstrapped: zach@takedetroit.com. No demo-content seeds.
+- **Launch shortcuts in effect (all reversible):** shared Resend/dmtisreal.com sender
+  (`EMAIL_FROM="Yard Line <noreply@dmtisreal.com>"` — nurse-app's onthefloor.app Resend
+  domain is NOT reusable here), shared R2 bucket, Stripe skipped (SaaS fee billed
+  off-platform).
+- **Quirks:** provisioning surfaced the `lesson_audio` migration-ordering bug (fresh DBs
+  couldn't migrate) — fixed in `20260722221654_lesson_audio_fresh_db_ordering`.
+- **Phase 2 backlog:** client email domain, client materials → lessons/checks/quizzes
+  (plan Phase 4), publish course, confirm course slug/title + tagline with client.
 
 ## Course client playbook
 

@@ -164,13 +164,15 @@ Replicate the platform as a new Railway deployment serving courses.yardlinechat.
 
 A phase may be marked COMPLETE only when:
 
-- [ ] `GET https://courses.yardlinechat.com/api/tenant` returns Yard Line branding + `theme: "yardline"`
-- [ ] Landing page renders teal/stone skin with "Yard Line" hero on the custom domain
-- [ ] Magic-link login round-trip as zach@takedetroit.com succeeds; email arrives with Yard Line brand name from the shared sender
-- [ ] Existing yardlinechat.com site unaffected (spot-check the live site)
-- [ ] clients.md registry row committed
+- [x] `GET /api/tenant` returns Yard Line branding + `theme: "yardline"` (verified on yardline-app-production.up.railway.app; custom-domain check pending DNS)
+- [ ] Landing page renders teal/stone skin with "Yard Line" hero on the custom domain — **pending DNS**: CNAME `courses` → `1alu47lm.up.railway.app` to be added manually in Cloudflare (DNS-only/grey cloud)
+- [ ] Magic-link login round-trip — email send verified via `POST /auth/login` (Resend, shared sender); the link targets `APP_URL=https://courses.yardlinechat.com`, so the round-trip completes after DNS
+- [ ] Existing yardlinechat.com site unaffected — no DNS change made yet; spot-check after the CNAME is added
+- [x] clients.md registry row committed
 
-### Status: NOT STARTED
+Provisioning done 2026-07-22: Railway project `yardline` (Postgres + `yardline-app`, nixpacks, `/health` green), full env set (fresh `SESSION_SECRET`, shared R2/Resend, Stripe unset), branding assets on R2, admin bootstrapped (zach@takedetroit.com), skeleton course seeded (unpublished, `/api/courses/public` returns `[]`). Blocker found & fixed en route: `lesson_audio` migration ordering broke fresh-DB deploys (repaired by `20260722221654_lesson_audio_fresh_db_ordering`).
+
+### Status: IN PROGRESS (awaiting manual Cloudflare CNAME, then domain verification)
 
 ---
 
