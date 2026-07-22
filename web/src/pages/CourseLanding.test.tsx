@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { FounderSeriesPage } from "./FounderSeries";
+import { CourseLandingPage } from "./CourseLanding";
 
 // Mock useAuth
 const mockLogin = vi.fn();
@@ -36,7 +36,7 @@ vi.mock("../hooks/useBranding", () => ({
 }));
 
 // Mock CSS modules
-vi.mock("./FounderSeries.module.css", () => ({
+vi.mock("./CourseLanding.module.css", () => ({
   default: new Proxy({}, { get: (_target, prop) => String(prop) }),
 }));
 
@@ -55,7 +55,7 @@ const sampleCourses = [
   },
 ];
 
-describe("FounderSeriesPage", () => {
+describe("CourseLandingPage", () => {
   beforeEach(() => {
     mockLogin.mockReset();
     mockUseAuth.mockReset();
@@ -72,16 +72,19 @@ describe("FounderSeriesPage", () => {
   function renderPage() {
     return render(
       <MemoryRouter>
-        <FounderSeriesPage />
+        <CourseLandingPage />
       </MemoryRouter>
     );
   }
 
-  it("renders the hero and curriculum from the public endpoint", () => {
+  it("renders the branding-driven hero and curriculum from the public endpoint", () => {
     renderPage();
 
     expect(
-      screen.getByRole("heading", { name: /founder education series/i })
+      screen.getByRole("heading", { level: 1, name: "Social Network" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("A curated archive of builders in Detroit")
     ).toBeInTheDocument();
     expect(screen.getByText("Founder Basics")).toBeInTheDocument();
     expect(screen.getByText("Getting Started")).toBeInTheDocument();

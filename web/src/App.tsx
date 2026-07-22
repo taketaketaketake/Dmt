@@ -9,7 +9,7 @@ import { Shell, RequireApproved } from "./components/layout";
 // regular members). The barrel files export named components, so map each to a
 // default export for React.lazy.
 const LoginPage = lazy(() => import("./pages/Login").then((m) => ({ default: m.LoginPage })));
-const FounderSeriesPage = lazy(() => import("./pages/FounderSeries").then((m) => ({ default: m.FounderSeriesPage })));
+const CourseLandingPage = lazy(() => import("./pages/CourseLanding").then((m) => ({ default: m.CourseLandingPage })));
 const PeoplePage = lazy(() => import("./pages/People").then((m) => ({ default: m.PeoplePage })));
 const PersonDetailPage = lazy(() => import("./pages/PersonDetail").then((m) => ({ default: m.PersonDetailPage })));
 const ProjectsPage = lazy(() => import("./pages/Projects").then((m) => ({ default: m.ProjectsPage })));
@@ -145,12 +145,12 @@ function App() {
           </Route>
 
           {/* Homepage: members land on the directory; visitors get the
-              public Founder Education Series landing page (the only public
-              marketing route — there is no separate /founder-series URL) */}
+              public branding-driven course landing page (the only public
+              marketing route) */}
           <Route
             path="/"
             element={
-              isAuthenticated ? <Navigate to="/people" replace /> : <FounderSeriesPage />
+              isAuthenticated ? <Navigate to="/people" replace /> : <CourseLandingPage />
             }
           />
           <Route path="*" element={<NotFoundPage />} />

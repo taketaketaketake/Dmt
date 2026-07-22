@@ -1,5 +1,5 @@
 /* =============================================================================
-   FOUNDER EDUCATION SERIES LANDING PAGE
+   COURSE LANDING PAGE
    Public marketing page - editorial, single column, dark ink with paper cards
    ============================================================================= */
 
@@ -21,15 +21,6 @@
 .hero {
   text-align: center;
   padding: var(--space-20) 0 var(--space-16);
-}
-
-.eyebrow {
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  letter-spacing: var(--tracking-widest);
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-  margin-bottom: var(--space-4);
 }
 
 .heroTitle {

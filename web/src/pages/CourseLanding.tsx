@@ -4,14 +4,16 @@ import { useAuth } from "../contexts";
 import { usePublicCourses } from "../hooks/queries";
 import { useBranding } from "../hooks/useBranding";
 import { usePageTitle } from "../hooks/usePageTitle";
-import styles from "./FounderSeries.module.css";
+import styles from "./CourseLanding.module.css";
 
-// Public marketing page for the Founder Education Series. The CTA reuses the
-// magic-link endpoint: submitting an email creates a pending account and sends
-// a confirmation link, but course access stays gated behind manual approval
-// (and, later, payment) — so the copy promises a review, not instant access.
-export function FounderSeriesPage() {
-  usePageTitle("Founder Education Series");
+// Public marketing page for the deployment's course offering. Fully
+// branding-driven (name/tagline from GET /api/tenant), so the same component
+// serves every client instance. The CTA reuses the magic-link endpoint:
+// submitting an email creates a pending account and sends a confirmation
+// link, but course access stays gated behind manual approval (and, later,
+// payment) — so the copy promises a review, not instant access.
+export function CourseLandingPage() {
+  usePageTitle();
   const branding = useBranding();
   const { login, isAuthenticated } = useAuth();
   const { data: courses = [], isPending, error } = usePublicCourses();
@@ -41,13 +43,10 @@ export function FounderSeriesPage() {
     <div className={styles.page}>
       <div className={styles.container}>
         <header className={styles.hero}>
-          <p className={styles.eyebrow}>{branding.name}</p>
-          <h1 className={styles.heroTitle}>Founder Education Series</h1>
-          <p className={styles.heroLede}>
-            A guided, self-paced curriculum for people starting something —
-            narrated lessons, real examples, and knowledge checks that make
-            the ideas stick.
-          </p>
+          <h1 className={styles.heroTitle}>{branding.name}</h1>
+          {branding.tagline && (
+            <p className={styles.heroLede}>{branding.tagline}</p>
+          )}
           <a href="#request-access" className={styles.heroCta}>
             Request Access
           </a>

@@ -44,6 +44,14 @@ Stripe/R2/Resend accounts.
   manifest lesson (key relative to R2 public URL), re-run `seed:course`. Ask the client to
   record **per lesson** (12 files), not per slide — the native pages are one continuous
   read. The old deck embeds ~100 per-slide .m4a files; superseded by the new recordings.
+- **Landing page (template refactor, 2026-07-22):** the public `/` page is now the generic
+  `CourseLandingPage` — hero renders `branding.name` as the H1 and `branding.tagline` as the
+  lede (no more hardcoded "Founder Education Series"). Dwimbs renders equivalently via its
+  existing `BRAND_NAME="Dwimbs Founder Education Series"`. Optionally set
+  `BRAND_TAGLINE`/`VITE_BRAND_TAGLINE` to the previous lede — "A guided, self-paced
+  curriculum for people starting something — narrated lessons, real examples, and knowledge
+  checks that make the ideas stick." — so the hero copy doesn't regress to the Detroit
+  default tagline.
 - **Phase 2 backlog:** knowledge-check questions (email sent), custom domain, client's own
   email domain, possible AWS migration (client runs AWS infra), Cloudflare Stream if video
   lectures happen

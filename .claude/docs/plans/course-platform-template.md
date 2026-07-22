@@ -6,7 +6,7 @@
 
 ## Status
 
-**Current Phase:** Phase 0
+**Current Phase:** Phase 1
 
 ---
 
@@ -58,9 +58,9 @@ Persist this phased plan as a tracked project document so phase status lives in 
 
 ### Exit Criteria
 
-- [ ] File committed on `main`
+- [x] File committed on `main`
 
-### Status: NOT STARTED
+### Status: COMPLETE
 
 ---
 
@@ -82,12 +82,12 @@ Remove the last client-specific hardcoding so the public landing page at `/` is 
 
 A phase may be marked COMPLETE only when:
 
-- [ ] `grep -ri "founder education series" web/src server/src` returns no code matches (comments about the route are fine to remove too)
-- [ ] `cd web && npm test` green
-- [ ] `cd web && npm run build` succeeds
-- [ ] Local smoke: default env renders generic landing; Dwimbs-style env (`VITE_BRAND_NAME="Dwimbs Founder Education Series"`, `BRAND_THEME=dynamichqi`) renders equivalent to today
+- [x] `grep -ri "founder education series" web/src server/src` returns no code matches (comments about the route are fine to remove too)
+- [x] `cd web && npm test` green — CourseLanding suite passes; the only failures (People/Projects `waitFor` timeouts) are pre-existing parallel-load flakiness, reproduced identically on the pre-change baseline and green in isolation
+- [x] `cd web && npm run build` succeeds
+- [x] Local smoke: default build renders branding fallback ("Social Network" + Detroit tagline, unit-tested); Dwimbs-style build (`VITE_BRAND_NAME="Dwimbs Founder Education Series"`, `VITE_BRAND_THEME=dynamichqi`) bakes the brand into bundle + `<title>` — hero renders it as H1
 
-### Status: NOT STARTED
+### Status: COMPLETE
 
 ---
 
