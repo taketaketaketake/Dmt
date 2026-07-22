@@ -24,5 +24,7 @@ describe("Tenant Routes", () => {
     // Unset optional assets come back as explicit nulls
     expect(tenant).toHaveProperty("logoUrl");
     expect(tenant).toHaveProperty("faviconUrl");
+    // Theme always resolves (defaults to "default")
+    expect(tenant.theme).toBeTruthy();
   });
 });

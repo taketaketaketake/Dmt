@@ -1,0 +1,57 @@
+/* =============================================================================
+   INSTANCE THEMES
+   Per-deployment visual themes, selected at boot by BRAND_THEME (served via
+   GET /api/tenant; build-time fallback VITE_BRAND_THEME). BrandingEffects in
+   App.tsx sets data-theme on <html>. The default (no data-theme / "default")
+   is the editorial ink/paper system in variables.css — untouched here.
+
+   "dynamichqi": DynamicHQI brand (matches the dynamichqi.com marketing site).
+   Navy scale replaces ink, gold replaces the off-white accent, Source Serif 4
+   headings (font link injected at boot), and subtle rounding replaces hard
+   edges.
+   ============================================================================= */
+
+:root[data-theme="dynamichqi"] {
+  /* Ink -> navy scale */
+  --color-ink-deep: #071a33;
+  --color-ink: #0b2545;
+  --color-ink-light: #13315c;
+  --color-ink-lighter: #1c3f6e;
+
+  /* Paper -> clean white / cool tint */
+  --color-paper: #ffffff;
+  --color-paper-dim: #f5f7fa;
+  --color-paper-dark: #e3e8ee;
+
+  /* Text */
+  --color-text-primary: #f2f6fb;
+  --color-text-secondary: #b9c6d6;
+  --color-text-muted: #7488a0;
+  --color-text-on-paper: #1f2a37;
+  --color-text-on-paper-secondary: #51606f;
+
+  /* Accent -> gold */
+  --color-accent: #d4af37;
+  --color-accent-dim: rgba(212, 175, 55, 0.7);
+
+  /* Borders */
+  --color-border: #1c3f6e;
+  --color-border-light: #2a4d7f;
+  --color-border-on-paper: #e3e8ee;
+
+  /* Typography: serif display headings, matching the marketing site */
+  --font-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-heading: var(--font-serif);
+
+  /* Subtle rounding (site uses 3-6px) instead of hard editorial edges */
+  --radius-none: 3px;
+  --radius-sm: 5px;
+}
+
+/* Rounding for elements that don't reference radius tokens */
+:root[data-theme="dynamichqi"] button,
+:root[data-theme="dynamichqi"] input,
+:root[data-theme="dynamichqi"] textarea,
+:root[data-theme="dynamichqi"] select {
+  border-radius: var(--radius-none);
+}

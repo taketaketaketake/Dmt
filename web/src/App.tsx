@@ -50,15 +50,43 @@ function FullPageLoader() {
   return <div style={centeredLoader}>Loading...</div>;
 }
 
-// Applies runtime branding that lives outside the React tree: the favicon.
+// Fonts required by non-default themes, injected once when active so the
+// default deployment doesn't pay for fonts it never uses.
+const THEME_FONTS: Record<string, string> = {
+  dynamichqi:
+    "https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap",
+};
+
+// Applies runtime branding that lives outside the React tree: the favicon and
+// the instance theme (data-theme on <html>, consumed by styles/themes.css).
 // (Titles are handled per-page by usePageTitle.)
 function BrandingEffects() {
   const branding = useBranding();
+
   useEffect(() => {
     if (!branding.faviconUrl) return;
     const link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
     if (link) link.href = branding.faviconUrl;
   }, [branding.faviconUrl]);
+
+  useEffect(() => {
+    const theme = branding.theme || "default";
+    if (theme === "default") {
+      delete document.documentElement.dataset.theme;
+      return;
+    }
+    document.documentElement.dataset.theme = theme;
+
+    const fontHref = THEME_FONTS[theme];
+    if (fontHref && !document.getElementById("theme-font")) {
+      const link = document.createElement("link");
+      link.id = "theme-font";
+      link.rel = "stylesheet";
+      link.href = fontHref;
+      document.head.appendChild(link);
+    }
+  }, [branding.theme]);
+
   return null;
 }
 

@@ -24,6 +24,7 @@ vi.mock("../hooks/useBranding", () => ({
     tagline: "A curated archive of builders in Detroit",
     logoUrl: null,
     faviconUrl: null,
+    theme: "default",
   }),
 }));
 

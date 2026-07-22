@@ -13,6 +13,7 @@ export interface TenantBranding {
   tagline: string;
   logoUrl: string | null;
   faviconUrl: string | null;
+  theme: string;
 }
 
 const fallback: TenantBranding = {
@@ -20,6 +21,7 @@ const fallback: TenantBranding = {
   tagline: buildTimeBranding.tagline,
   logoUrl: buildTimeBranding.logoUrl || null,
   faviconUrl: null,
+  theme: buildTimeBranding.theme,
 };
 
 async function fetchTenant(): Promise<TenantBranding> {

@@ -27,6 +27,9 @@ export const env = {
   BRAND_TAGLINE: optionalEnv("BRAND_TAGLINE", "A curated archive of builders in Detroit"),
   BRAND_LOGO_URL: optionalEnv("BRAND_LOGO_URL", ""),
   BRAND_FAVICON_URL: optionalEnv("BRAND_FAVICON_URL", ""),
+  // Visual theme for the deployment. "default" = editorial ink/paper;
+  // "dynamichqi" = DynamicHQI navy/gold (see web/src/styles/themes.css).
+  BRAND_THEME: optionalEnv("BRAND_THEME", "default"),
 
   // Server
   PORT: parseInt(optionalEnv("PORT", "3000"), 10),
