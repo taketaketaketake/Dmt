@@ -13,6 +13,14 @@ function optionalEnv(name: string, defaultValue: string): string {
   return process.env[name] || defaultValue;
 }
 
+function optionalBooleanEnv(name: string, defaultValue: boolean): boolean {
+  const value = process.env[name];
+  if (value === undefined || value === "") return defaultValue;
+  if (value === "true") return true;
+  if (value === "false") return false;
+  throw new Error(`${name} must be "true" or "false"`);
+}
+
 // White-label branding (multi-tenant plan §11). Per-client deployments
 // override via env; used in transactional email subjects/headings and as
 // the default EMAIL_FROM sender name.
@@ -31,6 +39,10 @@ export const env = {
   // "dynamichqi" = DynamicHQI navy/gold; "yardline" = Yard Line teal/stone
   // (see web/src/styles/themes.css).
   BRAND_THEME: optionalEnv("BRAND_THEME", "default"),
+
+  // When false, consuming a valid magic link grants member/course access
+  // immediately. Keep true for community deployments that review profiles.
+  REQUIRE_ACCESS_APPROVAL: optionalBooleanEnv("REQUIRE_ACCESS_APPROVAL", true),
 
   // Server
   PORT: parseInt(optionalEnv("PORT", "3000"), 10),

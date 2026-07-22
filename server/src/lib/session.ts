@@ -62,7 +62,14 @@ export async function verifyMagicLinkToken(token: string): Promise<string | null
   // Update user's last login time
   await prisma.user.update({
     where: { id: magicLink.userId },
-    data: { lastLoginAt: new Date() },
+    data: {
+      lastLoginAt: new Date(),
+      // This also promotes accounts created while approval was enabled, so a
+      // deployment can simplify onboarding without a manual data migration.
+      ...(!env.REQUIRE_ACCESS_APPROVAL && magicLink.user.status === "pending"
+        ? { status: "approved" as const }
+        : {}),
+    },
   });
 
   // Create session

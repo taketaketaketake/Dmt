@@ -16,7 +16,7 @@ export function LoginPage() {
 
   // Redirect if already authenticated
   if (isAuthenticated) {
-    return <Navigate to="/people" replace />;
+    return <Navigate to={branding.requiresAccessApproval ? "/people" : "/courses"} replace />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -73,7 +73,7 @@ export function LoginPage() {
           <h2 className={styles.cardTitle}>Sign in</h2>
           <p className={styles.cardDescription}>
             Enter your email to receive a sign-in link.
-            New members are reviewed before approval.
+            {branding.requiresAccessApproval && " New members are reviewed before approval."}
           </p>
 
           <form onSubmit={handleSubmit} className={styles.form}>
@@ -104,13 +104,15 @@ export function LoginPage() {
           </form>
         </div>
 
-        <footer className={styles.footer}>
-          <p className={styles.footerText}>
-            This is a members-only directory.
-            <br />
-            Profile approval is manual and takes 1-2 days.
-          </p>
-        </footer>
+        {branding.requiresAccessApproval && (
+          <footer className={styles.footer}>
+            <p className={styles.footerText}>
+              This is a members-only directory.
+              <br />
+              Profile approval is manual and takes 1-2 days.
+            </p>
+          </footer>
+        )}
       </div>
     </div>
   );

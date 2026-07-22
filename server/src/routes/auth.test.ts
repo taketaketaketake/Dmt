@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import type { FastifyInstance } from "fastify";
+import { env } from "../lib/env.js";
 import {
   buildTestApp,
   prismaMock,
@@ -83,6 +84,30 @@ describe("Auth Routes", () => {
       expect(sendMagicLinkEmail).toHaveBeenCalledWith(
         expect.objectContaining({ to: "new@example.com" })
       );
+    });
+
+    it("creates an approved user when access approval is disabled", async () => {
+      const original = env.REQUIRE_ACCESS_APPROVAL;
+      (env as { REQUIRE_ACCESS_APPROVAL: boolean }).REQUIRE_ACCESS_APPROVAL = false;
+      const user = mockUser({ id: "new-user", email: "new@example.com", status: "approved" });
+      prismaMock.user.findUnique.mockResolvedValue(null as never);
+      prismaMock.user.create.mockResolvedValue(user as never);
+      prismaMock.magicLinkToken.create.mockResolvedValue({
+        id: "token-1", token: "mock-token", userId: user.id,
+        expiresAt: new Date(), used: false,
+      } as never);
+
+      try {
+        const response = await app.inject({
+          method: "POST", url: "/auth/login", payload: { email: "new@example.com" },
+        });
+        expect(response.statusCode).toBe(200);
+        expect(prismaMock.user.create).toHaveBeenCalledWith({
+          data: { email: "new@example.com", status: "approved" },
+        });
+      } finally {
+        (env as { REQUIRE_ACCESS_APPROVAL: boolean }).REQUIRE_ACCESS_APPROVAL = original;
+      }
     });
 
     it("finds existing user and creates token", async () => {
@@ -247,6 +272,30 @@ describe("Auth Routes", () => {
       expect(prismaMock.session.create).toHaveBeenCalled();
       // Cookie should be set
       expect(response.headers["set-cookie"]).toBeDefined();
+    });
+
+    it("promotes a pending user and redirects to courses when approval is disabled", async () => {
+      const original = env.REQUIRE_ACCESS_APPROVAL;
+      (env as { REQUIRE_ACCESS_APPROVAL: boolean }).REQUIRE_ACCESS_APPROVAL = false;
+      prismaMock.magicLinkToken.findUnique.mockResolvedValue({
+        id: "tok-1", token: "valid-token", userId: "user-1", used: false,
+        expiresAt: new Date(Date.now() + 60000),
+        user: mockUser({ status: "pending" }),
+      } as never);
+      prismaMock.magicLinkToken.update.mockResolvedValue({} as never);
+      prismaMock.user.update.mockResolvedValue(mockUser({ status: "approved" }) as never);
+      prismaMock.session.create.mockResolvedValue({} as never);
+
+      try {
+        const response = await app.inject({ method: "GET", url: "/auth/verify?token=valid-token" });
+        expect(response.statusCode).toBe(302);
+        expect(response.headers.location).toBe("http://localhost:5173/courses");
+        expect(prismaMock.user.update).toHaveBeenCalledWith(expect.objectContaining({
+          data: expect.objectContaining({ status: "approved" }),
+        }));
+      } finally {
+        (env as { REQUIRE_ACCESS_APPROVAL: boolean }).REQUIRE_ACCESS_APPROVAL = original;
+      }
     });
   });
 

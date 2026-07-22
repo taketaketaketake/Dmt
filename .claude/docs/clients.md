@@ -8,7 +8,7 @@ begins, and the checklist of what to patch when rolling out fixes across deploym
 |--------|--------|---------|----------|----------------|---------|--------------|---------------|------------|
 | _(default / Detroit)_ | dmt-app-production.up.railway.app | Railway `dmt-app-production` | Railway Postgres | Own (operator) | R2 `dmt-uploads` | dmtisreal.com (Resend) | zach@takedetroit.com | 2025 |
 | Dwimbs | dwimbs-app-production.up.railway.app | Railway project `dwimbs-founder-education`, service `dwimbs-app` | Railway Postgres (same project) | None (billing disabled) | R2 `dmt-uploads` (shared, `courses/` prefix) | dmtisreal.com (Resend, shared) | zach@takedetroit.com (interim) | 2026-07 |
-| Yard Line | courses.yardlinechat.com (pending DNS; yardline-app-production.up.railway.app live) | Railway project `yardline`, service `yardline-app` | Railway Postgres (same project) | None (off-platform SaaS fee) | R2 `dmt-uploads` (shared, `courses/yard-line/` prefix) | dmtisreal.com (Resend, shared) | zach@takedetroit.com (interim) | 2026-07 |
+| Yard Line | courses.yardlinechat.com | Railway project `yardline`, service `yardline-app` | Railway Postgres (same project) | None (off-platform SaaS fee) | R2 `dmt-uploads` (shared, `courses/yard-line/` prefix) | dmtisreal.com (Resend, shared) | zach@takedetroit.com (interim) | 2026-07 |
 
 ## Per-client notes
 
@@ -59,16 +59,20 @@ Stripe/R2/Resend accounts.
 
 ### Yard Line
 
-- **Status:** provisioning (deployed 2026-07-22; awaiting DNS cutover + course content)
-- **Domain:** courses.yardlinechat.com — CNAME `courses` → `1alu47lm.up.railway.app` to be
-  added in the client's Cloudflare DNS (yardlinechat.com zone; set DNS-only/grey cloud so
-  Railway can issue TLS). The apex serves the client's existing Netlify SPA
-  (`facility-family-frontend`) + nurse-app backend — untouched.
+- **Status:** live platform (deployed with custom-domain TLS 2026-07-22; awaiting final real-inbox
+  login E2E and course content)
+- **Domain:** courses.yardlinechat.com — CNAME `courses` → `1alu47lm.up.railway.app` is live in
+  Cloudflare as DNS-only/grey-cloud (verified 2026-07-22), and the custom domain is attached to the
+  Railway `yardline-app` service. The required Railway ownership-verification TXT record is also
+  present; routing and the custom TLS certificate are active. The apex still serves the client's
+  existing Netlify SPA (`facility-family-frontend`) and returned HTTP 200 after the change.
 - **Brand:** `BRAND_NAME="Yard Line"`, `BRAND_THEME=yardline` (+ `VITE_*` mirrors) — teal/
   amber/stone skin from `web/src/styles/themes.css`, system sans. Logo + favicon uploaded
   to R2 `courses/yard-line/branding/` (source: `facility-family-frontend/public/`);
   `BRAND_LOGO_URL`/`BRAND_FAVICON_URL` + `VITE_LOGO_URL`/`VITE_FAVICON_URL` set. Tagline is
   an operator placeholder — swap when the client provides copy.
+- **Access:** `REQUIRE_ACCESS_APPROVAL=false` — a valid magic link immediately approves new or
+  previously pending users and redirects them to `/courses`; no profile or admin review required.
 - **Content:** skeleton course `yard-line-foundations` seeded, `isPublished: false`
   (manifest: `server/prisma/courses/yard-line/`). Slug/title TBD with client. Do NOT reuse
   Dwimbs lesson content (S.I. Williams client IP).
@@ -120,17 +124,22 @@ manifest + env vars + a deploy; zero client-specific code.
 ### 3. Provision the deployment (multi-tenant plan §11 checklist)
 
 Follow §11 steps 1–5 (Railway service + Postgres, migrations, `bootstrap:admin`,
-DNS, email round-trip check) with the course-platform env set:
+both Railway-provided custom-domain DNS records, and email round-trip check) with the
+course-platform env set:
 
 - `BRAND_NAME`, `BRAND_TAGLINE`, `BRAND_THEME=<client>`, `BRAND_LOGO_URL`,
   `BRAND_FAVICON_URL` (runtime, served by `GET /api/tenant`)
 - `VITE_BRAND_NAME`, `VITE_BRAND_TAGLINE`, `VITE_BRAND_THEME=<client>`,
-  `VITE_LOGO_URL` (build-time first-paint fallback — must match the runtime values)
+  `VITE_LOGO_URL`, `VITE_FAVICON_URL` (build-time first-paint fallback — must match the runtime
+  values)
 - Fresh `SESSION_SECRET` (never shared), `APP_URL=https://<domain>`
+- `REQUIRE_ACCESS_APPROVAL=false` for immediate magic-link access, or leave it unset/`true` when
+  members must complete a profile and enter the admin approval queue
 - `R2_*` (shared `dmt-uploads` at launch), `RESEND_API_KEY` +
   `EMAIL_FROM="<Brand> <noreply@dmtisreal.com>"` (shared-sender launch shortcut;
   client's own domain is backlog), Stripe vars unset when billing is off-platform
-- `railway run npm run seed:course -- prisma/courses/<client>/<slug>.json`
+- From `server/`, after confirming the intended Railway project/service/environment is linked:
+  `railway run npm run seed:course -- prisma/courses/<client>/<slug>.json`
 - No demo-content seeds unless the client wants sample data
 
 ### 4. Registry

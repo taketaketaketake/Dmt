@@ -26,5 +26,6 @@ describe("Tenant Routes", () => {
     expect(tenant).toHaveProperty("faviconUrl");
     // Theme always resolves (defaults to "default")
     expect(tenant.theme).toBeTruthy();
+    expect(tenant.requiresAccessApproval).toBe(true);
   });
 });

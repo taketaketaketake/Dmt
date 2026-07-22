@@ -53,13 +53,12 @@ export async function authRoutes(app: FastifyInstance) {
     });
 
     if (!user) {
-      // New user - create with pending status. Admins are notified later, when
-      // the member submits a profile for review (the actionable moment), not at
-      // signup — see POST /api/profiles/me/submit.
+      // Review-based deployments create pending members. Course deployments
+      // can grant access immediately after email ownership is confirmed.
       user = await prisma.user.create({
         data: {
           email: normalizedEmail,
-          status: "pending",
+          status: env.REQUIRE_ACCESS_APPROVAL ? "pending" : "approved",
         },
       });
     }
@@ -102,7 +101,9 @@ export async function authRoutes(app: FastifyInstance) {
     setSessionCookie(reply, sessionId);
 
     // Redirect to app (frontend will handle the rest)
-    return reply.redirect(`${env.APP_URL}/`);
+    return reply.redirect(
+      `${env.APP_URL}${env.REQUIRE_ACCESS_APPROVAL ? "/" : "/courses"}`
+    );
   });
 
   // POST /auth/logout

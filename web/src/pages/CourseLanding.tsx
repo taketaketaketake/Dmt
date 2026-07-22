@@ -9,9 +9,8 @@ import styles from "./CourseLanding.module.css";
 // Public marketing page for the deployment's course offering. Fully
 // branding-driven (name/tagline from GET /api/tenant), so the same component
 // serves every client instance. The CTA reuses the magic-link endpoint:
-// submitting an email creates a pending account and sends a confirmation
-// link, but course access stays gated behind manual approval (and, later,
-// payment) — so the copy promises a review, not instant access.
+// submitting an email sends a confirmation link. Deployments can either grant
+// access immediately or retain manual profile review.
 export function CourseLandingPage() {
   usePageTitle();
   const branding = useBranding();
@@ -112,18 +111,22 @@ export function CourseLandingPage() {
                 </p>
               </div>
             </li>
+            {branding.requiresAccessApproval && (
+              <li className={styles.step}>
+                <span className={styles.stepNumber}>2</span>
+                <div>
+                  <h3 className={styles.stepTitle}>We review your request</h3>
+                  <p className={styles.stepBody}>
+                    Every request is reviewed personally, usually within 1–2
+                    days. You&rsquo;ll be notified as soon as you&rsquo;re in.
+                  </p>
+                </div>
+              </li>
+            )}
             <li className={styles.step}>
-              <span className={styles.stepNumber}>2</span>
-              <div>
-                <h3 className={styles.stepTitle}>We review your request</h3>
-                <p className={styles.stepBody}>
-                  Every request is reviewed personally, usually within 1–2
-                  days. You&rsquo;ll be notified as soon as you&rsquo;re in.
-                </p>
-              </div>
-            </li>
-            <li className={styles.step}>
-              <span className={styles.stepNumber}>3</span>
+              <span className={styles.stepNumber}>
+                {branding.requiresAccessApproval ? "3" : "2"}
+              </span>
               <div>
                 <h3 className={styles.stepTitle}>Learn at your own pace</h3>
                 <p className={styles.stepBody}>
@@ -160,8 +163,9 @@ export function CourseLandingPage() {
                 </h2>
                 <p className={styles.cardDescription}>
                   We sent a confirmation link to <strong>{email}</strong>.
-                  Click it to finish your request — course access unlocks once
-                  your request is approved, usually within 1–2 days.
+                  Click it to {branding.requiresAccessApproval
+                    ? "finish your request — course access unlocks once your request is approved, usually within 1–2 days"
+                    : "sign in and access your courses"}.
                 </p>
                 <button
                   type="button"

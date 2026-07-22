@@ -25,6 +25,7 @@ vi.mock("../hooks/useBranding", () => ({
     logoUrl: null,
     faviconUrl: null,
     theme: "default",
+    requiresAccessApproval: true,
   }),
 }));
 

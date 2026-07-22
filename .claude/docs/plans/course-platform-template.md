@@ -6,7 +6,11 @@
 
 ## Status
 
-**Current Phase:** Phase 3
+**Current Phase:** Phase 3 (platform launch); Phase 4 is a separately blocked content milestone
+
+**Platform template:** COMPLETE through Phase 2. **Yard Line deployment:** provisioned, not live on
+the client domain until Phase 3's DNS and login checks pass. Phase 4 does not block completion of
+the reusable-template/deployment work; it begins only after the client supplies and approves content.
 
 ---
 
@@ -18,6 +22,10 @@ A phase may be marked COMPLETE only when:
 3. A phase audit has passed (review the diff against the phase's deliverables; no stray scope)
 
 **Validation is mandatory for phase completion.**
+
+External dependencies do not count as completed work. A phase waiting on a client or DNS owner stays
+IN PROGRESS/BLOCKED with the exact handoff recorded; the rest of the plan may still reach its own
+explicit completion boundary.
 
 ---
 
@@ -54,7 +62,8 @@ Persist this phased plan as a tracked project document so phase status lives in 
 
 ### Deliverables
 
-- `.claude/docs/plans/course-platform-template.md` — this plan verbatim (Status header maintained as phases complete).
+- `.claude/docs/plans/course-platform-template.md` — this tracked plan (status, evidence, and
+  remaining handoffs maintained as phases progress).
 
 ### Exit Criteria
 
@@ -135,7 +144,7 @@ Stand up the Yard Line course structure (unpublished) so content drops in when t
 
 A phase may be marked COMPLETE only when:
 
-- [x] `npm run seed:course -- prisma/courses/yard-line/yard-line-foundations.json` seeds cleanly against the local DB; re-run confirmed a no-op (1 course row, upserted in place). Working slug `yard-line-foundations` — TBD with client, noted in the manifest. Seeder gained optional `slides` (skeleton lessons have no deck; `LessonDeck` already handles empty `slideUrls`)
+- [x] From `server/`, `npm run seed:course -- prisma/courses/yard-line/yard-line-foundations.json` seeds cleanly against the local DB; re-run confirmed a no-op (1 course row, upserted in place). Working slug `yard-line-foundations` — TBD with client, noted in the manifest. Seeder gained optional `slides` (skeleton lessons have no deck; `LessonDeck` already handles empty `slideUrls`)
 - [x] `GET /api/courses/public` locally omits the unpublished Yard Line course
 - [x] `cd server && npm test` green (190 tests)
 - [x] Playbook section ("Course client playbook" in clients.md) reads as a complete standalone checklist
@@ -153,11 +162,16 @@ Replicate the platform as a new Railway deployment serving courses.yardlinechat.
 ### Deliverables
 
 - Railway project `yardline`: Postgres plugin + service from this repo (nixpacks; `HOST=0.0.0.0`; `/health` check configured before cutover).
-- Env: `BRAND_NAME="Yard Line"`, `BRAND_TAGLINE` (TBD with client), `BRAND_THEME=yardline`, `VITE_BRAND_NAME="Yard Line"`, `VITE_BRAND_THEME=yardline`, fresh `SESSION_SECRET`, `APP_URL=https://courses.yardlinechat.com`, shared `R2_*` (bucket `dmt-uploads`), shared `RESEND_API_KEY` + `EMAIL_FROM="Yard Line <noreply@dmtisreal.com>"` (launch shortcut — nurse-app's onthefloor.app Resend domain is NOT reusable), Stripe vars unset.
+- Env: `BRAND_NAME="Yard Line"`, `BRAND_TAGLINE` (TBD with client), `BRAND_THEME=yardline`, `VITE_BRAND_NAME="Yard Line"`, `VITE_BRAND_THEME=yardline`, `REQUIRE_ACCESS_APPROVAL=false` (magic-link confirmation grants immediate course access), fresh `SESSION_SECRET`, `APP_URL=https://courses.yardlinechat.com`, shared `R2_*` (bucket `dmt-uploads`), shared `RESEND_API_KEY` + `EMAIL_FROM="Yard Line <noreply@dmtisreal.com>"` (launch shortcut — nurse-app's onthefloor.app Resend domain is NOT reusable), Stripe vars unset.
 - Branding assets: upload `facility-family-frontend/public/yard-line-logo.png` (+ favicon) to R2 `courses/yard-line/branding/`; set `BRAND_LOGO_URL`/`BRAND_FAVICON_URL` + `VITE_LOGO_URL`/`VITE_FAVICON_URL`.
-- `railway run npm run bootstrap:admin -- zach@takedetroit.com`
-- `railway run npm run seed:course -- prisma/courses/yard-line/<slug>.json` (stays unpublished). No demo-content seeds.
-- DNS: `courses.yardlinechat.com` as Railway custom domain; CNAME `courses` → Railway target in yardlinechat.com DNS (apex untouched); TLS cert issued.
+- From `server/`, with the Railway project/service/environment explicitly linked, run
+  `railway run npm run bootstrap:admin -- zach@takedetroit.com` and
+  `railway run npm run seed:course -- prisma/courses/yard-line/<slug>.json` (stays
+  unpublished). No demo-content seeds. The nixpacks start command applies migrations and the
+  idempotent needs/category taxonomy seeds on every deploy.
+- DNS: `courses.yardlinechat.com` as Railway custom domain; add both Railway-provided records in
+  yardlinechat.com DNS — CNAME `courses` → Railway target and the ownership-verification TXT record
+  shown by Railway (apex untouched); wait for Railway verification and TLS issuance.
 - `.claude/docs/clients.md`: Yard Line registry row + notes (domain, Railway project, shared R2/Resend shortcuts, Stripe: off-platform SaaS fee, admin contact, Phase-2 backlog: client email domain, content arrival, publish).
 
 ### Exit Criteria
@@ -165,14 +179,46 @@ Replicate the platform as a new Railway deployment serving courses.yardlinechat.
 A phase may be marked COMPLETE only when:
 
 - [x] `GET /api/tenant` returns Yard Line branding + `theme: "yardline"` (verified on yardline-app-production.up.railway.app; custom-domain check pending DNS)
-- [ ] Landing page renders teal/stone skin with "Yard Line" hero on the custom domain — **pending DNS**: CNAME `courses` → `1alu47lm.up.railway.app` to be added manually in Cloudflare (DNS-only/grey cloud)
-- [ ] Magic-link login round-trip — email send verified via `POST /auth/login` (Resend, shared sender); the link targets `APP_URL=https://courses.yardlinechat.com`, so the round-trip completes after DNS
-- [ ] Existing yardlinechat.com site unaffected — no DNS change made yet; spot-check after the CNAME is added
+- [x] Landing page and tenant API serve successfully on the TLS-enabled custom domain with Yard
+      Line branding and `theme: "yardline"` (verified after Railway activation on 2026-07-22)
+- [ ] Magic-link login round-trip — email send verified via `POST /auth/login` (Resend, shared sender);
+      complete this after the custom-domain certificate and routing are active
+- [x] Existing yardlinechat.com site unaffected — apex still returned the Netlify site after the
+      CNAME change (HTTP 200, verified 2026-07-22)
 - [x] clients.md registry row committed
+
+### DNS owner handoff and cutover checklist
+
+The Cloudflare zone owner must perform the only remaining external mutation:
+
+1. [x] Add CNAME `courses` → `1alu47lm.up.railway.app`, DNS-only (grey cloud), leaving every
+   existing apex and `www` record unchanged. Verified publicly on 2026-07-22.
+2. [x] Add the Railway-provided ownership-verification TXT record exactly as displayed under
+   `yardline-app` → Settings → Public Networking → `courses.yardlinechat.com`. Railway requires
+   both records; with only the CNAME it deliberately returns fallback 404 and does not issue the
+   custom certificate. No candidate TXT record was publicly present on 2026-07-22.
+3. In Railway, confirm `courses.yardlinechat.com` remains attached to `yardline-app` and wait
+   until Railway reports the custom domain/TLS certificate active.
+4. Verify independently:
+   - `dig +short CNAME courses.yardlinechat.com` returns the Railway target.
+   - `curl -fsS https://courses.yardlinechat.com/health` succeeds.
+   - `curl -fsS https://courses.yardlinechat.com/api/tenant` returns Yard Line branding and
+     `"theme":"yardline"`.
+   - Open `/` in a private browser window and check the logo/favicon, Yard Line hero, teal/stone
+     skin, no mixed-content errors, and a valid certificate.
+5. Request a magic link for a real test inbox, open the received custom-domain URL, confirm the
+   session cookie is accepted and the redirect lands on the authenticated app, then sign out.
+   Email-send success alone is not an end-to-end login test.
+6. Spot-check `https://yardlinechat.com` and its normal API-backed flow. If the custom subdomain
+   fails, remove only the new `courses` CNAME; do not alter the apex/`www` records. Keep the Railway
+   service URL available for diagnosis.
+
+Record the completion date and tester in this phase and change the registry status from
+`provisioning` to `live`. Do not publish the skeleton course as part of cutover.
 
 Provisioning done 2026-07-22: Railway project `yardline` (Postgres + `yardline-app`, nixpacks, `/health` green), full env set (fresh `SESSION_SECRET`, shared R2/Resend, Stripe unset), branding assets on R2, admin bootstrapped (zach@takedetroit.com), skeleton course seeded (unpublished, `/api/courses/public` returns `[]`). Blocker found & fixed en route: `lesson_audio` migration ordering broke fresh-DB deploys (repaired by `20260722221654_lesson_audio_fresh_db_ordering`).
 
-### Status: IN PROGRESS (awaiting manual Cloudflare CNAME, then domain verification)
+### Status: IN PROGRESS (domain/TLS live; awaiting one real-inbox magic-link E2E)
 
 ---
 
@@ -184,17 +230,37 @@ Convert Yard Line's materials into the native course format and publish.
 
 ### Deliverables
 
-- Lesson markdown converted from client materials; slides (if any) uploaded to R2 `courses/yard-line/` per `slideUrlPattern`; audio per lesson if provided.
-- Knowledge checks + module quiz questions authored in the manifest (same process as Dwimbs commits `f550bc2`/`b53a7b6`).
-- `isPublished: true`; re-run `seed:course` on the deployment.
+- Written client approval to use the supplied materials, plus a source inventory mapping each
+  document/deck/recording to its target module. Confirm the final course title, slug, tagline,
+  audience, learning objectives, module order, passing score, and attempt policy before conversion.
+- Replace every placeholder module/lesson; no "awaiting materials", placeholder description, or
+  skeleton copy remains. If the client changes the working slug, delete the unpublished skeleton
+  row before the first seed under the final slug so two courses are not left behind.
+- Lesson markdown converted from client materials; images have useful alt text, heading order is
+  logical, links work, and video/audio includes captions or a transcript. Slides (if any) upload to
+  R2 `courses/yard-line/` per `slideUrlPattern`; audio per lesson if provided.
+- Knowledge checks + module quiz questions authored in the manifest (same process as Dwimbs commits
+  `f550bc2`/`b53a7b6`). Each graded question has one unambiguous answer and feedback; validate the
+  requested policy against the platform's implemented 2-attempt/70% behavior before promising it.
+- Client reviews a staging/unpublished rendering. After written sign-off, set `isPublished: true`
+  and, from `server/` with the Yard Line Railway service explicitly linked, run
+  `railway run npm run seed:course -- prisma/courses/yard-line/<final-slug>.json`.
+- Update `.claude/docs/clients.md` with the final slug/title, module/lesson/asset counts, publication
+  date, and any remaining launch shortcuts.
 
 ### Exit Criteria
 
 A phase may be marked COMPLETE only when:
 
 - [ ] Client sign-off on content
+- [ ] Manifest parses and seeds idempotently locally; server tests and web build pass
+- [ ] Unpublished staging QA passes at desktop and mobile widths, including keyboard navigation,
+      images/audio, broken-link checks, knowledge checks, quizzes, and progress persistence
 - [ ] Full course flow E2E on courses.yardlinechat.com: lessons render, progress saves, knowledge checks give instant feedback, module quizzes grade with 2-attempt/70% rules
 - [ ] `GET /api/courses/public` lists the published curriculum
+- [ ] A fresh non-admin test user can request a magic link, access the published course, finish a
+      lesson, resume it, complete a module quiz, and sign out; admin verifies the resulting progress
+- [ ] Registry/runbook reflects the final production state; test data is removed or explicitly kept
 
 ### Status: NOT STARTED (BLOCKED — awaiting client materials)
 
@@ -213,6 +279,11 @@ A phase may be marked COMPLETE only when:
 After completing all phases, you will have:
 
 1. A course platform with zero client-specific code — new clients are theme skin + manifest + env vars + deploy, per a documented playbook.
-2. Yard Line live at courses.yardlinechat.com: Yard Line branding and teal/amber/stone skin, admin bootstrapped, skeleton course ready for content.
+2. At the Phase 3 completion boundary, Yard Line live at courses.yardlinechat.com: Yard Line branding
+   and teal/amber/stone skin, admin bootstrapped, skeleton course safely unpublished and ready for
+   content.
 3. The Dwimbs and Detroit deployments untouched and rendering exactly as before.
 4. A registry (`clients.md`) accurately describing all three deployments and the repeatable path to client #4.
+
+Phase 4 adds the later content-launch end state: the client-approved Yard Line curriculum is
+published and its complete learner journey has passed production E2E validation.

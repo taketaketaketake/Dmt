@@ -18,6 +18,7 @@ export async function tenantRoutes(app: FastifyInstance) {
         logoUrl: env.BRAND_LOGO_URL || null,
         faviconUrl: env.BRAND_FAVICON_URL || null,
         theme: env.BRAND_THEME,
+        requiresAccessApproval: env.REQUIRE_ACCESS_APPROVAL,
       },
     });
   });
