@@ -1,0 +1,26 @@
+{
+  "_comment": "SKELETON COURSE — awaiting client materials (course-platform-template plan, Phase 2/4). Slug and title are working placeholders, TBD with the client; if the slug changes before launch, delete the old Course row (upsert is by slug) and re-seed. Stays isPublished:false until content lands and the client signs off.",
+  "slug": "yard-line-foundations",
+  "title": "Yard Line Foundations",
+  "description": "Curriculum in production — full course details coming soon.",
+  "isPublished": false,
+  "slideUrlPattern": "courses/yard-line/slide-{n}.jpg",
+  "modules": [
+    {
+      "title": "Module 1 — Welcome (placeholder)",
+      "lessons": [
+        {
+          "title": "Welcome to Yard Line (placeholder)",
+          "bodyFile": "lessons/m0l0-welcome-to-yard-line.md",
+          "checks": []
+        },
+        {
+          "title": "How This Course Works (placeholder)",
+          "bodyFile": "lessons/m0l1-how-this-course-works.md",
+          "checks": []
+        }
+      ],
+      "quiz": []
+    }
+  ]
+}

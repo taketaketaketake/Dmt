@@ -56,6 +56,61 @@ Stripe/R2/Resend accounts.
   email domain, possible AWS migration (client runs AWS infra), Cloudflare Stream if video
   lectures happen
 
+## Course client playbook
+
+The repeatable path for standing up a new white-label course client (bridge model:
+one repo, N deploys — multi-tenant plan §11). A new client is a theme skin + a course
+manifest + env vars + a deploy; zero client-specific code.
+
+### 1. Theme skin (`web/src/styles/themes.css`)
+
+- Add a `:root[data-theme="<client>"]` block following the existing `dynamichqi` /
+  `yardline` pattern: override the ink scale, paper, text, accent, CTA, and border
+  tokens with the client's palette; add the button/input `border-radius` rule if the
+  brand uses rounding.
+- Custom fonts only if the brand requires them: set `--font-serif`/`--font-heading`
+  in the block and add a `THEME_FONTS` entry in `web/src/App.tsx` (skip both for
+  system-sans brands like yardline).
+- Document the new value in the `BRAND_THEME` comment in `server/src/lib/env.ts` and
+  the theme comment in `web/src/config/branding.ts`.
+
+### 2. Course manifest + lessons
+
+- Create `server/prisma/courses/<client>/<course-slug>.json` (shape: see
+  `corporate-financial-education.json` and the `CourseManifest` types in
+  `server/prisma/seed-course.ts`). `bodyFile` paths resolve relative to the manifest,
+  so lessons live in `server/prisma/courses/<client>/lessons/*.md`.
+- `slideUrlPattern: "courses/<client>/slide-{n}.jpg"`; omit `slides` on lessons with
+  no deck. Slides/audio upload to R2 `dmt-uploads` under the `courses/<client>/`
+  prefix (or the client's own bucket).
+- Before client materials arrive: seed a skeleton with `isPublished: false` and
+  clearly-marked placeholder lessons (see `courses/yard-line/`). The seeder is
+  idempotent and progress-preserving — re-run `npm run seed:course -- <manifest>`
+  after every content edit. Note: courses upsert by slug; if the slug changes,
+  delete the old Course row before re-seeding.
+
+### 3. Provision the deployment (multi-tenant plan §11 checklist)
+
+Follow §11 steps 1–5 (Railway service + Postgres, migrations, `bootstrap:admin`,
+DNS, email round-trip check) with the course-platform env set:
+
+- `BRAND_NAME`, `BRAND_TAGLINE`, `BRAND_THEME=<client>`, `BRAND_LOGO_URL`,
+  `BRAND_FAVICON_URL` (runtime, served by `GET /api/tenant`)
+- `VITE_BRAND_NAME`, `VITE_BRAND_TAGLINE`, `VITE_BRAND_THEME=<client>`,
+  `VITE_LOGO_URL` (build-time first-paint fallback — must match the runtime values)
+- Fresh `SESSION_SECRET` (never shared), `APP_URL=https://<domain>`
+- `R2_*` (shared `dmt-uploads` at launch), `RESEND_API_KEY` +
+  `EMAIL_FROM="<Brand> <noreply@dmtisreal.com>"` (shared-sender launch shortcut;
+  client's own domain is backlog), Stripe vars unset when billing is off-platform
+- `railway run npm run seed:course -- prisma/courses/<client>/<slug>.json`
+- No demo-content seeds unless the client wants sample data
+
+### 4. Registry
+
+Add the client's row to the table at the top of this file plus a per-client notes
+section (use the template below), including any launch shortcuts in effect and the
+Phase-2 backlog (custom email domain, content arrival, publish, etc.).
+
 <!-- Template for a new client:
 
 ### <Client name>

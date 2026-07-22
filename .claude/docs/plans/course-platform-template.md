@@ -6,7 +6,7 @@
 
 ## Status
 
-**Current Phase:** Phase 2
+**Current Phase:** Phase 3
 
 ---
 
@@ -135,12 +135,12 @@ Stand up the Yard Line course structure (unpublished) so content drops in when t
 
 A phase may be marked COMPLETE only when:
 
-- [ ] `npm run seed:course -- prisma/courses/yard-line/<slug>.json` seeds cleanly against a local DB, and re-running is a no-op (idempotent)
-- [ ] `GET /api/courses/public` locally omits the unpublished Yard Line course
-- [ ] `cd server && npm test` green
-- [ ] Playbook section reads as a complete standalone checklist
+- [x] `npm run seed:course -- prisma/courses/yard-line/yard-line-foundations.json` seeds cleanly against the local DB; re-run confirmed a no-op (1 course row, upserted in place). Working slug `yard-line-foundations` — TBD with client, noted in the manifest. Seeder gained optional `slides` (skeleton lessons have no deck; `LessonDeck` already handles empty `slideUrls`)
+- [x] `GET /api/courses/public` locally omits the unpublished Yard Line course
+- [x] `cd server && npm test` green (190 tests)
+- [x] Playbook section ("Course client playbook" in clients.md) reads as a complete standalone checklist
 
-### Status: NOT STARTED
+### Status: COMPLETE
 
 ---
 

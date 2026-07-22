@@ -28,8 +28,9 @@ interface ManifestCheck {
 
 interface ManifestLesson {
   title: string;
-  /** Inclusive slide range [first, last] in the source deck, 1-based. */
-  slides: [number, number];
+  /** Inclusive slide range [first, last] in the source deck, 1-based.
+      Omit for lessons without a slide deck (native markdown body only). */
+  slides?: [number, number];
   /** Inline markdown body, or a markdown file path relative to the manifest. */
   body?: string;
   bodyFile?: string;
@@ -98,7 +99,7 @@ async function main() {
     });
 
     for (const [li, lesson] of mod.lessons.entries()) {
-      const urls = slideUrls(manifest, lesson.slides);
+      const urls = lesson.slides ? slideUrls(manifest, lesson.slides) : [];
       const body = lesson.bodyFile
         ? readFileSync(resolve(dirname(manifestPath), lesson.bodyFile), "utf-8")
         : lesson.body ?? null;
