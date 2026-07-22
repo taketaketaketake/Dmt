@@ -50,8 +50,9 @@
 
 .heroCta {
   display: inline-block;
-  background-color: var(--color-paper);
-  color: var(--color-text-on-paper);
+  background-color: var(--color-cta-bg);
+  color: var(--color-cta-text);
+  border-radius: var(--radius-none);
   padding: var(--space-3) var(--space-8);
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
@@ -245,8 +246,9 @@
 
 .cardCta {
   display: inline-block;
-  background-color: var(--color-text-on-paper);
-  color: var(--color-paper);
+  background-color: var(--color-cta-inverse-bg);
+  color: var(--color-cta-inverse-text);
+  border-radius: var(--radius-none);
   padding: var(--space-3) var(--space-6);
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
@@ -306,8 +308,8 @@
 }
 
 .submitButton {
-  background-color: var(--color-text-on-paper);
-  color: var(--color-paper);
+  background-color: var(--color-cta-inverse-bg);
+  color: var(--color-cta-inverse-text);
   padding: var(--space-3) var(--space-4);
   font-size: var(--text-sm);
   font-weight: var(--font-medium);

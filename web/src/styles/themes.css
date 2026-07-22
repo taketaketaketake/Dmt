@@ -34,6 +34,12 @@
   --color-accent: #d4af37;
   --color-accent-dim: rgba(212, 175, 55, 0.7);
 
+  /* CTAs -> gold with white text, matching the marketing site's btn-primary */
+  --color-cta-bg: #b8912f;
+  --color-cta-text: #ffffff;
+  --color-cta-inverse-bg: #b8912f;
+  --color-cta-inverse-text: #ffffff;
+
   /* Borders */
   --color-border: #1c3f6e;
   --color-border-light: #2a4d7f;

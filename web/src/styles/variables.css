@@ -31,6 +31,13 @@
   --color-accent: #f5f3f0;
   --color-accent-dim: rgba(245, 243, 240, 0.7);
 
+  /* CTAs. "cta" sits on dark ink surfaces, "cta-inverse" on paper surfaces.
+     Instance themes may override both (e.g. gold for dynamichqi). */
+  --color-cta-bg: var(--color-paper);
+  --color-cta-text: var(--color-text-on-paper);
+  --color-cta-inverse-bg: var(--color-text-on-paper);
+  --color-cta-inverse-text: var(--color-paper);
+
   /* Borders */
   --color-border: #2a2a2a;
   --color-border-light: #3a3a3a;

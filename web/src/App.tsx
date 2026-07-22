@@ -54,7 +54,7 @@ function FullPageLoader() {
 // default deployment doesn't pay for fonts it never uses.
 const THEME_FONTS: Record<string, string> = {
   dynamichqi:
-    "https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap",
+    "https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&display=swap",
 };
 
 // Applies runtime branding that lives outside the React tree: the favicon and
