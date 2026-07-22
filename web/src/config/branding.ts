@@ -10,7 +10,7 @@ export const branding = {
     "A curated archive of builders in Detroit",
   // Optional logo image; when unset the Header renders the brand name as text.
   logoUrl: import.meta.env.VITE_LOGO_URL || "",
-  // Visual theme ("default" | "dynamichqi"); runtime value comes from
-  // GET /api/tenant, this is the pre-fetch/build-time fallback.
+  // Visual theme ("default" | "dynamichqi" | "yardline"); runtime value comes
+  // from GET /api/tenant, this is the pre-fetch/build-time fallback.
   theme: import.meta.env.VITE_BRAND_THEME || "default",
 } as const;

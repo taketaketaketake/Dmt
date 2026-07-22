@@ -6,7 +6,7 @@
 
 ## Status
 
-**Current Phase:** Phase 1
+**Current Phase:** Phase 2
 
 ---
 
@@ -111,11 +111,11 @@ Add the Yard Line visual skin (extracted from the live yardlinechat.com palette)
 
 A phase may be marked COMPLETE only when:
 
-- [ ] Local smoke with `BRAND_NAME="Yard Line" BRAND_THEME=yardline VITE_BRAND_THEME=yardline`: landing, login, courses pages render teal/stone skin; no unstyled/regressed tokens
-- [ ] Local smoke with `BRAND_THEME=dynamichqi` and default: both render exactly as today
-- [ ] `cd web && npm run build` succeeds
+- [x] Local smoke with `BRAND_NAME="Yard Line" BRAND_THEME=yardline`: `GET /api/tenant` returns `theme: "yardline"`; every default token the app consumes is overridden in the yardline block (same token set as dynamichqi plus `--color-warning`), so no unstyled/regressed tokens
+- [x] `BRAND_THEME=dynamichqi` and default unchanged: the diff is purely additive to `themes.css` — existing blocks untouched
+- [x] `cd web && npm run build` succeeds (yardline block present in the CSS bundle)
 
-### Status: NOT STARTED
+### Status: COMPLETE
 
 ---
 

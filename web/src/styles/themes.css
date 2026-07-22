@@ -9,6 +9,11 @@
    Navy scale replaces ink, gold replaces the off-white accent, Source Serif 4
    headings (font link injected at boot), and subtle rounding replaces hard
    edges.
+
+   "yardline": Yard Line brand (matches the yardlinechat.com palette).
+   Warm dark stone scale replaces ink, warm stone paper, teal accent/CTAs,
+   amber in the secondary-accent (warning) slot, system sans throughout (no
+   THEME_FONTS entry), and subtle rounding.
    ============================================================================= */
 
 :root[data-theme="dynamichqi"] {
@@ -59,5 +64,59 @@
 :root[data-theme="dynamichqi"] input,
 :root[data-theme="dynamichqi"] textarea,
 :root[data-theme="dynamichqi"] select {
+  border-radius: var(--radius-none);
+}
+
+:root[data-theme="yardline"] {
+  /* Ink -> warm dark stone ramp anchored on #1c1917 (stone-950/900/800/700) */
+  --color-ink-deep: #0c0a09;
+  --color-ink: #1c1917;
+  --color-ink-light: #292524;
+  --color-ink-lighter: #44403c;
+
+  /* Paper -> warm stone */
+  --color-paper: #faf9f7;
+  --color-paper-dim: #f5f5f4;
+  --color-paper-dark: #e7e5e4;
+
+  /* Text */
+  --color-text-primary: #fafaf9;
+  --color-text-secondary: #d6d3d1;
+  --color-text-muted: #a8a29e;
+  --color-text-on-paper: #1c1917;
+  --color-text-on-paper-secondary: #57534e;
+
+  /* Accent -> teal (yardlinechat.com "live" accent) */
+  --color-accent: #0d9488;
+  --color-accent-dim: rgba(13, 148, 136, 0.7);
+
+  /* CTAs -> teal-700 with white text, matching the site's primary buttons */
+  --color-cta-bg: #0f766e;
+  --color-cta-text: #ffffff;
+  --color-cta-inverse-bg: #0f766e;
+  --color-cta-inverse-text: #ffffff;
+
+  /* Borders */
+  --color-border: #44403c;
+  --color-border-light: #57534e;
+  --color-border-on-paper: #e7e5e4;
+
+  /* Secondary accent -> amber-700 (the site's "review" accent) lands in the
+     warning slot, the one gold-toned token in the default system */
+  --color-warning: #b45309;
+
+  /* Typography: system sans only — no --font-serif/--font-heading override
+     and no THEME_FONTS entry in App.tsx */
+
+  /* Subtle rounding instead of hard editorial edges */
+  --radius-none: 4px;
+  --radius-sm: 6px;
+}
+
+/* Rounding for elements that don't reference radius tokens */
+:root[data-theme="yardline"] button,
+:root[data-theme="yardline"] input,
+:root[data-theme="yardline"] textarea,
+:root[data-theme="yardline"] select {
   border-radius: var(--radius-none);
 }

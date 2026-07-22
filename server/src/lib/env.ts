@@ -28,7 +28,8 @@ export const env = {
   BRAND_LOGO_URL: optionalEnv("BRAND_LOGO_URL", ""),
   BRAND_FAVICON_URL: optionalEnv("BRAND_FAVICON_URL", ""),
   // Visual theme for the deployment. "default" = editorial ink/paper;
-  // "dynamichqi" = DynamicHQI navy/gold (see web/src/styles/themes.css).
+  // "dynamichqi" = DynamicHQI navy/gold; "yardline" = Yard Line teal/stone
+  // (see web/src/styles/themes.css).
   BRAND_THEME: optionalEnv("BRAND_THEME", "default"),
 
   // Server
