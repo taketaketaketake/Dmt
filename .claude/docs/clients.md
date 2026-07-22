@@ -19,7 +19,9 @@ Stripe/R2/Resend accounts.
 ### Dwimbs (Founder Education Series)
 
 - **Status:** live (launched 2026-07-19)
-- **Brand:** "Dwimbs Founder Education Series" via env; no logo/favicon yet
+- **Brand:** "Dwimbs Founder Education Series" via env; no logo/favicon yet.
+  Theme: `BRAND_THEME=dynamichqi` + `VITE_BRAND_THEME=dynamichqi` (set 2026-07-22) —
+  DynamicHQI navy/gold skin from `web/src/styles/themes.css`, matching dynamichqi.com
 - **Content:** "Corporate Financial Education for Founders" course — 7 modules, 12 lessons,
   118 slides (JPEG, 1600px) at `courses/corporate-financial-education/` in the shared R2
   bucket. Source deck: S.I. Williams Wealth Management (client IP — do not reuse).
