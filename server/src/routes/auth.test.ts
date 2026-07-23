@@ -197,15 +197,17 @@ describe("Auth Routes", () => {
       expect(response.statusCode).toBe(400);
     });
 
-    it("returns 401 for invalid token (not found)", async () => {
+    it("redirects invalid tokens back to the branded login page", async () => {
       prismaMock.magicLinkToken.findUnique.mockResolvedValue(null as never);
 
       const response = await app.inject({
         method: "GET",
         url: "/auth/verify?token=bad-token",
       });
-      expect(response.statusCode).toBe(401);
-      expect(response.json().error).toBe("Invalid or expired token");
+      expect(response.statusCode).toBe(302);
+      expect(response.headers.location).toBe(
+        "http://localhost:5173/login?error=invalid-or-expired-link"
+      );
     });
 
     it("returns 401 for expired token", async () => {
@@ -222,10 +224,10 @@ describe("Auth Routes", () => {
         method: "GET",
         url: "/auth/verify?token=expired-token",
       });
-      expect(response.statusCode).toBe(401);
+      expect(response.statusCode).toBe(302);
     });
 
-    it("returns 401 for already-used token", async () => {
+    it("allows a prefetched token to be used again until it expires", async () => {
       prismaMock.magicLinkToken.findUnique.mockResolvedValue({
         id: "tok-1",
         token: "used-token",
@@ -234,12 +236,15 @@ describe("Auth Routes", () => {
         expiresAt: new Date(Date.now() + 60000),
         user: mockUser(),
       } as never);
+      prismaMock.user.update.mockResolvedValue(mockUser() as never);
+      prismaMock.session.create.mockResolvedValue({} as never);
 
       const response = await app.inject({
         method: "GET",
         url: "/auth/verify?token=used-token",
       });
-      expect(response.statusCode).toBe(401);
+      expect(response.statusCode).toBe(302);
+      expect(prismaMock.session.create).toHaveBeenCalled();
     });
 
     it("creates session and redirects for valid token", async () => {
@@ -262,12 +267,9 @@ describe("Auth Routes", () => {
 
       expect(response.statusCode).toBe(302);
       expect(response.headers.location).toBe("http://localhost:5173/");
-      // Token should be marked as used
-      expect(prismaMock.magicLinkToken.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: { used: true },
-        })
-      );
+      // GET verification must not consume the token because mail scanners can
+      // prefetch it before the user opens the message.
+      expect(prismaMock.magicLinkToken.update).not.toHaveBeenCalled();
       // Session should be created
       expect(prismaMock.session.create).toHaveBeenCalled();
       // Cookie should be set

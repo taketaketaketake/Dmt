@@ -60,6 +60,18 @@ describe("LoginPage", () => {
     expect(screen.getByRole("button", { name: /continue with email/i })).toBeInTheDocument();
   });
 
+  it("shows a friendly message for an invalid or expired magic link", () => {
+    mockUseAuth.mockReturnValue({ login: mockLogin, isAuthenticated: false });
+    render(
+      <MemoryRouter initialEntries={["/login?error=invalid-or-expired-link"]}>
+        <LoginPage />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText(/invalid or has expired/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("you@example.com")).toBeInTheDocument();
+  });
+
   it("redirects when already authenticated", () => {
     mockUseAuth.mockReturnValue({
       login: mockLogin,

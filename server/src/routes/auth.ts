@@ -94,7 +94,7 @@ export async function authRoutes(app: FastifyInstance) {
     const sessionId = await verifyMagicLinkToken(token);
 
     if (!sessionId) {
-      return reply.status(401).send({ error: "Invalid or expired token" });
+      return reply.redirect(`${env.APP_URL}/login?error=invalid-or-expired-link`);
     }
 
     // Set session cookie

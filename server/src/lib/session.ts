@@ -45,19 +45,13 @@ export async function verifyMagicLinkToken(token: string): Promise<string | null
     return null;
   }
 
-  if (magicLink.used) {
-    return null;
-  }
-
   if (magicLink.expiresAt < new Date()) {
     return null;
   }
 
-  // Mark token as used
-  await prisma.magicLinkToken.update({
-    where: { id: magicLink.id },
-    data: { used: true },
-  });
+  // Do not consume the token on GET. Email providers and security products
+  // commonly prefetch links, which otherwise burns the token before the user
+  // clicks it. The bearer token remains valid only for its short expiry window.
 
   // Update user's last login time
   await prisma.user.update({

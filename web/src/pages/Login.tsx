@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../contexts";
 import { useBranding } from "../hooks/useBranding";
 import { usePageTitle } from "../hooks/usePageTitle";
@@ -8,6 +8,7 @@ import styles from "./Login.module.css";
 export function LoginPage() {
   usePageTitle("Login");
   const branding = useBranding();
+  const [searchParams] = useSearchParams();
   const { login, isAuthenticated } = useAuth();
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -75,6 +76,12 @@ export function LoginPage() {
             Enter your email to receive a sign-in link.
             {branding.requiresAccessApproval && " New members are reviewed before approval."}
           </p>
+
+          {searchParams.get("error") === "invalid-or-expired-link" && (
+            <p className={styles.error}>
+              That sign-in link is invalid or has expired. Request a new link below.
+            </p>
+          )}
 
           <form onSubmit={handleSubmit} className={styles.form}>
             <label className={styles.label}>
