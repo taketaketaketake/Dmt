@@ -59,15 +59,16 @@ Stripe/R2/Resend accounts.
   post-deploy: `/auth/verify` redirects instead of returning 401, `/api/tenant` includes
   `requiresAccessApproval`, and the Login chunk carries the expired-link message.
   `REQUIRE_ACCESS_APPROVAL` is unset (defaults `true`), so the approval queue is unchanged.
-- **Custom domain (in progress, 2026-07-30):** `course.dynamichqi.com` is attached to the
-  Railway `dwimbs-app` service; the only DNS record Railway requires is
-  `CNAME course → pd15m49b.up.railway.app` (no ownership TXT was issued for this one).
-  The record must be added by the **client** — dynamichqi.com is their zone (apex + www point
-  at Netlify; nameservers are split across Squarespace and NS1). Once `course` resolves and
-  Railway issues the certificate, cut over `APP_URL=https://course.dynamichqi.com` and
-  redeploy/restart. **Do not set `APP_URL` before DNS resolves** — it is the base for
-  magic-link emails and the exact CORS origin, so an early switch mails dead login links to
-  live members.
+- **Custom domain (live 2026-07-30):** `course.dynamichqi.com` on the Railway `dwimbs-app`
+  service, with `APP_URL` cut over to it. DNS is managed in **Squarespace** (that is the
+  authoritative zone — apex ALIAS → Netlify, `www` → dynamichqi.netlify.app, Outlook MX;
+  the NS1 nameservers in the delegation are inert). Two records, both added 2026-07-30:
+  `CNAME course → pd15m49b.up.railway.app` and
+  `TXT _railway-verify.course → railway-verify=f2ea75883730929c50d55dec13871a4cdad8709ab79c805bcd2152b18f9470fc`.
+  The old `dwimbs-app-production.up.railway.app` URL still serves the app.
+- **Ordering rule:** never set `APP_URL` to a custom domain before its DNS resolves — it is
+  both the base for magic-link emails and the exact CORS origin, so an early switch mails
+  dead login links to live members.
 - **Phase 2 backlog:** knowledge-check questions (email sent), client's own
   email domain, possible AWS migration (client runs AWS infra), Cloudflare Stream if video
   lectures happen
@@ -141,6 +142,17 @@ manifest + env vars + a deploy; zero client-specific code.
 Follow §11 steps 1–5 (Railway service + Postgres, migrations, `bootstrap:admin`,
 both Railway-provided custom-domain DNS records, and email round-trip check) with the
 course-platform env set:
+
+> **Custom-domain gotchas (both hit on Dwimbs, 2026-07-30):**
+> 1. **Do not pass `--port 3000` to `railway domain`.** `3000` is only the local fallback in
+>    `server/src/lib/env.ts`; on Railway the injected `PORT` is **8080**, which is what the
+>    app actually binds. A domain pointed at 3000 serves a valid certificate and then 502s
+>    ("Application failed to respond"). Omit `--port` and let Railway detect it, or pass 8080.
+>    There is no CLI command to change it afterward — it is a pencil-icon edit under
+>    Settings → Networking, and the Railway GraphQL API rejects the CLI's own token.
+> 2. **`railway domain` under-reports the DNS records.** It printed only the CNAME; the
+>    dashboard's "Show DNS records" dialog also required a `TXT _railway-verify.<sub>`
+>    record. Always read the required records from the dashboard, not the CLI.
 
 - `BRAND_NAME`, `BRAND_TAGLINE`, `BRAND_THEME=<client>`, `BRAND_LOGO_URL`,
   `BRAND_FAVICON_URL` (runtime, served by `GET /api/tenant`)
