@@ -7,7 +7,7 @@ begins, and the checklist of what to patch when rolling out fixes across deploym
 | Client | Domain | Compute | Database | Stripe account | Storage | Email domain | Admin contact | Live since |
 |--------|--------|---------|----------|----------------|---------|--------------|---------------|------------|
 | _(default / Detroit)_ | dmt-app-production.up.railway.app | Railway `dmt-app-production` | Railway Postgres | Own (operator) | R2 `dmt-uploads` | dmtisreal.com (Resend) | zach@takedetroit.com | 2025 |
-| Dwimbs | dwimbs-app-production.up.railway.app | Railway project `dwimbs-founder-education`, service `dwimbs-app` | Railway Postgres (same project) | None (billing disabled) | R2 `dmt-uploads` (shared, `courses/` prefix) | dmtisreal.com (Resend, shared) | zach@takedetroit.com (interim) | 2026-07 |
+| Dwimbs | dwimbs-app-production.up.railway.app (→ course.dynamichqi.com, awaiting client CNAME) | Railway project `dwimbs-founder-education`, service `dwimbs-app` | Railway Postgres (same project) | None (billing disabled) | R2 `dmt-uploads` (shared, `courses/` prefix) | dmtisreal.com (Resend, shared) | zach@takedetroit.com (interim) | 2026-07 |
 | Yard Line | courses.yardlinechat.com | Railway project `yardline`, service `yardline-app` | Railway Postgres (same project) | None (off-platform SaaS fee) | R2 `dmt-uploads` (shared, `courses/yard-line/` prefix) | dmtisreal.com (Resend, shared) | zach@takedetroit.com (interim) | 2026-07 |
 
 ## Per-client notes
@@ -53,7 +53,22 @@ Stripe/R2/Resend accounts.
   curriculum for people starting something — narrated lessons, real examples, and knowledge
   checks that make the ideas stick." — so the hero copy doesn't regress to the Detroit
   default tagline.
-- **Phase 2 backlog:** knowledge-check questions (email sent), custom domain, client's own
+- **Redeploys are MANUAL** (`railway up`) — this service does not auto-deploy from main and
+  goes stale on every push. Last manual deploy: 2026-07-30, bringing it from the mid-Jul-22
+  build up to `be4bbf4` (scanner-safe magic links + simplified course onboarding). Verified
+  post-deploy: `/auth/verify` redirects instead of returning 401, `/api/tenant` includes
+  `requiresAccessApproval`, and the Login chunk carries the expired-link message.
+  `REQUIRE_ACCESS_APPROVAL` is unset (defaults `true`), so the approval queue is unchanged.
+- **Custom domain (in progress, 2026-07-30):** `course.dynamichqi.com` is attached to the
+  Railway `dwimbs-app` service; the only DNS record Railway requires is
+  `CNAME course → pd15m49b.up.railway.app` (no ownership TXT was issued for this one).
+  The record must be added by the **client** — dynamichqi.com is their zone (apex + www point
+  at Netlify; nameservers are split across Squarespace and NS1). Once `course` resolves and
+  Railway issues the certificate, cut over `APP_URL=https://course.dynamichqi.com` and
+  redeploy/restart. **Do not set `APP_URL` before DNS resolves** — it is the base for
+  magic-link emails and the exact CORS origin, so an early switch mails dead login links to
+  live members.
+- **Phase 2 backlog:** knowledge-check questions (email sent), client's own
   email domain, possible AWS migration (client runs AWS infra), Cloudflare Stream if video
   lectures happen
 
