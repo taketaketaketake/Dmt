@@ -65,8 +65,23 @@ first.
   `suspend`/`reinstate` for users but **no user-level approve**. Deleting `Profile` without
   replacing this strands every new signup. This is the one part of the extraction that is net-new
   code rather than deletion — see Phase 1.
-- **`web/src/pages/Login.tsx:20`** redirects approval-gated users to `/people`, a community page
-  that will not exist.
+- **The post-login redirect chain has three hops, not one.** Fixing `web/src/pages/Login.tsx:20`
+  alone is insufficient. With `REQUIRE_ACCESS_APPROVAL` on, `server/src/routes/auth.ts:105`
+  redirects to `/`; `web/src/App.tsx:153` then sends authenticated users to `/people`; and
+  `components/layout/RequireApproved.tsx:18` sends *un*approved users to `/account`. All three
+  destinations are deleted by this extraction. Every hop must be redefined — see Phase 1.
+- **`reject` has no database transition.** `UserStatus` is only `pending | approved | suspended`
+  (`server/prisma/schema.prisma:14`); `rejected` exists solely on `ProfileApprovalStatus`, which is
+  being deleted. Rejection semantics must be chosen explicitly — see Phase 1.
+- **The Railway start command migrates before the server boots.** `nixpacks.toml:34` runs
+  `prisma migrate deploy && tsx prisma/seed-needs.ts && tsx prisma/seed-categories.ts` ahead of
+  `node dist/index.js`. Deploying the fork without first resolving the baseline means `migrate
+  deploy` tries to create tables that already exist and the container crash-loops. The same line
+  invokes two seeds the fork deletes. Both are ordering constraints on Phase 4.
+- **The shared web layer is not community-free.** `web/src/lib/api.ts` (654 LOC) and
+  `web/src/hooks/queries.ts` (479 LOC) carry ~135 and ~155 community-referencing lines
+  respectively, plus `components/layout/Header.tsx` nav links. Deleting only pages leaves this dead
+  code compiling and shipping.
 - **`stripeCustomerId` and `isEmployer`** on `User` are nullable / defaulted, so they can be dropped
   from the Prisma model and left as inert orphan columns — no destructive migration on live data.
 - **`.claude/docs/clients.md` must not ship.** It contains Yard Line's domain, Railway project
@@ -169,9 +184,35 @@ no other client's material.
   - An admin pending-users page replacing `ApprovalQueue`/`ProfileReview`.
   - Reuse `sendProfileApprovedEmail` / `sendProfileRejectedEmail` from `lib/email.ts`, retitled for
     account rather than profile review.
-  - Fix `web/src/pages/Login.tsx:20` — redirect approval-gated users to `/courses`, not `/people`.
-  - Tests covering pending → approved, pending → rejected, and that a pending user is still refused
-    by `authAndApproved()`.
+  - **Rejection semantics — decide before writing the route.** `UserStatus` has no `rejected`
+    value. Default recommendation: **map reject → `suspended`**, because `requireApproved()`
+    already 403s on `suspended` and it needs no schema change. The alternative (add `rejected` to
+    the enum) cannot ride in `0_init` — that migration is resolved-as-applied against the live DB
+    and never actually executes, so a new enum value requires a *second*, genuinely-running
+    migration. Whichever is chosen, define and test:
+    - session + magic-link-token invalidation on reject (delete the user's `Session` and
+      `MagicLinkToken` rows — do not rely on expiry);
+    - whether a rejected email address can request a new magic link and re-enter the queue.
+      `routes/auth.ts:61` sets `status` only when creating a user, so an existing rejected user is
+      *not* reset to pending by a fresh login — confirm that is the intended behavior;
+    - whether admin can undo a rejection (`reinstate` sets `approved`, which would skip review).
+- **Net-new: redefine the full post-login redirect chain.** All three hops point at deleted routes:
+  - `server/src/routes/auth.ts:105` — approval-enabled logins redirect to `/`. Point approved users
+    at `/courses`.
+  - `web/src/App.tsx:153` — the authenticated `/` redirect targets `/people`. Change to `/courses`.
+  - `web/src/pages/Login.tsx:20` — already-authenticated visitors are sent to `/people`. Change to
+    `/courses`.
+  - `components/layout/RequireApproved.tsx:18` — unapproved users are sent to `/account`, which
+    this phase deletes. Needs a real destination: add a minimal "awaiting approval" page (it is the
+    only thing a pending member can see) and point the gate at it. Update its doc comment, which
+    still describes `POST /admin/profiles/:id/approve`.
+  - `pages/NotFound.tsx` and `components/layout/Header.tsx` nav — remove `/people`, `/projects`,
+    `/jobs` links; resolve or remove `/account`.
+- **Prune the shared web layer**, not just pages: `web/src/lib/api.ts` and `web/src/hooks/
+  queries.ts` (community request functions, query keys, hooks, and response types),
+  `contexts`/auth types carrying `Profile`, and `components/layout/{Header,Shell}` plus their tests.
+- Tests covering pending → approved, pending → rejected (with session invalidation), that a pending
+  user is still refused by `authAndApproved()`, and that a pending user's redirect target renders.
 - Prune `schema.prisma` to `User`, `Session`, `MagicLinkToken` + the 7 course models. Drop
   `stripeCustomerId` and `isEmployer` from `User` (they remain as inert orphan columns in the live
   DB). Drop the now-unused enums.
@@ -179,7 +220,8 @@ no other client's material.
   schema.
 - Delete community seeds: `seed-demo.ts`, `seed-jobs.ts`, `seed-needs.ts`, `seed-categories.ts`,
   `seed.ts`, and their `package.json` scripts. Keep `bootstrap-admin.ts` and `seed-course.ts`.
-  Remove the taxonomy seed step from `nixpacks.toml`.
+  **`nixpacks.toml:34` must be rewritten** — it invokes both deleted seeds, so the fork crash-loops
+  on boot until they are removed from the start command.
 - Strip community env from `lib/env.ts` (Stripe vars) and the `.env.example`.
 - **Strip other clients' material**: delete `prisma/courses/yard-line/`, the `:root[data-theme=
   "yardline"]` blocks from `web/src/styles/themes.css` (lines 70–121), and `.claude/docs/` in its
@@ -191,13 +233,21 @@ no other client's material.
 
 - [ ] `grep -ri "yard\s*line\|yardline\|detroit\|takedetroit\|dmtisreal" .` returns no hits in the
       fork
-- [ ] `grep -rn "profile\|project\|job\|stripe\|favorite\|follow" server/src --include=*.ts -i`
-      returns no community references (course/lesson code and the word "project" in prose excepted)
+- [ ] `grep -rn "profile\|project\|job\|stripe\|favorite\|follow\|need\|skill\|categor" server/src
+      web/src -i` returns no community references (course/lesson code and the word "project" in
+      prose excepted). **Must cover `web/src`, not just `server/src`** — `lib/api.ts`,
+      `hooks/queries.ts`, `contexts`, and `components/layout` are where dead community code
+      survives a pages-only deletion
+- [ ] `grep -rn "/people\|/projects\|/jobs\|/account" web/src` returns nothing outside deliberate
+      redirects
 - [ ] `cd server && npm test` green
 - [ ] `cd web && npm test` green and `npm run build` succeeds
+- [ ] `cd web && npx tsc --noEmit` clean, and the built bundle contains no community route chunks
 - [ ] `npx prisma validate` passes and `0_init` applies cleanly to an empty database
-- [ ] Local smoke on a fresh DB: bootstrap an admin, seed the course, request a magic link, land in
-      the pending queue, approve from the admin page, reach `/courses`
+- [ ] Local smoke on a fresh DB: bootstrap an admin, seed the course, request a magic link, follow
+      it, land on the awaiting-approval page (not a 404 or a redirect loop), approve from the admin
+      page, then reach `/courses` — with `REQUIRE_ACCESS_APPROVAL` both unset and `false`
+- [ ] Reject path smoke: a rejected user's session is invalidated and they cannot reach `/courses`
 
 ### Status: NOT STARTED
 
@@ -279,22 +329,50 @@ back.
 
 ### Deliverables
 
-- `railway up` the fork to `dwimbs-app`. This service is manual-deploy only and does not auto-deploy
-  from `main`, so there is no risk of an accidental push racing this.
-- Apply the baseline: `prisma migrate resolve --applied 0_init` against the production DB, then
-  confirm `migrate deploy` is a no-op.
+**Order is load-bearing. Resolve the baseline BEFORE deploying, never after.**
+
+`nixpacks.toml:34` runs `prisma migrate deploy` as the first thing in the start command, before the
+server process exists. If the fork is deployed first, that command finds `0_init` pending against a
+database that already has every table, fails on the first `CREATE TABLE`, and the container
+crash-loops — there is no running instance on which to then run the resolve.
+
+Steps, in this order:
+
+1. Fresh `pg_dump` (rollback artifact).
+2. From the fork's `server/` with `DATABASE_URL` pointed at Dwimbs production:
+   `npx prisma migrate resolve --applied 0_init`.
+3. Verify `npx prisma migrate status` reports no pending migrations.
+4. **Then** `railway up` the fork to `dwimbs-app`. Its boot-time `migrate deploy` is now a no-op.
+
+Keep the window between steps 2 and 4 short and treat it as maintenance. Once `0_init` is recorded,
+the currently-deployed DMT build has an applied migration absent from its own `migrations/` folder;
+`migrate deploy` tolerates that, but do not deliberately reboot the old build in that state.
+
+Other deliverables:
+
+- Confirm the rewritten start command from Phase 1 no longer invokes `seed-needs` / `seed-categories`
+  before this deploy — those files do not exist in the fork and would fail the same way.
 - Full production verification pass (below).
-- Rollback path documented: redeploy the current DMT build from this repo and restore the Phase 4
-  dump.
+- Rollback path: restore the Phase 4 dump (which reverts `_prisma_migrations` to the 7-migration
+  history) and redeploy the current DMT build from this repo. Restoring the dump is required, not
+  optional — the old build will not run against a database whose migration table has been rebaselined
+  beyond tolerating the extra row.
 
 ### Exit Criteria
 
 - [ ] Fresh `pg_dump` taken immediately before deploy
+- [ ] `prisma migrate resolve --applied 0_init` run against production **before** `railway up`, and
+      `migrate status` clean afterward
+- [ ] Deploy logs show `migrate deploy` applying nothing and the server reaching listen — no
+      crash-loop
 - [ ] `GET /health` green
 - [ ] `GET /api/tenant` returns Dwimbs branding, `theme: "dynamichqi"`, and
       `requiresAccessApproval: true`
 - [ ] Landing page renders `BRAND_NAME` as H1 with the navy/gold skin
-- [ ] Magic-link login E2E to a real inbox completes and lands on `/courses`
+- [ ] Magic-link login E2E to a real inbox: an **approved** member lands on `/courses`; a **new**
+      signup lands on the awaiting-approval page. Dwimbs runs with approval on, so "lands on
+      `/courses`" is not the correct expectation for a first-time user
+- [ ] No redirect loop and no 404 at any hop of `/auth/verify` → `/` → gate
 - [ ] All 7 modules / 12 lessons render; native markdown, the breakeven calculator, and the deck
       fallback all work
 - [ ] An existing member's progress is intact; a knowledge check gives instant feedback; a module
@@ -378,6 +456,9 @@ Remove what you no longer have a reason to hold, and make the registry truthful.
 |---|---|
 | Migration baseline error destroys live member data | Full `pg_dump` before Phases 3, 4, and 5; the entire resolve rehearsed offline in Phase 2 first |
 | Approval flow gap strands new signups | Phase 1 builds user-level approve/reject with tests before anything deploys |
+| Deploying before resolving the baseline crash-loops the service | Phase 4 fixes the order explicitly: resolve against prod, verify `migrate status`, then `railway up`. `nixpacks.toml:34` migrates before the server starts, so there is no post-deploy recovery |
+| `reject` with no enum value ships as a silent no-op or a crash | Semantics decided in Phase 1 before the route is written; note that `0_init` is resolved-not-run, so a new enum value needs a second real migration |
+| Pages-only deletion leaves dead community code shipping | Phase 1 exit greps cover `web/src`, plus `tsc --noEmit` and a bundle check |
 | Undefined license lets the client resell your platform against Yard Line | Phase 0 blocks all client-facing work until terms are written |
 | Another client's data leaks in the fork | Phase 1 exit criteria greps for it; `.claude/docs/` deleted wholesale |
 | Railway transfer drops the custom domain or env | Confirmed in Phase 0; manual re-add steps recorded before the transfer |
