@@ -46,8 +46,8 @@ the result to one client. Yard Line and Detroit stay on this repo, unchanged.
 |---|---|---|
 | Nature of the split | Client fork, not a product line | Yard Line stays here; the extracted repo is a one-off snapshot, not a maintained upstream |
 | Ongoing support | **Clean break** — point-in-time snapshot | No upstream link. Security fixes made here never reach them. Must be stated in the contract |
-| Hosting | **Transfer the Railway project** to a DYNAMICHQI account | DB survives in place; the baseline-migration approach below is viable |
-| Live data | **Preserved** — real members + lesson progress since 2026-07 | Requires a squashed migration baseline + `migrate resolve`, not a fresh DB |
+| Hosting | **Transfer the Railway project** to a DYNAMICHQI account | DB survives in place, which is what makes an in-place history conversion necessary at all |
+| Live data | **Preserved** — real members + lesson progress since 2026-07 | Requires an explicit migration-history conversion on the live DB (Phase 2 picks the strategy), not a fresh DB |
 
 ### Sequencing principle
 
@@ -73,9 +73,16 @@ first.
 - **`reject` has no database transition.** `UserStatus` is only `pending | approved | suspended`
   (`server/prisma/schema.prisma:14`); `rejected` exists solely on `ProfileApprovalStatus`, which is
   being deleted. Rejection semantics must be chosen explicitly — see Phase 1.
+- **`migrate resolve` does not rebase the history.** `prisma migrate resolve --applied 0_init`
+  *inserts* one row into `_prisma_migrations`; it does not delete the seven existing rows. Left
+  alone, the live database claims eight applied migrations while the fork's `migrations/` directory
+  contains one, and `prisma migrate status` reports the seven as "found in the database but not in
+  the local migrations directory" — it will not be clean. Converting the history is therefore an
+  explicit, transactional step, not a side effect of resolving. Whether `migrate deploy` *tolerates*
+  the divergence is an empirical question, and the plan must not depend on the answer — see Phase 2.
 - **The Railway start command migrates before the server boots.** `nixpacks.toml:34` runs
   `prisma migrate deploy && tsx prisma/seed-needs.ts && tsx prisma/seed-categories.ts` ahead of
-  `node dist/index.js`. Deploying the fork without first resolving the baseline means `migrate
+  `node dist/index.js`. Deploying the fork without first converting the history means `migrate
   deploy` tries to create tables that already exist and the container crash-loops. The same line
   invokes two seeds the fork deletes. Both are ordering constraints on Phase 4.
 - **The shared web layer is not community-free.** `web/src/lib/api.ts` (654 LOC) and
@@ -184,18 +191,30 @@ no other client's material.
   - An admin pending-users page replacing `ApprovalQueue`/`ProfileReview`.
   - Reuse `sendProfileApprovedEmail` / `sendProfileRejectedEmail` from `lib/email.ts`, retitled for
     account rather than profile review.
-  - **Rejection semantics — decide before writing the route.** `UserStatus` has no `rejected`
-    value. Default recommendation: **map reject → `suspended`**, because `requireApproved()`
-    already 403s on `suspended` and it needs no schema change. The alternative (add `rejected` to
-    the enum) cannot ride in `0_init` — that migration is resolved-as-applied against the live DB
-    and never actually executes, so a new enum value requires a *second*, genuinely-running
-    migration. Whichever is chosen, define and test:
-    - session + magic-link-token invalidation on reject (delete the user's `Session` and
-      `MagicLinkToken` rows — do not rely on expiry);
-    - whether a rejected email address can request a new magic link and re-enter the queue.
-      `routes/auth.ts:61` sets `status` only when creating a user, so an existing rejected user is
-      *not* reset to pending by a fresh login — confirm that is the intended behavior;
-    - whether admin can undo a rejection (`reinstate` sets `approved`, which would skip review).
+  - **Rejection semantics — a pre-implementation gate.** `UserStatus` has no `rejected` value.
+    This is currently an open decision, and **Phase 1 may not be marked COMPLETE while it remains
+    one.** Pick one behavior, then make the route, the admin UI wording, the re-registration policy,
+    and `reinstate` all agree with it. A half-settled design here ships a queue whose button text
+    promises something the database does not do.
+
+    Default recommendation: **map reject → `suspended`**, because `requireApproved()` already 403s
+    on `suspended` and it needs no schema change. The alternative — adding `rejected` to the enum —
+    cannot ride in `0_init`, which is resolved-as-applied and never executes, so it requires a
+    second genuinely-running migration.
+
+    The four answers that must agree, whichever is chosen:
+
+    | Question | Under reject → `suspended` |
+    |---|---|
+    | Route behavior | `POST /admin/users/:id/reject` sets `suspended` and deletes the user's `Session` + `MagicLinkToken` rows (do not rely on expiry) |
+    | Admin UI wording | Cannot say "Rejected" if the stored state is Suspended and the list filters on it — either relabel the action, or render suspended-via-reject distinctly and accept that the two are indistinguishable after the fact |
+    | Re-registration | `routes/auth.ts:61` sets `status` only on user *creation*, so a rejected address requesting a new link is **not** reset to pending — they stay locked out silently. Confirm that is intended, and decide what the login page tells them |
+    | Reinstate | `POST /admin/users/:id/reinstate` sets `approved`, which would promote a rejected user straight past review. Either block reinstate for reject-suspended users or accept it as the deliberate undo |
+
+    The reinstate collision is the sharpest consequence: with one `suspended` state, "unsuspend a
+    misbehaving member" and "undo a rejection" become the same button with different intended
+    outcomes. If that is unacceptable, the enum-value route is the honest choice despite the extra
+    migration.
 - **Net-new: redefine the full post-login redirect chain.** All three hops point at deleted routes:
   - `server/src/routes/auth.ts:105` — approval-enabled logins redirect to `/`. Point approved users
     at `/courses`.
@@ -247,25 +266,64 @@ no other client's material.
 - [ ] Local smoke on a fresh DB: bootstrap an admin, seed the course, request a magic link, follow
       it, land on the awaiting-approval page (not a 404 or a redirect loop), approve from the admin
       page, then reach `/courses` — with `REQUIRE_ACCESS_APPROVAL` both unset and `false`
-- [ ] Reject path smoke: a rejected user's session is invalidated and they cannot reach `/courses`
+- [ ] **Rejection design settled**, not deferred: one behavior chosen and recorded, and the route,
+      admin UI wording, re-registration policy, and `reinstate` behavior all verified consistent
+      with it. Phase 1 is not COMPLETE while any of the four disagree
+- [ ] Reject path smoke: a rejected user's session is invalidated, they cannot reach `/courses`, and
+      requesting a fresh magic link does the documented thing rather than an undocumented one
 
 ### Status: NOT STARTED
 
 ---
 
-## PHASE 2 — Verify the baseline against real Dwimbs data
+## PHASE 2 — Choose and rehearse the migration-history conversion
 
 ### Goal
 
-Prove the squashed baseline adopts the live Dwimbs database without data loss, entirely offline,
-before anything touches production.
+Choose a migration-history strategy, then prove it adopts the live Dwimbs database without data
+loss — entirely offline, before anything touches production.
+
+### Decide the strategy first
+
+Two viable approaches. Rehearse **A**; fall back to **B** if the rehearsal is not clean.
+
+**Option A — convert the history (default).** Replace the seven DMT rows in `_prisma_migrations`
+with a single `0_init` row, so the database history exactly matches the fork's `migrations/`
+directory. Clean repo and clean `migrate status` for the client, at the cost of one irreversible
+metadata rewrite on live production.
+
+Sequence, all inside one transaction except the resolve:
+
+1. `CREATE TABLE _prisma_migrations_pre_fork AS SELECT * FROM _prisma_migrations;`
+2. `DELETE FROM _prisma_migrations;`
+3. Commit, then `npx prisma migrate resolve --applied 0_init` — this recomputes the checksum from
+   the fork's own migration file, which is why it is used instead of a hand-written `INSERT`.
+
+Deleting *before* resolving is what makes the history match; resolving alone leaves eight rows.
+
+**Option B — inherit the seven migrations verbatim (fallback).** Ship the fork with the existing
+`migrations/` directory untouched and add future migrations on top. Day-one `migrate deploy` is a
+genuine no-op because all seven are already applied, so **production needs no metadata surgery at
+all** — the single highest-risk step in this plan disappears. Costs: the client inherits migration
+files that create community tables their schema no longer models, and any fresh database (a staging
+clone, a future rebuild) comes up with ~14 orphan tables.
+
+Option A is the better product; Option B removes the only irreversible operation. Record the choice
+and the reasoning here before Phase 4.
 
 ### Deliverables
 
 - `pg_dump` of the Dwimbs production database, stored outside the repo. This is the rollback
   artifact for every later phase — take it before Phase 3 and again before Phase 4.
-- Local restore of that dump, then `prisma migrate resolve --applied 0_init` followed by
-  `prisma migrate deploy` (must report nothing to apply).
+- Local restore of that dump, then a **full rehearsal of the chosen strategy end to end**, with
+  every command and its output recorded verbatim in this plan so Phase 4 is a transcript replay and
+  not an improvisation.
+- **Empirical answers, written down** — do not assume Prisma's behavior in any of these:
+  - Does `migrate deploy` succeed, warn, or fail when the database holds applied migrations absent
+    from the local directory? (This is the Option A step-2 question, and it decides whether the
+    naive resolve-only approach was ever viable.)
+  - What exactly does `migrate status` print before and after the conversion?
+  - Does `migrate deploy` behave differently on the very next deploy versus a subsequent one?
 - A written record of which orphan tables remain (`Profile`, `Project`, `Job`, `Category`, and the
   rest) and the confirmation that no code path reads them.
 - Verification that admin user deletion still behaves: `Session` and `MagicLinkToken` are
@@ -274,14 +332,25 @@ before anything touches production.
 
 ### Exit Criteria
 
-- [ ] Restored prod dump + `migrate resolve` + `migrate deploy` completes with no pending migrations
+- [ ] Strategy A or B chosen, recorded above with reasoning
+- [ ] Full rehearsal on the restored prod dump completed, with commands and outputs transcribed
+- [ ] After conversion, `_prisma_migrations` contains exactly the rows the fork's `migrations/`
+      directory expects — one row for A, seven for B — verified by direct `SELECT`, not inference
+- [ ] `prisma migrate status` reports the database up to date with **no** "found in the database but
+      not in the local migrations directory" warnings
+- [ ] `prisma migrate deploy` applies nothing and exits 0
+- [ ] The three empirical questions above are answered in writing
 - [ ] App boots against the restored DB
 - [ ] A real member's lesson progress and quiz attempts render correctly and match pre-migration
       row counts
 - [ ] An existing approved member can still authenticate; an existing pending member appears in the
       new user approval queue
 - [ ] Deleting a test user with a legacy `Profile` row succeeds
-- [ ] Rollback rehearsed: restore the dump again and confirm the original repo still runs against it
+- [ ] **Rollback rehearsed from the converted state**, not from an untouched dump: starting from a
+      database that has already had its history converted, restore and confirm the original DMT
+      build runs against it again. Under Option A this requires restoring `_prisma_migrations` (from
+      `_prisma_migrations_pre_fork` or the dump); confirm that a partial rollback — schema restored,
+      migration table not — is detected rather than silently limping
 
 ### Status: NOT STARTED
 
@@ -329,7 +398,7 @@ back.
 
 ### Deliverables
 
-**Order is load-bearing. Resolve the baseline BEFORE deploying, never after.**
+**Order is load-bearing. Convert the migration history BEFORE deploying, never after.**
 
 `nixpacks.toml:34` runs `prisma migrate deploy` as the first thing in the start command, before the
 server process exists. If the fork is deployed first, that command finds `0_init` pending against a
@@ -339,30 +408,46 @@ crash-loops — there is no running instance on which to then run the resolve.
 Steps, in this order:
 
 1. Fresh `pg_dump` (rollback artifact).
-2. From the fork's `server/` with `DATABASE_URL` pointed at Dwimbs production:
-   `npx prisma migrate resolve --applied 0_init`.
-3. Verify `npx prisma migrate status` reports no pending migrations.
+2. Execute the migration-history conversion chosen and rehearsed in Phase 2, replaying that
+   transcript exactly. Under Option A that is: archive `_prisma_migrations` to
+   `_prisma_migrations_pre_fork`, `DELETE` its rows, then `npx prisma migrate resolve --applied
+   0_init` from the fork's `server/` against the production `DATABASE_URL`. Under Option B this
+   step is empty.
+3. `SELECT migration_name FROM _prisma_migrations` and confirm the rows match the fork's
+   `migrations/` directory exactly. Then verify `npx prisma migrate status` is clean.
 4. **Then** `railway up` the fork to `dwimbs-app`. Its boot-time `migrate deploy` is now a no-op.
 
-Keep the window between steps 2 and 4 short and treat it as maintenance. Once `0_init` is recorded,
-the currently-deployed DMT build has an applied migration absent from its own `migrations/` folder;
-`migrate deploy` tolerates that, but do not deliberately reboot the old build in that state.
+**Under Option A, steps 2–4 are a hard maintenance window, not merely a short one.** Between the
+`DELETE` and the new deploy, the running DMT build sees an empty migration table: if it restarts for
+any reason it will try to replay all seven migrations against a fully-populated schema, fail on the
+first `CREATE TABLE`, and crash-loop. That is an outage, not data loss, and it is recovered by
+completing step 4 or by restoring the archive table — but it means the old build must not be
+allowed to reboot mid-window. Confirm no Railway healthcheck-driven restart or redeploy can fire
+during it. (This supersedes an earlier draft of this plan that described the old build as merely
+"tolerating an extra row" — that was true of resolve-only, which does not actually convert the
+history.)
 
 Other deliverables:
 
 - Confirm the rewritten start command from Phase 1 no longer invokes `seed-needs` / `seed-categories`
   before this deploy — those files do not exist in the fork and would fail the same way.
 - Full production verification pass (below).
-- Rollback path: restore the Phase 4 dump (which reverts `_prisma_migrations` to the 7-migration
-  history) and redeploy the current DMT build from this repo. Restoring the dump is required, not
-  optional — the old build will not run against a database whose migration table has been rebaselined
-  beyond tolerating the extra row.
+- Rollback path (Option A): restore `_prisma_migrations` from `_prisma_migrations_pre_fork` — or the
+  whole database from the Phase 4 dump — and redeploy the current DMT build. Restoring the migration
+  table is **required**, not optional: the old build cannot run against a converted history. Option B
+  has no migration rollback because it made no migration change.
+- Drop `_prisma_migrations_pre_fork` only after Phase 5 verification passes; it is the cheapest
+  rollback artifact and costs nothing to keep until then.
 
 ### Exit Criteria
 
 - [ ] Fresh `pg_dump` taken immediately before deploy
-- [ ] `prisma migrate resolve --applied 0_init` run against production **before** `railway up`, and
-      `migrate status` clean afterward
+- [ ] Migration-history conversion executed against production **before** `railway up`, replaying
+      the Phase 2 transcript
+- [ ] `_prisma_migrations` rows match the fork's `migrations/` directory exactly, verified by
+      `SELECT`; `migrate status` clean with no "not in the local migrations directory" warnings
+- [ ] `_prisma_migrations_pre_fork` archive exists and was captured before the `DELETE`
+- [ ] No restart or redeploy of the old build occurred during the window
 - [ ] Deploy logs show `migrate deploy` applying nothing and the server reaching listen — no
       crash-loop
 - [ ] `GET /health` green
@@ -454,10 +539,12 @@ Remove what you no longer have a reason to hold, and make the registry truthful.
 
 | Risk | Mitigation |
 |---|---|
-| Migration baseline error destroys live member data | Full `pg_dump` before Phases 3, 4, and 5; the entire resolve rehearsed offline in Phase 2 first |
+| Migration-history conversion destroys live member data | Full `pg_dump` before Phases 3, 4, and 5, plus the `_prisma_migrations_pre_fork` archive; the whole conversion rehearsed offline in Phase 2 first and replayed from a transcript |
 | Approval flow gap strands new signups | Phase 1 builds user-level approve/reject with tests before anything deploys |
-| Deploying before resolving the baseline crash-loops the service | Phase 4 fixes the order explicitly: resolve against prod, verify `migrate status`, then `railway up`. `nixpacks.toml:34` migrates before the server starts, so there is no post-deploy recovery |
-| `reject` with no enum value ships as a silent no-op or a crash | Semantics decided in Phase 1 before the route is written; note that `0_init` is resolved-not-run, so a new enum value needs a second real migration |
+| Deploying before converting the history crash-loops the service | Phase 4 fixes the order explicitly: convert against prod, verify rows by `SELECT` + clean `migrate status`, then `railway up`. `nixpacks.toml:34` migrates before the server starts, so there is no post-deploy recovery |
+| `reject` with no enum value ships as a silent no-op or a crash | Settled-design gate blocks Phase 1 completion until route, UI wording, re-registration, and reinstate agree; `0_init` is resolved-not-run, so a new enum value needs a second real migration |
+| History conversion leaves the DB and `migrations/` divergent | Phase 2 verifies row-for-row by `SELECT` and requires a warning-free `migrate status`; Option B is a documented fallback that needs no conversion at all |
+| Old build reboots mid-window and crash-loops | Option A's window is declared a hard maintenance window; confirm no healthcheck restart can fire, and keep `_prisma_migrations_pre_fork` as the fast recovery |
 | Pages-only deletion leaves dead community code shipping | Phase 1 exit greps cover `web/src`, plus `tsc --noEmit` and a bundle check |
 | Undefined license lets the client resell your platform against Yard Line | Phase 0 blocks all client-facing work until terms are written |
 | Another client's data leaks in the fork | Phase 1 exit criteria greps for it; `.claude/docs/` deleted wholesale |
