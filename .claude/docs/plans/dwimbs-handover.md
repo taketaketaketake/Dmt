@@ -52,7 +52,7 @@ the result to one client. Yard Line and Detroit stay on this repo, unchanged.
 ### Sequencing principle
 
 **Cut over while you still own it, then transfer a working thing.** Every risky step — new
-migration baseline, new R2 bucket, new Resend sender, extracted code — happens on infrastructure
+migration-history conversion, new R2 bucket, new Resend sender, extracted code — happens on infrastructure
 you control and can roll back. The Railway project transfer is the *last* technical step, not the
 first.
 
