@@ -87,11 +87,25 @@ don't land on ephemeral disk.
 | State | AWS service | Notes |
 |---|---|---|
 | Application database — users, profiles, sessions, taxonomy, course content, lesson progress, quiz attempts | **RDS PostgreSQL 16** | `DATABASE_URL` only. RDS enforces TLS: append `?sslmode=require`. Automated backups + PITR enabled; retention agreed in Phase 0. Starts empty |
-| Uploads — member portraits, course slides, lesson audio, branding images | **S3** (+ CloudFront) | `lib/storage.ts` already speaks the S3 API via `@aws-sdk/client-s3`; see the generalization in Phase 1. `R2_PUBLIC_URL` becomes the CloudFront domain or S3 website URL |
+| Uploads — member portraits, course slides, lesson audio, branding images | **Private S3 bucket behind CloudFront** | `lib/storage.ts` already speaks the S3 API via `@aws-sdk/client-s3`; see the generalization in Phase 1. `R2_PUBLIC_URL` becomes the CloudFront domain. **Not a public bucket** — see below |
 | Everything else | — | Stateless. Containers are disposable; the local-disk upload fallback (`routes/uploads.ts:68`) is dev-only and unreachable in production |
 
 Migrations run at container start, so the task needs RDS reachability before its health check can
 pass — see the App Runner caveat in Phase 1.
+
+**Object storage is private-behind-CloudFront by default, not public-bucket.** The bucket blocks all
+public access and CloudFront reaches it through origin access control. This is the standard AWS
+architecture and it is the default here regardless of what the client's org guardrails permit:
+
+- It gives a custom domain and caching, which a raw bucket URL does not.
+- It removes the misconfigured-public-bucket failure mode entirely.
+- It sidesteps the **S3 static website endpoint, which is HTTP-only** and would produce
+  mixed-content failures on an HTTPS site. (The REST endpoint,
+  `bucket.s3.<region>.amazonaws.com`, does serve HTTPS — so a public bucket is not automatically a
+  mixed-content problem — but the website endpoint is a trap worth naming, and CloudFront avoids the
+  question.)
+
+A public bucket is acceptable only as a deliberate, recorded exception. Assume CloudFront.
 
 ### What the fork keeps
 
@@ -185,7 +199,7 @@ outright. Do not "prepare" the Dockerfile upstream first.
 | **Docker** | Multi-stage build replacing nixpacks. The only build artifact |
 | **AWS App Runner** (recommended) or **ECS Fargate + ALB** | Compute. App Runner is closest to the Railway experience; ECS if the client mandates VPC placement. Decided in Phase 0 |
 | **Amazon RDS PostgreSQL 16** | Database, starting empty. `DATABASE_URL` with `?sslmode=require` |
-| **Amazon S3** (+ CloudFront) | Member portraits, slide images, lesson audio, branding assets |
+| **Private S3 + CloudFront** | Member portraits, slide images, lesson audio, branding assets. Origin access control; no public bucket |
 | **Amazon ECR** | Image registry |
 | **AWS Secrets Manager** (or App Runner/ECS secret refs) | `SESSION_SECRET`, `DATABASE_URL`, API keys |
 | Resend, or **Amazon SES** if the client mandates AWS-native | Transactional email. Decided in Phase 0 |
@@ -216,8 +230,16 @@ Phases 2–4 write to. Nothing here is code, and no deployment can start without
   the client has existing ECS/VPC standards. This decides the Phase 4 deploy mechanics and whether an
   ALB, VPC connector, and target groups are in scope.
 - **AWS access into DYNAMICHQI's account**: an IAM role or user scoped to ECR push, App Runner/ECS,
-  RDS, S3, CloudFront, and Secrets Manager. Confirm the region and any SCP/guardrail constraints
-  (some org policies block public S3 buckets outright, which changes the CloudFront design).
+  RDS, S3, CloudFront, and Secrets Manager. Confirm the region, the account ID, and any SCP/guardrail
+  constraints — in particular whether CloudFront distributions, origin access control, and RDS
+  instance classes are permitted, and whether a VPC and subnets already exist that the compute target
+  must be placed in.
+
+  **Verify the credentials work, without provisioning the real infrastructure.** Phase 2 owns
+  provisioning; Phase 0 owns proving you can. Confirm the caller identity, then create and immediately
+  delete a scratch ECR repository. That is a genuine push-path permission test — an IAM policy that
+  reads correctly and an API call that actually succeeds are different things, and the difference is
+  what Phase 0 exists to surface. Do not defer this to a policy review on paper.
 - **Email decision**: Resend (works fine from AWS, keeps `lib/email.ts` unchanged) or SES (needs a
   small provider adapter — treat as added Phase 1 scope if chosen). If Resend, the client's sending
   domain must be verified; DNS records go in the Squarespace zone, which is authoritative per
@@ -237,8 +259,11 @@ Phases 2–4 write to. Nothing here is code, and no deployment can start without
 - [ ] Clean-break/no-support term acknowledged in writing
 - [ ] **Written confirmation that no production data needs preserving**, corroborated by row counts
 - [ ] Compute target (App Runner vs ECS Fargate) chosen and recorded above with reasoning
-- [ ] AWS access into the client account verified: a test ECR push and a test RDS connection both succeed
-- [ ] Region and any org guardrails affecting public buckets / networking recorded
+- [ ] Caller identity confirmed in the client account, and a scratch ECR repository created and
+      deleted successfully — real API calls, not a policy review. **No production infrastructure is
+      provisioned in this phase**; the real ECR push and RDS connection are Phase 2 exit criteria
+- [ ] Region, account ID, VPC/subnet constraints, and any org guardrails affecting CloudFront, RDS
+      instance classes, or networking recorded
 - [ ] Email provider decided; if Resend, client domain verified and a test send succeeds
 - [ ] RDS backup retention / PITR policy agreed
 - [ ] Empty-directory launch behavior decided
@@ -389,36 +414,61 @@ churn here:
 
 ---
 
-## PHASE 2 — Provision AWS
+## PHASE 2 — Provision AWS and deploy to a temporary hostname
 
 ### Goal
 
-Stand up the client's AWS infrastructure and confirm the image runs against it on an empty database.
+Stand up the client's AWS infrastructure and get the image running on it, reachable at a temporary
+hostname, with the course seeded — so that Phase 3 has a real deployment to configure and test.
 
-This phase is short now. Its previous incarnation was a rehearsed database migration; with no data to
-preserve, provisioning is all that remains.
+The deployment is created **here**, not at cutover. Phase 3 verifies assets and email against a
+running service; Phase 4 does the final verification pass and moves DNS. Nothing in Phases 2–4 touches
+Railway, which keeps serving `course.dynamichqi.com` throughout.
 
 ### Deliverables
 
-- ECR repository; push the Phase 1 image.
+**Infrastructure**
+
+- ECR repository; push the Phase 1 image. This is the first real push — Phase 0 only proved the
+  credentials on a scratch repo.
 - RDS PostgreSQL 16 instance with the agreed backup retention/PITR, TLS enforced, reachable from the
   compute target. It starts empty.
-- S3 bucket for uploads and course assets with public read (or origin-access-controlled behind
-  CloudFront if org guardrails block public buckets — decided in Phase 0), plus CloudFront
-  distribution if used.
+- **Private S3 bucket with all public access blocked, behind a CloudFront distribution using origin
+  access control.** A public bucket is an exception requiring a recorded reason, not the default.
 - Secrets Manager entries for `DATABASE_URL`, `SESSION_SECRET`, storage credentials, and the email
   API key. **Generate a new `SESSION_SECRET`** — do not carry the Railway one across; it has been held
   by the operator, and there is no reason to inherit it when there are no sessions to preserve.
-- Confirm `0_init` applies to the real RDS instance over TLS and both seeds run, before any service is
-  wired up.
+
+**Deployment**
+
+- Confirm `0_init` applies to the real RDS instance over TLS and both taxonomy seeds run, before the
+  service is wired up. Doing this first means a failure here is a database problem, not a
+  service-configuration problem.
+- Create the App Runner service (or ECS service + ALB) from the ECR image, with the Phase 0 compute
+  target's configuration and secrets wired in. It comes up on a temporary AWS-provided hostname.
+- `APP_URL` points at that temporary hostname for now. **Do not set it to
+  `course.dynamichqi.com`** — per the standing ordering rule in `clients.md`, never point `APP_URL`
+  at a domain before it resolves to that deployment. Magic links are built from `APP_URL`, so a
+  premature value sends testers to Railway.
+- `npm run bootstrap:admin` for the client's first admin account, and `npm run seed:course` to load
+  the founders education content. Phase 3 verifies slides against seeded lessons, so the content must
+  exist before it.
 
 ### Exit Criteria
 
-- [ ] ECR, RDS, S3/CloudFront, and Secrets Manager provisioned in the client account
+- [ ] ECR, RDS, private S3 + CloudFront, and Secrets Manager provisioned in the client account
+- [ ] Bucket has public access fully blocked; CloudFront serves it via origin access control over
+      HTTPS. Any deviation recorded here with its reason
 - [ ] New `SESSION_SECRET` generated and stored in Secrets Manager; never the Railway value
 - [ ] `0_init` applies to RDS over TLS (`?sslmode=require` confirmed working, not assumed) and
       `prisma migrate status` is clean
 - [ ] `seed-needs` and `seed-categories` complete against RDS; taxonomy row counts match the local run
+- [ ] Service running on the temporary hostname: `GET /health` green through the AWS health check,
+      `GET /api/tenant` returns the client's branding and `theme: "dynamichqi"`, and the SPA loads
+- [ ] Deploy logs show migrate applying nothing on restart and both seeds completing idempotently —
+      no crash-loop
+- [ ] Admin bootstrapped and able to sign in; course seeded and all 7 modules / 12 lessons present
+- [ ] `APP_URL` is the temporary hostname, not the custom domain
 - [ ] **The live Railway deployment was not touched** — its env vars and deployment history are
       unchanged since the phase began
 
@@ -430,8 +480,9 @@ preserve, provisioning is all that remains.
 
 ### Goal
 
-Ensure the new deployment depends on no operator-owned account. **The live Railway deployment keeps
-using the shared accounts until it is decommissioned** — it is the rollback and must stay working.
+Ensure the new deployment — running since Phase 2 on its temporary hostname — depends on no
+operator-owned account. **The live Railway deployment keeps using the shared accounts until it is
+decommissioned** — it is the rollback and must stay working.
 
 ### Deliverables
 
@@ -441,10 +492,8 @@ using the shared accounts until it is decommissioned** — it is the rollback an
 - Point the AWS deployment's storage env at the client bucket (+ CloudFront public URL).
 - Configure email on the AWS deployment: the client's verified Resend domain, or SES per the Phase 0
   decision.
-- Do **not** change the Railway service's env vars. Do **not** repoint `APP_URL` at
-  `course.dynamichqi.com` on AWS until Phase 4's cutover — per the standing ordering rule in
-  `clients.md`, never point `APP_URL` at a domain before it resolves to that deployment. Use a
-  temporary App Runner/ALB hostname until then.
+- Do **not** change the Railway service's env vars. `APP_URL` stays on the temporary hostname set in
+  Phase 2 until Phase 4's cutover.
 
 ### Exit Criteria
 
@@ -456,45 +505,72 @@ using the shared accounts until it is decommissioned** — it is the rollback an
 - [ ] No AWS env var references `dmt-uploads` or the shared Resend sender
 - [ ] Railway env vars verified unchanged and the Railway deployment still healthy
 
-### Status: NOT STARTED (BLOCKED — Phase 0 client accounts)
+### Status: NOT STARTED (BLOCKED — Phase 0 client accounts, Phase 2 deployment)
 
 ---
 
-## PHASE 4 — Deploy, seed, verify, and cut over DNS
+## PHASE 4 — Verify and cut over DNS
 
 ### Goal
 
-Run the forked, containerized codebase on AWS, seed its content, verify it fully on a temporary
-hostname, then move `course.dynamichqi.com` to it — with Railway still live behind you.
+Verify the running AWS deployment end to end on its temporary hostname, then move
+`course.dynamichqi.com` to it — with Railway still live behind you.
+
+The service has been running since Phase 2 and pointing at client-owned storage and email since
+Phase 3. This phase adds no infrastructure; it decides whether what exists is good enough to receive
+the domain.
 
 ### Deliverables
 
 Steps, in order:
 
-1. Deploy the image to App Runner/ECS. The entrypoint applies `0_init` and both taxonomy seeds on a
-   database that Phase 2 already migrated, so this is a no-op migration and an idempotent reseed.
-2. `npm run bootstrap:admin` for the client's first admin account, and `npm run seed:course` to load
-   the founders education content.
-3. Full verification pass on the temporary hostname (below).
-4. Set `APP_URL` to `https://course.dynamichqi.com`, redeploy, and **then** move DNS. Magic links are
+1. **Re-confirm the "no real data" premise, immediately before cutover.** Phase 0 established it,
+   possibly weeks earlier. Re-run the `User`, `Profile`, and `LessonProgress` row counts against the
+   Railway production database now. Cutover discards whatever is in there — if the client has started
+   using the site in the interim, real accounts exist and this plan's central assumption has expired.
+   Stop and re-plan the data migration rather than proceeding.
+2. Full verification pass on the temporary hostname (below).
+3. Set `APP_URL` to `https://course.dynamichqi.com`, redeploy, and **then** move DNS. Magic links are
    built from `APP_URL`, so a link issued before this step points at the old host.
-5. Watch logs and health for an agreed soak period before Phase 5.
-
-**Rollback is DNS.** Point `course.dynamichqi.com` back at Railway, which has been running untouched
-throughout. With no member data on either side, rollback costs nothing but time.
+4. Watch logs and health for the agreed soak period before Phase 5.
 
 Also decide here, per the Phase 1 caveat: keep migrate + seeds in the entrypoint, or split them into a
 separate one-off task run before the service deploy. Record the decision.
 
+### Rollback: clean only until the first real signup
+
+DNS rollback is not free, and an earlier draft of this plan wrongly said it was. That was true at the
+instant of cutover and false shortly after: once the domain points at AWS, real members sign up, get
+approved, and start lessons **in RDS**. Pointing DNS back at Railway would leave that data behind on a
+database nobody is serving, and Railway would greet those members as strangers.
+
+So the rollback policy is time-boxed, not open-ended:
+
+- **Before the first real signup on AWS** — rollback is a DNS change and costs nothing. Confirm by
+  querying RDS for users created after cutover.
+- **After the first real signup** — rollback means data loss, so the default becomes **roll forward**:
+  fix on AWS rather than retreat to Railway. An RDS snapshot, not Railway, is the recovery artifact
+  from this point on.
+- Agree an explicit **rollback window** with the client before cutover — a stated number of hours
+  during which retreating to Railway is still on the table — and decide what happens to signups made
+  inside it. The two honest options are to accept losing them (viable only if the window is short and
+  announced) or to pause signups for its duration.
+- Take an **RDS snapshot immediately before the DNS move**, so there is a clean pre-launch restore
+  point for the roll-forward path.
+
+The soak period exists to catch failures inside the window, not to accumulate data that makes the
+window meaningless. Keep it short enough that the two remain compatible.
+
 ### Exit Criteria
 
-- [ ] Deploy logs show `migrate deploy` applying nothing, both seeds completing, and the server
-      reaching listen — no crash-loop
+- [ ] **Railway row counts re-checked immediately before cutover and still zero real accounts** — the
+      Phase 0 confirmation re-verified, not assumed to have held
+- [ ] Rollback window agreed with the client, in hours, with signup handling inside it decided
+- [ ] RDS snapshot taken immediately before the DNS move
 - [ ] `GET /health` green through the AWS health check (App Runner or ALB target group)
 - [ ] `GET /api/tenant` returns the client's branding, `theme: "dynamichqi"`, and
       `requiresAccessApproval: true`
 - [ ] Landing page renders `BRAND_NAME` as H1 with the navy/gold skin
-- [ ] Admin bootstrapped and able to sign in; course seeded
 - [ ] Magic-link login E2E to a real inbox: a **new** signup is created pending, builds a profile, and
       is held at the approval gate; an **approved** member reaches `/people` and `/courses`. The
       deployment runs with approval on, so immediate access is not the correct expectation for a
@@ -513,6 +589,8 @@ separate one-off task run before the service deploy. Record the decision.
 - [ ] DNS moved; `https://course.dynamichqi.com/health` green on AWS with a valid certificate
 - [ ] Railway still running and healthy as rollback, unchanged
 - [ ] Soak period completed with no errors in logs
+- [ ] Rollback window closed, and the point at which retreat stopped being viable — the first real
+      signup on AWS — recorded here with its timestamp
 
 ### Status: NOT STARTED
 
@@ -602,6 +680,10 @@ Remove what you no longer have a reason to hold, and make the registry truthful.
 | Risk | Mitigation |
 |---|---|
 | **The "no real data" premise turns out to be wrong** | This is now the plan's central assumption and its biggest single risk — every simplification in Phases 2 and 4 depends on it. Phase 0 requires written client confirmation plus corroborating row counts. If real accounts exist, the dump → restore → `_prisma_migrations` conversion work returns and this plan must be rewritten before Phase 4 |
+| **The premise holds in Phase 0 but expires before Phase 4** | The client may start using the Railway site during the weeks between confirmation and cutover, and cutover discards whatever is there. Phase 4 step 1 re-runs the row counts immediately before the DNS move and stops if they are non-zero — a one-off Phase 0 check is not sufficient |
+| Rolling back after cutover loses members created on AWS | Phase 4 replaces "rollback is free" with a time-boxed policy: DNS retreat only until the first real signup, roll-forward after, an agreed rollback window with signup handling decided, and an RDS snapshot taken before the DNS move as the recovery artifact |
+| Public bucket misconfigured, or served over an HTTP-only S3 website endpoint | Private bucket with public access blocked, behind CloudFront with origin access control, is the default rather than the fallback; a public bucket requires a recorded exception |
+| Phase 0 blocked on infrastructure it cannot yet reach | Phase 0 verifies credentials with a scratch ECR repo created and deleted; the real push and RDS connection are Phase 2 exit criteria, after provisioning |
 | Dockerfile diverges from the nixpacks build and breaks in a way only prod reveals | Phase 1 exit criteria verify the image locally against the SPA specifically, the entrypoint's migrate+seed sequence, the branding build args, `HOST=0.0.0.0`, and openssl/Prisma — the failure modes a passing `docker build` does not catch |
 | Adding a Dockerfile silently changes Detroit and Yard Line builds | The Dockerfile is written only in the fork, never upstream; Phase 6 explicitly declines to port it without its own rollout |
 | Deleting projects/jobs breaks retained profile code through shared relations | The pruned relation fields are enumerated in Phase 1; `prisma validate`, `tsc --noEmit`, and the retained profile/skill/favorite test suites are the check |
@@ -609,7 +691,7 @@ Remove what you no longer have a reason to hold, and make the registry truthful.
 | Re-seeding the taxonomy errors against populated profiles | `ProfileSkill` → `NeedOption` is `onDelete: Restrict`, so seeds must stay upsert-only — never delete-and-recreate. Noted in the runbook |
 | Directory ships empty and reads as broken | Phase 0 decides the empty-state behavior deliberately (seed placeholders, empty-state design, or hide until a threshold) |
 | Migrations and seeds on every autoscaled task add latency | Prisma's advisory lock serializes migrations; Phase 4 decides explicitly whether to split them into a separate one-off task |
-| Client org guardrails block the public asset bucket | Surfaced in Phase 0 before any provisioning, with CloudFront + origin access control as the documented alternative |
+| Client org guardrails block CloudFront, RDS instance classes, or require VPC placement | Surfaced in Phase 0 before any provisioning, alongside the compute-target decision that depends on them |
 | Magic links issued with the wrong host at cutover | `APP_URL` is updated and redeployed before the DNS move, and a post-cutover link is inspected as an exit criterion |
 | Pages-only deletion leaves dead code shipping | Phase 1 exit greps cover `web/src`, plus `tsc --noEmit` and a bundle check |
 | Undefined license lets the client resell your platform against Yard Line | Phase 0 blocks all client-facing work until terms are written. Retaining profiles makes the fork closer to Yard Line's product, which raises the stakes on this |
