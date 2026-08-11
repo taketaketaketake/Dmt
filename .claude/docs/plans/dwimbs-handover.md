@@ -8,10 +8,14 @@
 
 ## Status
 
-**Current Phase:** Phase 0 (preconditions — blocked on commercial terms and client AWS/service accounts)
+**Current Phase:** Phase 0 preconditions and the final AWS-backed Phase 1 validation gates are
+blocked on commercial terms and client AWS/service accounts.
 
-No code work has started. Phase 1 can proceed in parallel with Phase 0, but nothing may be deployed
-into the client's AWS account until Phase 0's license terms and IAM access are settled.
+The standalone Phase 1 repository has been extracted and locally validated at
+`/Users/Zach/Github_Projects/dynamichqi-course` (single root commit `469ef2b`). Nothing has been
+deployed into the client's AWS account because the license terms and working IAM access are not yet
+settled. The configured `default` AWS profile currently fails `sts:GetCallerIdentity` with
+`InvalidClientTokenId`.
 
 ---
 
@@ -379,38 +383,49 @@ churn here:
 
 ### Exit Criteria
 
-- [ ] `grep -ri "yard\s*line\|yardline\|detroit\|takedetroit\|dmtisreal" .` returns no hits in the fork
-- [ ] `grep -rn "project\|job\|stripe\|billing\|follow" server/src web/src -i` returns no references
+- [x] `grep -ri "yard\s*line\|yardline\|detroit\|takedetroit\|dmtisreal" .` returns no hits in the fork
+- [x] `grep -rn "project\|job\|stripe\|billing\|follow" server/src web/src -i` returns no references
       to the removed features (the word "project" in course prose excepted). **Must cover `web/src`,
       not just `server/src`** — `lib/api.ts`, `hooks/queries.ts`, and `components/layout` are where
       dead code survives a pages-only deletion
-- [ ] `grep -rn "/projects\|/jobs\|/account/billing\|/account/following" web/src` returns nothing
-- [ ] `grep -rn "nixpacks\|railway" .` returns nothing
-- [ ] `cd server && npm test` green
-- [ ] `cd web && npm test` green and `npm run build` succeeds
-- [ ] `cd web && npx tsc --noEmit` clean, and the built bundle contains no project/job route chunks
-- [ ] `npx prisma validate` passes and `0_init` **applies** cleanly to an empty database (it runs, not
+- [x] `grep -rn "/projects\|/jobs\|/account/billing\|/account/following" web/src` returns nothing
+- [x] `grep -rn "nixpacks\|railway" .` returns nothing
+- [x] `cd server && npm test` green
+- [x] `cd web && npm test` green and `npm run build` succeeds
+- [x] `cd web && npx tsc --noEmit` clean, and the built bundle contains no project/job route chunks
+- [x] `npx prisma validate` passes and `0_init` **applies** cleanly to an empty database (it runs, not
       resolves)
-- [ ] `docker build` succeeds; the image runs against the compose Postgres and serves `/health`,
+- [x] `docker build` succeeds; the image runs against the compose Postgres and serves `/health`,
       `/api/tenant` (correct branding + `theme: "dynamichqi"`), the SPA at `/`, and `/people` — **the
       SPA specifically, since a wrong image layout yields a working API with no UI**
-- [ ] Entrypoint verified end to end on an empty database: migrate → seed-needs → seed-categories →
+- [x] Entrypoint verified end to end on an empty database: migrate → seed-needs → seed-categories →
       listen, with no errors, and a second container start is a clean no-op (idempotency proven, not
       assumed)
 - [ ] Branding build args verified: the rendered H1 changes when `VITE_BRAND_NAME` changes at build
       time, and does **not** change when set only at runtime
-- [ ] Container reachable from outside itself (`HOST=0.0.0.0` proven, not assumed)
+- [x] Container reachable from outside itself (`HOST=0.0.0.0` proven, not assumed)
 - [ ] Storage generalization verified against a real S3 bucket: upload succeeds and the returned
       public URL resolves
 - [ ] Full local smoke on a fresh DB: bootstrap an admin, seed the course, request a magic link,
       follow it, create a profile with skills and categories, see it queued for review, approve it in
       `ApprovalQueue`/`ProfileReview`, then browse `/people`, filter by skill, favorite a profile, and
       complete a lesson and a module quiz — with `REQUIRE_ACCESS_APPROVAL` both unset and `false`
-- [ ] Reject path smoke: a rejected profile's owner sees the rejection note and cannot reach gated
+- [x] Reject path smoke: a rejected profile's owner sees the rejection note and cannot reach gated
       routes
 - [ ] Portrait upload writes to S3 and renders on the profile and in the directory
 
-### Status: NOT STARTED
+### Status: IN PROGRESS
+
+Implementation and local validation are complete; the real-S3 upload/portrait gates and Phase 0
+client access remain blocked.
+
+Local evidence is recorded in the fork at `docs/phase-1-validation.md`. Server tests (138), web tests
+(42), TypeScript/build checks, a fresh `0_init` migration, two idempotent container starts, branding
+build-argument behavior, both access-approval modes, approval/rejection workflows, directory skills,
+favorites, lesson progress, and a passing module quiz have been exercised. A real client-account S3
+upload, CloudFront URL resolution, and portrait rendering remain untestable until Phase 0 supplies
+working AWS access. The agreed `LICENSE` also remains intentionally absent until the commercial terms
+are provided.
 
 ---
 
