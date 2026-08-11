@@ -12,10 +12,15 @@
 blocked on commercial terms and client AWS/service accounts.
 
 The standalone Phase 1 repository has been extracted and locally validated at
-`/Users/Zach/Github_Projects/dynamichqi-course` (single root commit `469ef2b`). Nothing has been
-deployed into the client's AWS account because the license terms and working IAM access are not yet
-settled. The configured `default` AWS profile currently fails `sts:GetCallerIdentity` with
-`InvalidClientTokenId`.
+`/Users/Zach/Github_Projects/dynamichqi-course` (single root commit `8c9d837`, "Extract DynamicHQI
+founders education app"). It is **local only — no git remote is configured yet**; pushing it to the
+DYNAMICHQI org is a Phase 5 deliverable and must not happen before the Phase 0 license terms are
+settled.
+
+Nothing has been deployed into the client's AWS account because the license terms and working IAM
+access are not yet settled. The configured `default` AWS profile currently fails
+`sts:GetCallerIdentity` with `InvalidClientTokenId` — which is exactly the failure Phase 0's
+credential check exists to surface, and it blocks Phase 2 entirely.
 
 ---
 
