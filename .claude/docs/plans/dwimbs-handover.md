@@ -401,7 +401,7 @@ churn here:
 - [x] Entrypoint verified end to end on an empty database: migrate → seed-needs → seed-categories →
       listen, with no errors, and a second container start is a clean no-op (idempotency proven, not
       assumed)
-- [ ] Branding build args verified: the rendered H1 changes when `VITE_BRAND_NAME` changes at build
+- [x] Branding build args verified: the rendered H1 changes when `VITE_BRAND_NAME` changes at build
       time, and does **not** change when set only at runtime
 - [x] Container reachable from outside itself (`HOST=0.0.0.0` proven, not assumed)
 - [ ] Storage generalization verified against a real S3 bucket: upload succeeds and the returned
