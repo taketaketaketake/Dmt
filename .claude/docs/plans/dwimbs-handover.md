@@ -1,8 +1,8 @@
-# Implementation Plan: DynamicHQI Founders Education (standalone course site on AWS)
+# Implementation Plan: DynamicHQI Founders Education (standalone site on AWS)
 
-> Extract a course-only snapshot of this platform into a standalone repo, containerize it, stand it
-> up in DYNAMICHQI's own AWS account with their data migrated in, and decommission the Railway
-> deployment as a clean break.
+> Extract a course + member-directory snapshot of this platform into a standalone repo,
+> containerize it, stand it up in DYNAMICHQI's own AWS account on a fresh database, and
+> decommission the Railway deployment as a clean break.
 
 ---
 
@@ -25,7 +25,7 @@ A phase may be marked COMPLETE only when:
 **Validation is mandatory for phase completion.**
 
 External dependencies do not count as completed work. A phase waiting on the client, a DNS owner, or
-an AWS account provisioning step stays IN PROGRESS/BLOCKED with the exact handoff recorded.
+an AWS provisioning step stays IN PROGRESS/BLOCKED with the exact handoff recorded.
 
 ---
 
@@ -38,8 +38,8 @@ an AWS account provisioning step stays IN PROGRESS/BLOCKED with the exact handof
 Railway service with different env vars, a `dynamichqi` theme skin, and its own course manifest.
 Yard Line runs the identical template.
 
-So "extract Dwimbs" means **extract the course platform from the community platform**, then deploy
-the result as a standalone site for one client. Yard Line and Detroit stay on this repo, unchanged.
+So "extract Dwimbs" means **extract a course + directory subset of this platform**, then deploy the
+result as a standalone site for one client. Yard Line and Detroit stay on this repo, unchanged.
 
 ### Decisions taken
 
@@ -48,22 +48,33 @@ the result as a standalone site for one client. Yard Line and Detroit stay on th
 | Nature of the split | Client fork, not a product line | Yard Line stays here; the extracted repo is a one-off snapshot, not a maintained upstream |
 | Ongoing support | **Clean break** — point-in-time snapshot | No upstream link. Security fixes made here never reach them. Must be stated in the contract |
 | Hosting | **DYNAMICHQI's own AWS account** | You build and deploy directly into their account. There is no infrastructure transfer at the end — it was never yours |
-| Packaging | **Dockerfile** (replaces nixpacks) | Portable build artifact; required by the client's AWS standards. Written in the fork, never in this repo — see "Why the Dockerfile lives in the fork" |
-| Live data | **Preserved** — real members + lesson progress since 2026-07 | `pg_dump` from Railway Postgres, restore into RDS |
-| Railway | **Decommissioned** after cutover | Kept running and untouched until AWS is verified; it is the rollback |
+| Packaging | **Dockerfile** (replaces nixpacks) | Portable build artifact; required by the client's AWS standards. Written in the fork only — see "Why the Dockerfile lives in the fork" |
+| **Profiles** | **Kept in full** — profiles, skills, categories, favorites, member directory | The approval flow, the post-login redirect chain, and the admin review queue all survive intact. This is the single largest simplification in the plan — see below |
+| **Live data** | **None to preserve** — the Railway database is entirely test users and test data | Fresh RDS, `0_init` runs clean, seed the course. No dump, no restore, no migration-history conversion, no maintenance window |
+| Removed surface | Projects, jobs, project-follows, Stripe billing | The only deletions. Everything else is repackaging |
+| Railway | **Decommissioned** after cutover | Kept running until AWS is verified; it is the rollback |
 
-### Why this shape is far safer than the Railway-transfer plan it replaces
+### Two decisions that removed most of this plan's risk
 
-The previous version of this plan transferred the running Railway project in place, which forced an
-**irreversible `_prisma_migrations` rewrite on live production** inside a hard maintenance window —
-the single highest-risk step in the whole handover.
+**Keeping profiles deletes all the net-new code.** An earlier version of this plan dropped `Profile`,
+which broke member approval — the only transition to `approved` is `POST /admin/profiles/:id/approve`
+(`server/src/routes/admin.ts:111`), and it updates profile and user in one transaction. Removing it
+would have stranded every new signup, forcing a net-new user-level approval queue, a net-new admin
+page, and an unresolved rejection-semantics problem (`UserStatus` has no `rejected` value; only
+`ProfileApprovalStatus` does). All of that is now moot. The approval flow ships as-is.
 
-Moving to AWS removes it. The database is restored from a dump into a *new* RDS instance, so the
-migration-history conversion happens on a throwaway copy that can be rebuilt from the dump any number
-of times. **The live Railway deployment is never modified at any point in this plan.** Cutover is a
-DNS change, and rollback is pointing DNS back.
+It also saves the post-login redirect chain. That chain has three hops —
+`server/src/routes/auth.ts:105` → `web/src/App.tsx:153` → `components/layout/RequireApproved.tsx:18`
+— and every destination (`/`, `/people`, `/account`) survives this extraction. Nothing to redefine.
 
-This is the sequencing principle now:
+**The database is test data only, so there is nothing to migrate.** The previous plan's largest
+section was a rehearsed `pg_dump` → restore → `_prisma_migrations` conversion, carrying a write
+freeze, a documented irreversible operation, and a soak period gated on data integrity. With no real
+members and no real progress to preserve, the fork simply runs its squashed `0_init` against an empty
+RDS instance and seeds. **`0_init` genuinely executes rather than being resolved-as-applied**, which
+also means a future migration that adds an enum value has no special constraint.
+
+Sequencing principle:
 
 **Build the new thing beside the old one, verify it fully, cut over by DNS, decommission last.**
 
@@ -75,30 +86,62 @@ don't land on ephemeral disk.
 
 | State | AWS service | Notes |
 |---|---|---|
-| Application database — users, sessions, course content, lesson progress, quiz attempts | **RDS PostgreSQL 16** | `DATABASE_URL` only. RDS enforces TLS: append `?sslmode=require`. Automated backups + PITR enabled; retention agreed in Phase 0 |
-| User/course asset uploads — slides, lesson audio, branding images | **S3** (+ CloudFront) | `lib/storage.ts` already speaks the S3 API via `@aws-sdk/client-s3`; see the generalization in Phase 1. `R2_PUBLIC_URL` becomes the CloudFront domain or S3 website URL |
+| Application database — users, profiles, sessions, taxonomy, course content, lesson progress, quiz attempts | **RDS PostgreSQL 16** | `DATABASE_URL` only. RDS enforces TLS: append `?sslmode=require`. Automated backups + PITR enabled; retention agreed in Phase 0. Starts empty |
+| Uploads — member portraits, course slides, lesson audio, branding images | **S3** (+ CloudFront) | `lib/storage.ts` already speaks the S3 API via `@aws-sdk/client-s3`; see the generalization in Phase 1. `R2_PUBLIC_URL` becomes the CloudFront domain or S3 website URL |
 | Everything else | — | Stateless. Containers are disposable; the local-disk upload fallback (`routes/uploads.ts:68`) is dev-only and unreachable in production |
 
 Migrations run at container start, so the task needs RDS reachability before its health check can
 pass — see the App Runner caveat in Phase 1.
 
+### What the fork keeps
+
+**Course platform.** `routes/courses.ts` (606 LOC), `prisma/seed-course.ts`, models `Course` /
+`CourseModule` / `Lesson` / `LessonProgress` / `KnowledgeCheck` / `QuizQuestion` / `QuizAttempt`, web
+`CourseLanding` / `Courses` / `CourseDetail` / `Lesson` / `ModuleQuiz` + `components/course/*`.
+
+**Profiles and member directory.** `routes/profiles.ts` (all nine endpoints, including the list and
+detail views), `routes/favorites.ts`, `routes/categories.ts`, `routes/needs.ts`, models `Profile` /
+`ProfileCategory` / `Category` / `ProfileSkill` / `NeedCategory` / `NeedOption` / `UserFavorite`, web
+`People` / `PersonDetail` / `account/Profile` / `account/Favorites`, admin `ApprovalQueue` /
+`ProfileReview` / `Users` / `UserDetail`, and `components/{FilterSelect,SkillsEditor}`.
+
+**Shared core.** Magic-link auth, sessions, `middleware/auth.ts`, `lib/email.ts`, `lib/storage.ts`,
+`routes/tenant.ts` + branding + `themes.css`, `routes/uploads.ts`, admin user management,
+`lib/env.ts`, the Vitest harness.
+
+**Seeds.** `bootstrap-admin.ts`, `seed-course.ts`, and — because the taxonomy is retained —
+`seed-needs.ts` and `seed-categories.ts`. Both stay in the container start command.
+
+### What the fork removes
+
+`routes/{projects,jobs,follows,billing,webhooks}.ts`, `lib/stripe.ts`, models `Project` /
+`ProjectCategory` / `ProjectCollaborator` / `ProjectFollow` / `ProjectNeed` / `ProjectNeedOption` /
+`Job`, web `Projects` / `ProjectDetail` / `Jobs` / `JobDetail` / `account/{MyProjects,MyJobs,Billing,
+Following}`, admin `JobQueue`, and `components/{NeedsDisplay,NeedsEditor,ProjectMatches}`. Seeds
+`seed-demo.ts`, `seed-jobs.ts`, `seed.ts`.
+
 ### Findings that shape the work
 
-- **The approval flow is coupled to `Profile`.** Dwimbs runs with `REQUIRE_ACCESS_APPROVAL` unset
-  (defaults `true`), so `server/src/routes/auth.ts:61` creates new users as `status: "pending"`. The
-  only transition to `approved` is `POST /admin/profiles/:id/approve`
-  (`server/src/routes/admin.ts:111`), which updates profile and user in one transaction. Admin has
-  `suspend`/`reinstate` for users but **no user-level approve**. Deleting `Profile` without replacing
-  this strands every new signup. This is the one part of the extraction that is net-new code rather
-  than deletion — see Phase 1.
-- **The post-login redirect chain has three hops, not one.** Fixing `web/src/pages/Login.tsx:20`
-  alone is insufficient. With `REQUIRE_ACCESS_APPROVAL` on, `server/src/routes/auth.ts:105` redirects
-  to `/`; `web/src/App.tsx:153` then sends authenticated users to `/people`; and
-  `components/layout/RequireApproved.tsx:18` sends *un*approved users to `/account`. All three
-  destinations are deleted by this extraction. Every hop must be redefined — see Phase 1.
-- **`reject` has no database transition.** `UserStatus` is only `pending | approved | suspended`
-  (`server/prisma/schema.prisma:14`); `rejected` exists solely on `ProfileApprovalStatus`, which is
-  being deleted. Rejection semantics must be chosen explicitly — see Phase 1.
+- **Skills drag in the needs taxonomy.** `ProfileSkill.optionId` → `NeedOption`
+  (`schema.prisma:343-354`), so keeping profile skills keeps `NeedCategory` + `NeedOption` and
+  `seed-needs.ts`. Likewise `ProfileCategory` → `Category` keeps `seed-categories.ts`. This is the
+  opposite of the previous plan, which deleted both seeds and therefore had to rewrite the start
+  command; here `nixpacks.toml:34`'s seed sequence carries over into the Docker entrypoint unchanged.
+- **`NeedOption.offerable` is what makes the taxonomy dual-purpose.** It marks which options a person
+  can offer as a skill versus which are demand-only for projects. With projects gone, the demand side
+  has no consumer — the flag stays (it drives the skills picker) but the supply↔demand matching in
+  `ProjectMatches` goes with projects.
+- **`NeedOption` deletion is `onDelete: Restrict` from `ProfileSkill`.** Re-seeding the taxonomy must
+  stay upsert-based, as it already is, or a reseed against populated profiles will error.
+- **Favorites are profile-only.** `UserFavorite` references `User` and `Profile`, never `Project`
+  (`schema.prisma:269-281`), so it comes across with no project dependency. `ProjectFollow` is the
+  one that goes.
+- **Dropping `Project` and `Job` prunes three `Profile` relation fields** — `projectsCreated`,
+  `projectCollaborations`, `jobsPosted` — plus `favoritedBy` stays. Because the database starts
+  empty, these are clean schema deletions with no orphan-column consideration at all.
+- **`stripeCustomerId` and `isEmployer` come off `User` entirely.** The previous plan left them as
+  inert orphan columns because the live database was being adopted; on a fresh database they simply
+  never exist.
 - **The build is nixpacks-only today.** `nixpacks.toml` + `railway.json` are the entire deploy
   definition; `docker-compose.yml` is a dev-only Postgres 16 on host port 5438 and does **not**
   containerize the app. There is no portable build artifact, so the Dockerfile is net-new work.
@@ -116,12 +159,10 @@ pass — see the App Runner caveat in Phase 1.
 - **Object storage is nearly portable already.** `lib/storage.ts:15-17` hardcodes `region: "auto"`
   and the R2 account endpoint; everything else is env-driven. Making endpoint/region configurable is
   ~10 lines. See `.claude/docs/aws-deployment-portability.md` for the full gap analysis.
-- **The shared web layer is not community-free.** `web/src/lib/api.ts` (654 LOC) and
-  `web/src/hooks/queries.ts` (479 LOC) carry ~135 and ~155 community-referencing lines respectively,
-  plus `components/layout/Header.tsx` nav links. Deleting only pages leaves this dead code compiling
+- **The shared web layer is where dead code hides.** `web/src/lib/api.ts` (654 LOC) and
+  `web/src/hooks/queries.ts` (479 LOC) carry the request functions, query keys, hooks, and response
+  types for every feature. Deleting only the project and job *pages* leaves their API layer compiling
   and shipping.
-- **`stripeCustomerId` and `isEmployer`** on `User` are nullable / defaulted, so they can be dropped
-  from the Prisma model and left as inert orphan columns — no destructive migration on live data.
 - **`.claude/docs/clients.md` must not ship.** It contains Yard Line's domain, Railway project names,
   R2 prefixes, and every launch shortcut across all three deployments.
 - **No `LICENSE` file exists in this repo.** The code grant is currently undefined.
@@ -133,39 +174,18 @@ repo would silently change the build for Detroit and Yard Line, both of which ar
 which asked for it. The fork has no such constraint — it deletes `nixpacks.toml` and `railway.json`
 outright. Do not "prepare" the Dockerfile upstream first.
 
-### Course-platform surface (kept)
-
-`routes/courses.ts` (606 LOC), `prisma/seed-course.ts`, models `Course` / `CourseModule` / `Lesson` /
-`LessonProgress` / `KnowledgeCheck` / `QuizQuestion` / `QuizAttempt`, web `CourseLanding` / `Courses`
-/ `CourseDetail` / `Lesson` / `ModuleQuiz` + `components/course/*`.
-
-### Shared core (kept, duplicated into the fork)
-
-Magic-link auth, sessions, `middleware/auth.ts`, `lib/email.ts`, `lib/storage.ts`, `routes/tenant.ts`
-+ branding + `themes.css`, admin user management, `lib/env.ts`, the Vitest harness.
-
-### Community surface (removed, ~2,900 LOC server)
-
-`routes/{profiles,projects,jobs,needs,categories,favorites,follows,billing,webhooks}.ts`,
-`lib/stripe.ts`, models `Profile` / `ProfileCategory` / `Project` / `ProjectCategory` /
-`ProjectCollaborator` / `Job` / `Category` / `UserFavorite` / `ProjectFollow` / `NeedCategory` /
-`NeedOption` / `ProfileSkill` / `ProjectNeed` / `ProjectNeedOption`, web `People` / `PersonDetail` /
-`Projects` / `ProjectDetail` / `Jobs` / `JobDetail` / `account/*`, `components/{FilterSelect,
-NeedsDisplay,NeedsEditor,ProjectMatches,SkillsEditor}`, admin `ApprovalQueue` / `ProfileReview` /
-`JobQueue`.
-
 ---
 
 ## Stack (the fork, on AWS)
 
 | Component | Purpose |
 |-----------|---------|
-| React + Vite (`web/`) | SPA; landing page, course player, `dynamichqi` theme skin. Built into the image, served by the API process |
-| Fastify + Prisma (`server/`) | API, magic-link auth, course delivery, quiz grading, static SPA serving |
+| React + Vite (`web/`) | SPA; landing page, member directory, profiles, course player, `dynamichqi` theme skin. Built into the image, served by the API process |
+| Fastify + Prisma (`server/`) | API, magic-link auth, profiles + approval, course delivery, quiz grading, static SPA serving |
 | **Docker** | Multi-stage build replacing nixpacks. The only build artifact |
 | **AWS App Runner** (recommended) or **ECS Fargate + ALB** | Compute. App Runner is closest to the Railway experience; ECS if the client mandates VPC placement. Decided in Phase 0 |
-| **Amazon RDS PostgreSQL 16** | Database. `DATABASE_URL` with `?sslmode=require` |
-| **Amazon S3** (+ CloudFront) | Slide images, lesson audio, branding assets |
+| **Amazon RDS PostgreSQL 16** | Database, starting empty. `DATABASE_URL` with `?sslmode=require` |
+| **Amazon S3** (+ CloudFront) | Member portraits, slide images, lesson audio, branding assets |
 | **Amazon ECR** | Image registry |
 | **AWS Secrets Manager** (or App Runner/ECS secret refs) | `SESSION_SECRET`, `DATABASE_URL`, API keys |
 | Resend, or **Amazon SES** if the client mandates AWS-native | Transactional email. Decided in Phase 0 |
@@ -181,11 +201,17 @@ Phases 2–4 write to. Nothing here is code, and no deployment can start without
 
 ### Deliverables
 
-- **License terms for the code grant, agreed in writing.** DYNAMICHQI receives a working course
-  platform functionally identical to what Yard Line pays for. What they may do with it — use, modify,
-  resell, sublicense — must be explicit. Add the agreed `LICENSE` to the fork in Phase 1.
+- **License terms for the code grant, agreed in writing.** DYNAMICHQI receives a working platform
+  functionally close to what Yard Line pays for — and with profiles retained, closer than the
+  course-only fork would have been. What they may do with it — use, modify, resell, sublicense —
+  must be explicit.
 - **Written acknowledgement of the clean break**: the snapshot is unsupported, and fixes made in this
   repo (e.g. `be4bbf4` scanner-safe magic links) will not reach them.
+- **Written confirmation that the Railway database holds no data worth keeping.** The entire
+  simplification of Phases 2 and 4 rests on this. Get it from the client in writing rather than
+  inferring it, and spot-check the production database's `User`, `Profile`, and `LessonProgress` row
+  counts to corroborate. If real accounts turn up, the dump/restore/history-conversion work returns
+  and this plan needs rewriting before Phase 4.
 - **Compute target chosen and recorded here: App Runner or ECS Fargate.** Recommend App Runner unless
   the client has existing ECS/VPC standards. This decides the Phase 4 deploy mechanics and whether an
   ALB, VPC connector, and target groups are in scope.
@@ -196,7 +222,11 @@ Phases 2–4 write to. Nothing here is code, and no deployment can start without
   small provider adapter — treat as added Phase 1 scope if chosen). If Resend, the client's sending
   domain must be verified; DNS records go in the Squarespace zone, which is authoritative per
   `clients.md`.
-- **Backup policy agreed**: RDS automated backup retention and whether PITR is required.
+- **Backup policy agreed**: RDS automated backup retention and whether PITR is required. This matters
+  more than it did when a dump existed — after launch, RDS backups are the only copy of real data.
+- **Directory launch state decided**: the member directory ships with whatever profiles exist, which
+  on day one is none. Confirm whether the client wants seeded placeholder profiles, an empty-state
+  design, or the directory hidden until a threshold of members join.
 - **DNS cutover mechanics for `course.dynamichqi.com` confirmed**: it currently points at Railway in
   the client's Squarespace zone. Record who can change it, and the TTL — lower it at least one TTL
   period before Phase 4 so cutover and rollback are both fast.
@@ -205,11 +235,13 @@ Phases 2–4 write to. Nothing here is code, and no deployment can start without
 
 - [ ] Signed/written license terms on file, and the `LICENSE` text chosen
 - [ ] Clean-break/no-support term acknowledged in writing
+- [ ] **Written confirmation that no production data needs preserving**, corroborated by row counts
 - [ ] Compute target (App Runner vs ECS Fargate) chosen and recorded above with reasoning
 - [ ] AWS access into the client account verified: a test ECR push and a test RDS connection both succeed
 - [ ] Region and any org guardrails affecting public buckets / networking recorded
 - [ ] Email provider decided; if Resend, client domain verified and a test send succeeds
 - [ ] RDS backup retention / PITR policy agreed
+- [ ] Empty-directory launch behavior decided
 - [ ] DNS ownership confirmed and TTL for `course.dynamichqi.com` lowered
 
 ### Status: NOT STARTED (BLOCKED — commercial terms)
@@ -220,95 +252,63 @@ Phases 2–4 write to. Nothing here is code, and no deployment can start without
 
 ### Goal
 
-Produce a standalone, course-only, containerized repo that builds and tests green, containing no
-community code and no other client's material.
+Produce a standalone, containerized repo that builds and tests green, containing no project/job/
+billing code and no other client's material.
 
 ### Deliverables
 
 **Extraction**
 
 - **New repo, single initial commit, no imported history.** A clean break must not carry this repo's
-  commit log — it contains the full community codebase, Yard Line's provisioning details, and
-  anything that ever passed through a commit. Do not use `git filter-repo`.
-- Delete the community server surface: `routes/{profiles,projects,jobs,needs,categories,favorites,
-  follows,billing,webhooks}.ts`, `lib/stripe.ts`, their tests, and their registrations in
-  `server/src/app.ts`.
-- Delete the community web surface: `pages/{People,PersonDetail,Projects,ProjectDetail,Jobs,
-  JobDetail}`, `pages/account/*`, `components/{FilterSelect,NeedsDisplay,NeedsEditor,ProjectMatches,
-  SkillsEditor}`, admin `{ApprovalQueue,ProfileReview,JobQueue}`, their tests, and their routes +
-  lazy imports in `web/src/App.tsx`. Resolve what remains of `/account` — with profile, projects,
-  jobs, favorites, following, and billing all gone, the shell has no children.
-- **Prune the shared web layer**, not just pages: `web/src/lib/api.ts` and `web/src/hooks/queries.ts`
-  (community request functions, query keys, hooks, and response types), `contexts`/auth types
-  carrying `Profile`, and `components/layout/{Header,Shell}` plus their tests.
-- Prune `schema.prisma` to `User`, `Session`, `MagicLinkToken` + the 7 course models. Drop
-  `stripeCustomerId` and `isEmployer` from `User` (they remain as inert orphan columns in the
-  migrated DB). Drop the now-unused enums.
+  commit log — it contains Yard Line's provisioning details and anything that ever passed through a
+  commit. Do not use `git filter-repo`.
+- Delete the removed server surface: `routes/{projects,jobs,follows,billing,webhooks}.ts`,
+  `lib/stripe.ts`, their tests, and their registrations in `server/src/app.ts`.
+- Delete the removed web surface: `pages/{Projects,ProjectDetail,Jobs,JobDetail}`,
+  `pages/account/{MyProjects,MyJobs,Billing,Following}`, `components/{NeedsDisplay,NeedsEditor,
+  ProjectMatches}`, admin `JobQueue`, their tests, and their routes + lazy imports in
+  `web/src/App.tsx`. `/account` keeps `Profile` and `Favorites`, so the shell survives — verify its
+  nav renders correctly with two children instead of six.
+- **Prune the shared web layer**, not just pages: remove project/job/billing/follow request functions,
+  query keys, hooks, and response types from `web/src/lib/api.ts` and `web/src/hooks/queries.ts`, and
+  the corresponding nav links in `components/layout/Header.tsx`. Profile, skills, category, favorite,
+  and course code all stays.
+- Prune `schema.prisma`: drop `Project`, `ProjectCategory`, `ProjectCollaborator`, `ProjectFollow`,
+  `ProjectNeed`, `ProjectNeedOption`, `Job`, their enums, the `projectsCreated` /
+  `projectCollaborations` / `jobsPosted` relation fields on `Profile`, the `projectFollows` field on
+  `User`, and `stripeCustomerId` + `isEmployer` on `User`. Keep `Profile`, `ProfileCategory`,
+  `Category`, `ProfileSkill`, `NeedCategory`, `NeedOption`, `UserFavorite`, and all seven course
+  models. Keep `NeedOption.offerable` — it drives the skills picker.
 - Squash `server/prisma/migrations/` (7 migrations) into a single `0_init` generated from the pruned
-  schema.
-- Delete community seeds: `seed-demo.ts`, `seed-jobs.ts`, `seed-needs.ts`, `seed-categories.ts`,
-  `seed.ts`, and their `package.json` scripts. Keep `bootstrap-admin.ts` and `seed-course.ts`.
-- Strip community env from `lib/env.ts` (Stripe vars) and the `.env.example`.
+  schema. **On a fresh database this actually runs**, unlike the resolve-as-applied approach the
+  previous plan needed, so no special constraints apply to future migrations.
+- Delete seeds `seed-demo.ts`, `seed-jobs.ts`, `seed.ts` and their `package.json` scripts. **Keep
+  `seed-needs.ts` and `seed-categories.ts`** — the taxonomy they populate is still in use — along with
+  `bootstrap-admin.ts` and `seed-course.ts`. Audit `seed-needs.ts` and `seed-categories.ts` for
+  Detroit-specific vocabulary and adjust for the client's audience.
+- Strip Stripe env from `lib/env.ts` and `.env.example`.
 - **Strip other clients' material**: delete `prisma/courses/yard-line/`, the `:root[data-theme=
   "yardline"]` blocks from `web/src/styles/themes.css` (lines 70–121), and `.claude/docs/` in its
   entirety. Keep only the `dynamichqi` theme.
 - Add the agreed `LICENSE` and a `README.md` written for DYNAMICHQI's engineers: local setup, env var
-  reference, `seed:course` workflow, Docker build/run, AWS deploy, and how to add lesson content.
+  reference, the seed workflow, Docker build/run, AWS deploy, and how to add lesson content.
 
-**Net-new: user-level access approval**
+**What explicitly does NOT change**
 
-Replace the profile-based queue so `REQUIRE_ACCESS_APPROVAL=true` still works:
+Called out because an earlier version of this plan changed all of it, and the diff should show no
+churn here:
 
-- `GET /admin/users/pending`, `POST /admin/users/:id/approve`, `POST /admin/users/:id/reject` in
-  `routes/admin.ts`, alongside the existing `suspend`/`reinstate`.
-- An admin pending-users page replacing `ApprovalQueue`/`ProfileReview`.
-- Reuse `sendProfileApprovedEmail` / `sendProfileRejectedEmail` from `lib/email.ts`, retitled for
-  account rather than profile review.
-- **Rejection semantics — a pre-implementation gate.** `UserStatus` has no `rejected` value. This is
-  currently an open decision, and **Phase 1 may not be marked COMPLETE while it remains one.** Pick
-  one behavior, then make the route, the admin UI wording, the re-registration policy, and
-  `reinstate` all agree with it. A half-settled design here ships a queue whose button text promises
-  something the database does not do.
-
-  Default recommendation: **map reject → `suspended`**, because `requireApproved()` already 403s on
-  `suspended` and it needs no schema change. The alternative — adding `rejected` to the enum — cannot
-  ride in `0_init`, which is resolved-as-applied and never executes, so it requires a second
-  genuinely-running migration.
-
-  The four answers that must agree, whichever is chosen:
-
-  | Question | Under reject → `suspended` |
-  |---|---|
-  | Route behavior | `POST /admin/users/:id/reject` sets `suspended` and deletes the user's `Session` + `MagicLinkToken` rows (do not rely on expiry) |
-  | Admin UI wording | Cannot say "Rejected" if the stored state is Suspended and the list filters on it — either relabel the action, or render suspended-via-reject distinctly and accept that the two are indistinguishable after the fact |
-  | Re-registration | `routes/auth.ts:61` sets `status` only on user *creation*, so a rejected address requesting a new link is **not** reset to pending — they stay locked out silently. Confirm that is intended, and decide what the login page tells them |
-  | Reinstate | `POST /admin/users/:id/reinstate` sets `approved`, which would promote a rejected user straight past review. Either block reinstate for reject-suspended users or accept it as the deliberate undo |
-
-  The reinstate collision is the sharpest consequence: with one `suspended` state, "unsuspend a
-  misbehaving member" and "undo a rejection" become the same button with different intended outcomes.
-  If that is unacceptable, the enum-value route is the honest choice despite the extra migration.
-
-**Net-new: redefine the full post-login redirect chain**
-
-All three hops point at deleted routes:
-
-- `server/src/routes/auth.ts:105` — approval-enabled logins redirect to `/`. Point approved users at
-  `/courses`.
-- `web/src/App.tsx:153` — the authenticated `/` redirect targets `/people`. Change to `/courses`.
-- `web/src/pages/Login.tsx:20` — already-authenticated visitors are sent to `/people`. Change to
-  `/courses`.
-- `components/layout/RequireApproved.tsx:18` — unapproved users are sent to `/account`, which this
-  phase deletes. Needs a real destination: add a minimal "awaiting approval" page (it is the only
-  thing a pending member can see) and point the gate at it. Update its doc comment, which still
-  describes `POST /admin/profiles/:id/approve`.
-- `pages/NotFound.tsx` and `components/layout/Header.tsx` nav — remove `/people`, `/projects`,
-  `/jobs` links; resolve or remove `/account`.
+- The approval flow. `POST /admin/profiles/:id/approve` and `/reject` stay as they are, along with
+  `ApprovalQueue` and `ProfileReview`. No user-level approval queue is built.
+- The post-login redirect chain. `auth.ts:105` → `/`, `App.tsx:153` → `/people`,
+  `RequireApproved.tsx:18` → `/account` all still resolve. No "awaiting approval" page is needed.
+- `UserStatus`. Rejection already works through `ProfileApprovalStatus`, which has a real `rejected`
+  value, so there is no rejection-semantics question to settle.
 
 **Net-new: containerize (replaces nixpacks)**
 
-- **Delete `nixpacks.toml` and `railway.json`.** They describe a platform the fork does not use, and
-  `nixpacks.toml:34` invokes two seeds this phase deletes.
-- Keep `docker-compose.yml` for local Postgres, updated to a course-only database name.
+- **Delete `nixpacks.toml` and `railway.json`.** They describe a platform the fork does not use.
+- Keep `docker-compose.yml` for local Postgres, updated to a client-appropriate database name.
 - **Add a multi-stage `Dockerfile`** replicating the current build faithfully:
   - Base on a Node 22 image that ships **openssl** — Prisma's query engine requires it at build and
     runtime. This is the most common cause of a working nixpacks build failing in a slim/alpine image.
@@ -320,18 +320,19 @@ All three hops point at deleted routes:
   - **Preserve the sibling layout**: `/app/server` and `/app/web/dist`, with `WORKDIR /app/server`,
     because `server/src/index.ts:32` resolves the SPA at `process.cwd()/../web/dist`.
   - Runtime stage carries production `node_modules`, `server/dist`, `web/dist`, the generated Prisma
-    client, `prisma/` (migrations + `seed-course.ts`), and `tsx` if the entrypoint invokes it.
+    client, `prisma/` (migrations + retained seeds), and `tsx`, which the entrypoint needs to run them.
   - Run as a non-root user. `EXPOSE` the port. **`HOST` must be `0.0.0.0`** — the default is
     `localhost`, which makes the container unreachable and the health check fail.
   - `HEALTHCHECK` against `/health`.
 - Add a `.dockerignore` (`node_modules`, `dist`, `dist-ssr`, `.env`, `.git`, `uploads`).
-- **Entrypoint runs `prisma migrate deploy` before `node dist/index.js`**, as nixpacks did. Record the
-  autoscaling caveat: every task runs it on start. Prisma takes a Postgres advisory lock so concurrent
-  runs serialize rather than corrupt, but under App Runner/ECS scale-out this adds startup latency and
-  couples deploys to schema changes. If the client objects, the alternative is a separate one-off
-  migration task run before the service deploy — decide in Phase 4, not here.
-- Verify locally: `docker build` succeeds and the container serves the SPA, `/health`, and
-  `/api/tenant` against the compose Postgres.
+- **Entrypoint mirrors the current start command**: `prisma migrate deploy`, then `seed-needs.ts`,
+  then `seed-categories.ts`, then `node dist/index.js`. Both seeds are idempotent upserts, which is
+  what makes running them on every boot safe. Record the autoscaling caveat: every task runs migrate
+  and both seeds on start. Prisma takes a Postgres advisory lock so concurrent migrations serialize,
+  but this adds startup latency. If the client objects, the alternative is a separate one-off task run
+  before the service deploy — decide in Phase 4, not here.
+- Verify locally: `docker build` succeeds and the container serves the SPA, `/health`, `/api/tenant`,
+  and the directory against the compose Postgres.
 
 **Net-new: real-S3 object storage**
 
@@ -346,152 +347,100 @@ All three hops point at deleted routes:
 
 **Tests**
 
-- Covering pending → approved, pending → rejected (with session invalidation), that a pending user is
-  still refused by `authAndApproved()`, and that a pending user's redirect target renders.
+- The existing profile, approval, skills, category, favorite, and course suites must stay green —
+  they are the regression surface for "we didn't break what we kept."
 - Covering the storage client construction: endpoint-set and endpoint-unset both produce a usable
   client and the expected public URL.
 
 ### Exit Criteria
 
 - [ ] `grep -ri "yard\s*line\|yardline\|detroit\|takedetroit\|dmtisreal" .` returns no hits in the fork
-- [ ] `grep -rn "profile\|project\|job\|stripe\|favorite\|follow\|need\|skill\|categor" server/src
-      web/src -i` returns no community references (course/lesson code and the word "project" in prose
-      excepted). **Must cover `web/src`, not just `server/src`** — `lib/api.ts`, `hooks/queries.ts`,
-      `contexts`, and `components/layout` are where dead community code survives a pages-only deletion
-- [ ] `grep -rn "/people\|/projects\|/jobs\|/account" web/src` returns nothing outside deliberate redirects
+- [ ] `grep -rn "project\|job\|stripe\|billing\|follow" server/src web/src -i` returns no references
+      to the removed features (the word "project" in course prose excepted). **Must cover `web/src`,
+      not just `server/src`** — `lib/api.ts`, `hooks/queries.ts`, and `components/layout` are where
+      dead code survives a pages-only deletion
+- [ ] `grep -rn "/projects\|/jobs\|/account/billing\|/account/following" web/src` returns nothing
 - [ ] `grep -rn "nixpacks\|railway" .` returns nothing
 - [ ] `cd server && npm test` green
 - [ ] `cd web && npm test` green and `npm run build` succeeds
-- [ ] `cd web && npx tsc --noEmit` clean, and the built bundle contains no community route chunks
-- [ ] `npx prisma validate` passes and `0_init` applies cleanly to an empty database
+- [ ] `cd web && npx tsc --noEmit` clean, and the built bundle contains no project/job route chunks
+- [ ] `npx prisma validate` passes and `0_init` **applies** cleanly to an empty database (it runs, not
+      resolves)
 - [ ] `docker build` succeeds; the image runs against the compose Postgres and serves `/health`,
-      `/api/tenant` (correct branding + `theme: "dynamichqi"`), and the SPA at `/` — **the SPA
-      specifically, since a wrong image layout yields a working API with no UI**
+      `/api/tenant` (correct branding + `theme: "dynamichqi"`), the SPA at `/`, and `/people` — **the
+      SPA specifically, since a wrong image layout yields a working API with no UI**
+- [ ] Entrypoint verified end to end on an empty database: migrate → seed-needs → seed-categories →
+      listen, with no errors, and a second container start is a clean no-op (idempotency proven, not
+      assumed)
 - [ ] Branding build args verified: the rendered H1 changes when `VITE_BRAND_NAME` changes at build
       time, and does **not** change when set only at runtime
 - [ ] Container reachable from outside itself (`HOST=0.0.0.0` proven, not assumed)
 - [ ] Storage generalization verified against a real S3 bucket: upload succeeds and the returned
       public URL resolves
-- [ ] Local smoke on a fresh DB: bootstrap an admin, seed the course, request a magic link, follow it,
-      land on the awaiting-approval page (not a 404 or a redirect loop), approve from the admin page,
-      then reach `/courses` — with `REQUIRE_ACCESS_APPROVAL` both unset and `false`
-- [ ] **Rejection design settled**, not deferred: one behavior chosen and recorded, and the route,
-      admin UI wording, re-registration policy, and `reinstate` behavior all verified consistent with
-      it. Phase 1 is not COMPLETE while any of the four disagree
-- [ ] Reject path smoke: a rejected user's session is invalidated, they cannot reach `/courses`, and
-      requesting a fresh magic link does the documented thing rather than an undocumented one
+- [ ] Full local smoke on a fresh DB: bootstrap an admin, seed the course, request a magic link,
+      follow it, create a profile with skills and categories, see it queued for review, approve it in
+      `ApprovalQueue`/`ProfileReview`, then browse `/people`, filter by skill, favorite a profile, and
+      complete a lesson and a module quiz — with `REQUIRE_ACCESS_APPROVAL` both unset and `false`
+- [ ] Reject path smoke: a rejected profile's owner sees the rejection note and cannot reach gated
+      routes
+- [ ] Portrait upload writes to S3 and renders on the profile and in the directory
 
 ### Status: NOT STARTED
 
 ---
 
-## PHASE 2 — Provision AWS and rehearse the data migration
+## PHASE 2 — Provision AWS
 
 ### Goal
 
-Stand up the client's AWS infrastructure and prove the Railway database restores into RDS with its
-migration history converted and no data loss — all on a copy, with the live deployment untouched.
+Stand up the client's AWS infrastructure and confirm the image runs against it on an empty database.
 
-### Provisioning deliverables
+This phase is short now. Its previous incarnation was a rehearsed database migration; with no data to
+preserve, provisioning is all that remains.
+
+### Deliverables
 
 - ECR repository; push the Phase 1 image.
 - RDS PostgreSQL 16 instance with the agreed backup retention/PITR, TLS enforced, reachable from the
-  compute target.
-- S3 bucket for course assets with public read (or origin-access-controlled behind CloudFront if org
-  guardrails block public buckets — decided in Phase 0), plus CloudFront distribution if used.
+  compute target. It starts empty.
+- S3 bucket for uploads and course assets with public read (or origin-access-controlled behind
+  CloudFront if org guardrails block public buckets — decided in Phase 0), plus CloudFront
+  distribution if used.
 - Secrets Manager entries for `DATABASE_URL`, `SESSION_SECRET`, storage credentials, and the email
   API key. **Generate a new `SESSION_SECRET`** — do not carry the Railway one across; it has been held
-  by the operator. This logs every member out once at cutover; that is deliberate and the client must
-  be told so they can warn members.
-
-### Migration-history strategy
-
-Two viable approaches. Rehearse **A**; fall back to **B** if the rehearsal is not clean.
-
-**Option A — convert the history (default).** After restoring the dump into RDS, replace the seven
-DMT rows in `_prisma_migrations` with a single `0_init` row, so the database history exactly matches
-the fork's `migrations/` directory. Clean repo and clean `migrate status` for the client.
-
-1. `CREATE TABLE _prisma_migrations_pre_fork AS SELECT * FROM _prisma_migrations;`
-2. `DELETE FROM _prisma_migrations;`
-3. `npx prisma migrate resolve --applied 0_init` — this recomputes the checksum from the fork's own
-   migration file, which is why it is used instead of a hand-written `INSERT`.
-
-Deleting *before* resolving is what makes the history match; resolving alone leaves eight rows.
-
-**Unlike the superseded Railway-transfer plan, this runs against RDS, not production.** If it goes
-wrong, drop the database and restore the dump again. There is no maintenance window and no
-irreversible operation.
-
-**Option B — inherit the seven migrations verbatim (fallback).** Ship the fork with the existing
-`migrations/` directory untouched. Day-one `migrate deploy` is a genuine no-op because all seven are
-already applied. Costs: the client inherits migration files that create community tables their schema
-no longer models, and any fresh database (a staging clone, a future rebuild) comes up with ~14 orphan
-tables.
-
-Option A is the better product and is now cheap. Record the choice and the reasoning here.
-
-### Migration deliverables
-
-- `pg_dump` of the Railway Dwimbs production database, stored outside the repo. This is the rollback
-  artifact for every later phase — take it here and again immediately before Phase 4's final sync.
-- Restore into RDS, then a **full rehearsal of the chosen strategy end to end**, with every command
-  and its output recorded verbatim in this plan so Phase 4 is a transcript replay and not an
-  improvisation.
-- **Empirical answers, written down** — do not assume Prisma's behavior:
-  - Does `migrate deploy` succeed, warn, or fail when the database holds applied migrations absent
-    from the local directory? (Decides whether the naive resolve-only approach was ever viable.)
-  - What exactly does `migrate status` print before and after the conversion?
-  - Does `migrate deploy` behave differently on the very next deploy versus a subsequent one?
-- A written record of which orphan tables remain (`Profile`, `Project`, `Job`, `Category`, and the
-  rest) and the confirmation that no code path reads them.
-- Verification that admin user deletion still behaves: `Session` and `MagicLinkToken` are
-  `onDelete: Cascade`, but `Profile`'s FK to `User` survives in the DB after the model leaves the
-  schema — confirm its `onDelete` and that deleting a user with a legacy profile row does not error.
-- **A documented, repeatable restore procedure**, since Phase 4 re-runs it against a final dump taken
-  at cutover. Anything hand-typed here becomes a script.
+  by the operator, and there is no reason to inherit it when there are no sessions to preserve.
+- Confirm `0_init` applies to the real RDS instance over TLS and both seeds run, before any service is
+  wired up.
 
 ### Exit Criteria
 
 - [ ] ECR, RDS, S3/CloudFront, and Secrets Manager provisioned in the client account
 - [ ] New `SESSION_SECRET` generated and stored in Secrets Manager; never the Railway value
-- [ ] Strategy A or B chosen, recorded above with reasoning
-- [ ] Full rehearsal on the RDS-restored dump completed, with commands and outputs transcribed
-- [ ] After conversion, `_prisma_migrations` contains exactly the rows the fork's `migrations/`
-      directory expects — one row for A, seven for B — verified by direct `SELECT`, not inference
-- [ ] `prisma migrate status` reports the database up to date with **no** "found in the database but
-      not in the local migrations directory" warnings
-- [ ] `prisma migrate deploy` applies nothing and exits 0
-- [ ] The three empirical questions above are answered in writing
-- [ ] App boots against RDS over TLS (`?sslmode=require` confirmed working, not assumed)
-- [ ] A real member's lesson progress and quiz attempts render correctly and match pre-migration row counts
-- [ ] An existing approved member can still authenticate; an existing pending member appears in the
-      new user approval queue
-- [ ] Deleting a test user with a legacy `Profile` row succeeds
-- [ ] Restore + conversion procedure is scripted and re-run at least twice from scratch with identical results
-- [ ] **The live Railway deployment was not modified** — confirmed by checking its env vars and
-      deployment history are unchanged since the phase began
+- [ ] `0_init` applies to RDS over TLS (`?sslmode=require` confirmed working, not assumed) and
+      `prisma migrate status` is clean
+- [ ] `seed-needs` and `seed-categories` complete against RDS; taxonomy row counts match the local run
+- [ ] **The live Railway deployment was not touched** — its env vars and deployment history are
+      unchanged since the phase began
 
 ### Status: NOT STARTED (BLOCKED — Phase 0 AWS access)
 
 ---
 
-## PHASE 3 — Migrate assets and email to client-owned services
+## PHASE 3 — Point the AWS deployment at client-owned services
 
 ### Goal
 
-Point the new AWS deployment at the client's own object storage and sending domain, so nothing it
-serves depends on operator-owned accounts. **The live Railway deployment keeps using the shared
-accounts until it is decommissioned** — it is the rollback and must stay working.
+Ensure the new deployment depends on no operator-owned account. **The live Railway deployment keeps
+using the shared accounts until it is decommissioned** — it is the rollback and must stay working.
 
 ### Deliverables
 
 - Copy `courses/corporate-financial-education/**` (118 slides at 1600px, plus audio if the client
   recordings have landed) from `dmt-uploads` (R2) to the client's S3 bucket, preserving the key layout.
-- Point the AWS deployment's storage env at the client bucket (+ CloudFront public URL); verify slides
-  and audio load from the new origin.
+  Member portraits are not copied — there are none worth keeping, and new uploads land in S3 natively.
+- Point the AWS deployment's storage env at the client bucket (+ CloudFront public URL).
 - Configure email on the AWS deployment: the client's verified Resend domain, or SES per the Phase 0
-  decision. Verify a magic link round-trips to a real inbox and renders correctly.
+  decision.
 - Do **not** change the Railway service's env vars. Do **not** repoint `APP_URL` at
   `course.dynamichqi.com` on AWS until Phase 4's cutover — per the standing ordering rule in
   `clients.md`, never point `APP_URL` at a domain before it resolves to that deployment. Use a
@@ -501,6 +450,7 @@ accounts until it is decommissioned** — it is the rollback and must stay worki
 
 - [ ] Every slide in every lesson loads on the AWS deployment from the client bucket (spot-check
       first, middle, last lesson) with no mixed-content or 403 errors
+- [ ] A test portrait upload writes to the client bucket and renders
 - [ ] Magic-link email from the AWS deployment arrives from the client's domain and completes a login
       against the temporary hostname
 - [ ] No AWS env var references `dmt-uploads` or the shared Resend sender
@@ -510,66 +460,54 @@ accounts until it is decommissioned** — it is the rollback and must stay worki
 
 ---
 
-## PHASE 4 — Deploy, verify, and cut over DNS
+## PHASE 4 — Deploy, seed, verify, and cut over DNS
 
 ### Goal
 
-Run the forked, containerized codebase on AWS with the real data, verify it fully on a temporary
+Run the forked, containerized codebase on AWS, seed its content, verify it fully on a temporary
 hostname, then move `course.dynamichqi.com` to it — with Railway still live behind you.
 
 ### Deliverables
 
-**Order is load-bearing. Convert the migration history BEFORE the service starts, never after.**
+Steps, in order:
 
-The entrypoint runs `prisma migrate deploy` before the server process exists. If the service is
-started against a restored-but-unconverted database, that command finds `0_init` pending against a
-database that already has every table, fails on the first `CREATE TABLE`, and the task crash-loops.
-
-Steps, in this order:
-
-1. **Freeze writes on Railway** for the cutover window — the simplest form is a short announced
-   maintenance period; members logging in or completing lessons during the final sync would have
-   that progress lost. Record the chosen mechanism and its duration.
-2. Final `pg_dump` from Railway.
-3. Restore into RDS and replay the Phase 2 conversion transcript exactly (under Option B, the
-   conversion step is empty).
-4. `SELECT migration_name FROM _prisma_migrations` and confirm the rows match the fork's
-   `migrations/` directory exactly. Then verify `npx prisma migrate status` is clean.
-5. **Then** deploy the image to App Runner/ECS. Its boot-time `migrate deploy` is now a no-op.
-6. Full verification pass on the temporary hostname (below).
-7. Set `APP_URL` to `https://course.dynamichqi.com`, redeploy, and **then** move DNS. Magic links are
+1. Deploy the image to App Runner/ECS. The entrypoint applies `0_init` and both taxonomy seeds on a
+   database that Phase 2 already migrated, so this is a no-op migration and an idempotent reseed.
+2. `npm run bootstrap:admin` for the client's first admin account, and `npm run seed:course` to load
+   the founders education content.
+3. Full verification pass on the temporary hostname (below).
+4. Set `APP_URL` to `https://course.dynamichqi.com`, redeploy, and **then** move DNS. Magic links are
    built from `APP_URL`, so a link issued before this step points at the old host.
-8. Watch logs and health for an agreed soak period before Phase 5.
+5. Watch logs and health for an agreed soak period before Phase 5.
 
 **Rollback is DNS.** Point `course.dynamichqi.com` back at Railway, which has been running untouched
-throughout. Members lose only what they did on AWS during the soak — bounded by the soak length,
-which is why the soak comes before decommissioning rather than after.
+throughout. With no member data on either side, rollback costs nothing but time.
 
-Also decide here, per the Phase 1 caveat: keep `migrate deploy` in the entrypoint, or split it into a
-separate one-off migration task run before the service deploy. Record the decision.
+Also decide here, per the Phase 1 caveat: keep migrate + seeds in the entrypoint, or split them into a
+separate one-off task run before the service deploy. Record the decision.
 
 ### Exit Criteria
 
-- [ ] Write freeze announced and in effect for the sync window; mechanism and duration recorded
-- [ ] Final `pg_dump` taken and stored outside the repo
-- [ ] Migration-history conversion executed against RDS **before** the service starts, replaying the
-      Phase 2 transcript
-- [ ] `_prisma_migrations` rows match the fork's `migrations/` directory exactly, verified by
-      `SELECT`; `migrate status` clean with no "not in the local migrations directory" warnings
-- [ ] Deploy logs show `migrate deploy` applying nothing and the server reaching listen — no crash-loop
+- [ ] Deploy logs show `migrate deploy` applying nothing, both seeds completing, and the server
+      reaching listen — no crash-loop
 - [ ] `GET /health` green through the AWS health check (App Runner or ALB target group)
-- [ ] `GET /api/tenant` returns Dwimbs branding, `theme: "dynamichqi"`, and `requiresAccessApproval: true`
+- [ ] `GET /api/tenant` returns the client's branding, `theme: "dynamichqi"`, and
+      `requiresAccessApproval: true`
 - [ ] Landing page renders `BRAND_NAME` as H1 with the navy/gold skin
-- [ ] Magic-link login E2E to a real inbox: an **approved** member lands on `/courses`; a **new**
-      signup lands on the awaiting-approval page. Dwimbs runs with approval on, so "lands on
-      `/courses`" is not the correct expectation for a first-time user
-- [ ] No redirect loop and no 404 at any hop of `/auth/verify` → `/` → gate
+- [ ] Admin bootstrapped and able to sign in; course seeded
+- [ ] Magic-link login E2E to a real inbox: a **new** signup is created pending, builds a profile, and
+      is held at the approval gate; an **approved** member reaches `/people` and `/courses`. The
+      deployment runs with approval on, so immediate access is not the correct expectation for a
+      first-time user
+- [ ] No redirect loop and no 404 at any hop of `/auth/verify` → `/` → gate → `/people`
+- [ ] Member directory works end to end: profile creation with skills and categories, admin approval,
+      appearance in `/people`, skill and category filtering, profile detail, favoriting
+- [ ] Portrait upload writes to S3 and renders in both the directory and the profile
 - [ ] All 7 modules / 12 lessons render; native markdown, the breakeven calculator, and the deck
       fallback all work
-- [ ] An existing member's progress is intact; a knowledge check gives instant feedback; a module quiz
-      grades under the 2-attempt / 70% rules
-- [ ] Admin: users list loads, pending queue approves a real test signup, suspend/reinstate work
-- [ ] No 404s or dead links to removed community routes anywhere in the shipped UI
+- [ ] A knowledge check gives instant feedback; a module quiz grades under the 2-attempt / 70% rules
+- [ ] Admin: users list, user detail, suspend/reinstate, approval queue, and profile review all work
+- [ ] No 404s or dead links to removed project/job/billing routes anywhere in the shipped UI
 - [ ] `APP_URL` updated and redeployed **before** the DNS change; a magic link issued after cutover
       contains the custom domain
 - [ ] DNS moved; `https://course.dynamichqi.com/health` green on AWS with a valid certificate
@@ -587,35 +525,34 @@ separate one-off migration task run before the service deploy. Record the decisi
 Hand over the repo and the operational knowledge, then shut down the Railway deployment.
 
 There is no infrastructure transfer in this phase — the AWS account was the client's from Phase 2
-onward. That is the main simplification over the superseded Railway-transfer plan.
+onward.
 
 ### Deliverables
 
 - Push the fork to the DYNAMICHQI GitHub organization; grant their team admin.
 - Hand over the ops runbook: Docker build (including the `VITE_*` build args), ECR push, App
   Runner/ECS deploy, RDS connection and backup policy, S3/CloudFront asset layout, the email API key,
-  the admin bootstrap procedure, the `seed:course` content workflow, and how to add lesson content.
+  the admin bootstrap procedure, the `seed:course` content workflow, how the taxonomy seeds work and
+  when to re-run them, and how to add lesson content.
 - Confirm every secret lives in the client's Secrets Manager and no operator-held credential is still
   in use by the running service.
 - Remove or reassign your operator admin account per the agreement.
 - Remove your IAM access to the client AWS account once they confirm they can deploy unaided.
-- Hand the final `pg_dump` to the client as their own backup.
 - **Decommission Railway last**: delete the `dwimbs-app` service and its Postgres, and remove the
   Dwimbs custom domain. Do this only after the soak period passes and the client has confirmed
-  acceptance in writing — it is the point of no return for rollback.
+  acceptance in writing.
 
 ### Exit Criteria
 
 - [ ] Repo lives in the DYNAMICHQI org with their team as admins
 - [ ] Runbook delivered and acknowledged
 - [ ] Client engineer independently builds the image and deploys it end to end, unaided
-- [ ] A client admin completes a magic-link login on `course.dynamichqi.com`
+- [ ] A client admin completes a magic-link login on `course.dynamichqi.com` and approves a real signup
 - [ ] No operator-held credential is referenced by the running service
 - [ ] Operator admin account removed or explicitly retained by agreement
 - [ ] Operator IAM access to the client AWS account removed
 - [ ] Client acceptance in writing
-- [ ] Railway `dwimbs-app` service and its Postgres deleted; final dump handed over first
-- [ ] Client notified that the `SESSION_SECRET` change logged all members out at cutover
+- [ ] Railway `dwimbs-app` service and its Postgres deleted
 
 ### Status: NOT STARTED
 
@@ -644,9 +581,8 @@ Remove what you no longer have a reason to hold, and make the registry truthful.
   work it can be a record of a completed port, which is what makes the next AWS client cheap.
 - Consider whether removing Dwimbs as a reference deployment changes the Yard Line plan's assumptions.
 - Consider whether to port the storage generalization back into this repo. It is provider-neutral,
-  low-risk, and the prerequisite for any future AWS client. **Do not port the Dockerfile** without
-  its own rollout — Railway prefers it over nixpacks and it would change the Detroit and Yard Line
-  builds.
+  low-risk, and the prerequisite for any future AWS client. **Do not port the Dockerfile** without its
+  own rollout — Railway prefers it over nixpacks and it would change the Detroit and Yard Line builds.
 
 ### Exit Criteria
 
@@ -665,19 +601,18 @@ Remove what you no longer have a reason to hold, and make the registry truthful.
 
 | Risk | Mitigation |
 |---|---|
-| Data loss migrating Railway → RDS | The live Railway DB is never modified; it is dumped, not moved. Full rehearsal in Phase 2 against a restored copy, restore procedure scripted and re-run twice, final dump taken at cutover, Railway kept live through the soak |
-| Writes during the final sync are lost | Phase 4 step 1 declares an explicit write freeze with a recorded mechanism and duration, rather than assuming a quiet window |
-| Approval flow gap strands new signups | Phase 1 builds user-level approve/reject with tests before anything deploys |
-| Starting the service before converting the history crash-loops the task | Phase 4 fixes the order explicitly: restore, convert, verify rows by `SELECT` + clean `migrate status`, then deploy. The entrypoint migrates before the server starts, so there is no post-deploy recovery |
-| Dockerfile diverges from the nixpacks build and breaks in a way only prod reveals | Phase 1 exit criteria verify the image locally against the SPA specifically, the branding build args, `HOST=0.0.0.0`, and openssl/Prisma — the four failure modes that a passing `docker build` does not catch |
+| **The "no real data" premise turns out to be wrong** | This is now the plan's central assumption and its biggest single risk — every simplification in Phases 2 and 4 depends on it. Phase 0 requires written client confirmation plus corroborating row counts. If real accounts exist, the dump → restore → `_prisma_migrations` conversion work returns and this plan must be rewritten before Phase 4 |
+| Dockerfile diverges from the nixpacks build and breaks in a way only prod reveals | Phase 1 exit criteria verify the image locally against the SPA specifically, the entrypoint's migrate+seed sequence, the branding build args, `HOST=0.0.0.0`, and openssl/Prisma — the failure modes a passing `docker build` does not catch |
 | Adding a Dockerfile silently changes Detroit and Yard Line builds | The Dockerfile is written only in the fork, never upstream; Phase 6 explicitly declines to port it without its own rollout |
-| `reject` with no enum value ships as a silent no-op or a crash | Settled-design gate blocks Phase 1 completion until route, UI wording, re-registration, and reinstate agree; `0_init` is resolved-not-run, so a new enum value needs a second real migration |
-| History conversion leaves the DB and `migrations/` divergent | Phase 2 verifies row-for-row by `SELECT` and requires a warning-free `migrate status`; Option B is a documented fallback that needs no conversion at all |
-| Migrations on every autoscaled task add latency or contend | Prisma's advisory lock serializes them; Phase 4 decides explicitly whether to split migration into a separate one-off task |
+| Deleting projects/jobs breaks retained profile code through shared relations | The pruned relation fields are enumerated in Phase 1; `prisma validate`, `tsc --noEmit`, and the retained profile/skill/favorite test suites are the check |
+| Taxonomy seeds fail or duplicate on repeated container starts | Both are upsert-based; Phase 1 proves idempotency by starting a second container and diffing row counts, rather than assuming it |
+| Re-seeding the taxonomy errors against populated profiles | `ProfileSkill` → `NeedOption` is `onDelete: Restrict`, so seeds must stay upsert-only — never delete-and-recreate. Noted in the runbook |
+| Directory ships empty and reads as broken | Phase 0 decides the empty-state behavior deliberately (seed placeholders, empty-state design, or hide until a threshold) |
+| Migrations and seeds on every autoscaled task add latency | Prisma's advisory lock serializes migrations; Phase 4 decides explicitly whether to split them into a separate one-off task |
 | Client org guardrails block the public asset bucket | Surfaced in Phase 0 before any provisioning, with CloudFront + origin access control as the documented alternative |
 | Magic links issued with the wrong host at cutover | `APP_URL` is updated and redeployed before the DNS move, and a post-cutover link is inspected as an exit criterion |
-| Pages-only deletion leaves dead community code shipping | Phase 1 exit greps cover `web/src`, plus `tsc --noEmit` and a bundle check |
-| Undefined license lets the client resell your platform against Yard Line | Phase 0 blocks all client-facing work until terms are written |
+| Pages-only deletion leaves dead code shipping | Phase 1 exit greps cover `web/src`, plus `tsc --noEmit` and a bundle check |
+| Undefined license lets the client resell your platform against Yard Line | Phase 0 blocks all client-facing work until terms are written. Retaining profiles makes the fork closer to Yard Line's product, which raises the stakes on this |
 | Another client's data leaks in the fork | Phase 1 exit criteria greps for it; `.claude/docs/` deleted wholesale |
 | Clean break leaves them unpatched on a future auth bug | Acknowledged in writing in Phase 0; not a technical mitigation |
 | Railway deleted too early, removing the rollback | Phase 5 gates decommissioning on a completed soak and written client acceptance |
@@ -687,15 +622,16 @@ Remove what you no longer have a reason to hold, and make the registry truthful.
 ## Out of Scope (explicitly deferred)
 
 - Any shared/upstream relationship between the fork and this repo — the break is clean by decision.
+- Migrating anything from the Railway database. It is test data and is discarded.
 - Multi-AZ, multi-region, or autoscaling design beyond the defaults of the chosen compute target.
-  The current deployment serves a small cohort; sizing is the client's to grow.
 - Infrastructure-as-code (Terraform/CDK) for the AWS resources. Phase 2 provisions them directly and
   documents them; converting to IaC is the client's work under the clean break.
 - CI/CD for the fork. The runbook covers manual build-and-deploy; wiring GitHub Actions to ECR is
   theirs to add.
 - Running Railway and AWS in parallel as a steady state. Railway exists only as rollback and is
   deleted in Phase 5.
-- Dropping the orphan community tables from the migrated database — inert, and destructive to remove.
+- Rebuilding the supply↔demand matching that `ProjectMatches` provided. Skills are retained as
+  profile metadata and directory filters; without projects there is no demand side to match against.
 - Extracting a reusable course-platform product for your own use. Yard Line continues on this repo.
 - Any change to the Detroit or Yard Line deployments before Phase 6.
 
@@ -703,11 +639,12 @@ Remove what you no longer have a reason to hold, and make the registry truthful.
 
 ## End State
 
-1. DYNAMICHQI owns a standalone, containerized course-platform repo — no community code, no other
+1. DYNAMICHQI owns a standalone, containerized repo — no project, job, or billing code, no other
    client's material, licensed on agreed terms — running in their own AWS account.
-2. `course.dynamichqi.com` serves the same course experience on the client's own App Runner/ECS, RDS,
-   S3, and sending domain, with all member accounts and lesson progress preserved.
-3. Access approval works without `Profile`, via a user-level admin queue.
+2. `course.dynamichqi.com` serves the founders education course plus a member directory with
+   profiles, skills, categories, and favorites, on the client's own App Runner/ECS, RDS, S3, and
+   sending domain.
+3. Member approval works exactly as it does here, through the existing profile review queue.
 4. The Railway `dwimbs-app` service is deleted; no operator-owned account serves any part of the
    client's product.
 5. This repo keeps Detroit and Yard Line running unchanged, no longer holds the client's course
