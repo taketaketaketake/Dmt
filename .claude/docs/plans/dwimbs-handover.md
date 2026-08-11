@@ -22,6 +22,44 @@ access are not yet settled. The configured `default` AWS profile currently fails
 `sts:GetCallerIdentity` with `InvalidClientTokenId` — which is exactly the failure Phase 0's
 credential check exists to surface, and it blocks Phase 2 entirely.
 
+### Phase 1 audit — 2026-08-11
+
+Independently re-verified against `dynamichqi-course` at `8c9d837`, running the commands rather than
+trusting the earlier "locally validated" note. **Passed**, with two findings and five criteria that
+cannot be closed until AWS access exists.
+
+Verified green: leakage greps (no Yard Line / Detroit / nixpacks / Railway / Stripe / project / job
+references anywhere in source or the built bundle); schema pruned to exactly the 17 intended models
+with `stripeCustomerId`, `isEmployer`, and `projectFollows` gone from `User`; single `0_init`
+migration; correct four seeds retained; `prisma validate`; server build; **138 server tests and 42 web
+tests passing**; `tsc --noEmit` clean; web build. `docker build` succeeds, and the image was run
+against Postgres 16: migrate + both seeds + listen with no crash-loop, `/health` 200,
+`/api/tenant` returning the right branding and `theme: "dynamichqi"`, the SPA served at `/`, `/people`
+resolving through the SPA fallback, branding confirmed baked into the JS bundle, `HOST=0.0.0.0`
+proven by reaching it from outside the container, and **restart idempotency proven by row counts** —
+taxonomy stayed at 8/40/15 across two boots rather than duplicating. The database contained exactly
+the expected tables and nothing from the removed surface.
+
+**Finding 1 — the runtime image ships the full dev toolchain.** The runtime stage copies
+`server/node_modules` wholesale from the build stage, where it was installed with `--include=dev`, so
+`vite`, `vitest`, and `typescript` are all present in production: 400 MB of `node_modules` in a 610 MB
+image. The entrypoint genuinely needs `tsx` and `prisma`, which is why a blanket `--omit=dev` install
+would break it. The fix is to move `tsx` and `prisma` into `dependencies` and give the runtime stage
+its own production install. Not a correctness bug — image size, cold-start time, and attack surface.
+
+**Finding 2 — the plan and the code disagree on the storage env var names.** Phase 1 specifies
+`S3_REGION` / `S3_ENDPOINT`; the implementation uses `STORAGE_REGION`, `STORAGE_ENDPOINT`,
+`STORAGE_ACCESS_KEY_ID`, `STORAGE_SECRET_ACCESS_KEY`, `STORAGE_BUCKET`, `STORAGE_PUBLIC_URL`, with
+credentials optional so AWS can use an IAM runtime role. The implementation is the better design and
+is what the runbook must document; the plan text below is the stale one. Treat `STORAGE_*` as
+authoritative.
+
+**Cannot be closed until Phase 0 grants AWS access:** the real-S3 upload test, the portrait upload
+round-trip, the interactive end-to-end smoke (magic link → profile → approval → directory → lesson →
+quiz), the reject-path smoke, and the negative half of the branding test (that a runtime-only
+`VITE_BRAND_NAME` does *not* change the rendered page). Phase 1 stays IN PROGRESS until these are
+done — a green build and green tests are not the same as a working product.
+
 ---
 
 ## Phase Completion Rules
